@@ -10,7 +10,7 @@ var mainState = function (game) { };
 
 mainState.prototype = {
     preload: function () {
-        game.load.script('mainMenu', 'Scripts/mainmenu.js');
+        game.load.script('mainMenu', 'Scripts/mainmenu1.js');
         game.load.script('game', 'Scripts/game.js');
         game.load.script('credits', 'Scripts/Scenes/credits.js');
         game.load.script('cards', 'Scripts/Scenes/cards.js');

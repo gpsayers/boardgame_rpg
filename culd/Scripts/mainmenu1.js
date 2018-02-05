@@ -40,8 +40,9 @@ mainMenu.prototype = {
         this.addMenuOption('Start New', function () {
             this.newGame();
 
-            game.state.start("game");
-            //game.state.start("create");
+            //game.state.start("game");
+            game.state.start("credits");
+
         });
 
         //this.addMenuOption('Continue', function () {
@@ -58,9 +59,9 @@ mainMenu.prototype = {
         //   saveGame();
         //});
 
-        //        this.addMenuOption('Test', function () {
-        //            game.state.start('test');
-        //        });
+        this.addMenuOption('Test', function () {
+            game.state.start('game');
+        });
 
 
     },
@@ -92,8 +93,8 @@ mainMenu.prototype = {
             txt.useHandCursor = false;
         };
 
-        //txt.useHandCursor = true;
         txt.inputEnabled = true;
+
         txt.events.onInputUp.add(callback, this);
         txt.events.onInputOver.add(onOver, this);
         txt.events.onInputOut.add(onOut, this);
@@ -104,7 +105,7 @@ mainMenu.prototype = {
     },
 
     newGame: function () {
-        localStorage.removeItem('gameVariables');
+        //localStorage.removeItem('gameVariables');
     }
 
 };
