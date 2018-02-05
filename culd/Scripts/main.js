@@ -2,8 +2,8 @@
  * Created by Garth on 2/3/2018.
  */
 var gameProperties = {
-    screenWidth: 640,
-    screenHeight: 470
+    screenWidth: 800,
+    screenHeight: 570
 };
 
 var mainState = function (game) { };
@@ -13,7 +13,7 @@ mainState.prototype = {
         game.load.script('mainMenu', 'Scripts/mainmenu.js');
         game.load.script('game', 'Scripts/game.js');
         game.load.script('credits', 'Scripts/Scenes/credits.js');
-
+        game.load.script('cards', 'Scripts/Scenes/cards.js');
     },
     create: function () {
         game.state.add('mainMenu', mainMenu);
