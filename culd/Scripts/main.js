@@ -6,6 +6,21 @@ var gameProperties = {
     screenHeight: 570
 };
 
+var gameVariables = {
+    playerTurn: false,
+    computerTurn: false,
+    playerName: "Bastion",
+    playerGold: 100,
+    playerMana: 0,
+    playerHand: [],
+    playerDeck: [],
+    playerImg: "wizard",
+    currentBoard: "board1",
+    playerColor: "Blue",
+    playerClass: "Wizard"
+
+}
+
 var mainState = function (game) { };
 
 mainState.prototype = {
@@ -14,6 +29,13 @@ mainState.prototype = {
         game.load.script('game', 'Scripts/game.js');
         game.load.script('credits', 'Scripts/Scenes/credits.js');
         game.load.script('cards', 'Scripts/Scenes/cards.js');
+
+        game.load.script('board1', 'Scripts/Scenes/board1.js');
+
+        game.load.image('cavalier', 'Assets/Players/cavalier.png');
+        game.load.image('wizard', 'Assets/Players/wizard.png');
+        game.load.image('sorceress', 'Assets/Players/sorceress.png');
+        game.load.image('thief', 'Assets/Players/thief.png');
     },
     create: function () {
         game.state.add('mainMenu', mainMenu);

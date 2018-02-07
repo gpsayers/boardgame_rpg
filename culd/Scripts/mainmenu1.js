@@ -1,21 +1,5 @@
 ﻿var mainMenu = function () { };
 
-var gameVariables = {
-    gamePlay: {
-        playerMovement: 75,
-        tweenSpeed: 500,
-        playerMoving: false,
-        playerCollide: true,
-    },
-    player: {},
-
-    Mobs: {},
-
-    battleVariables: {},
-
-};
-
-var playerName;
 
 mainMenu.prototype = {
 
