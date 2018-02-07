@@ -16,6 +16,8 @@ var player = {};
 var back_layer = {};
 var board_layer = {};
 var player_layer = {};
+var dirChoice = "";
+var playerDestinations = [];
 
 
 gameMain.prototype = {
@@ -26,8 +28,6 @@ gameMain.prototype = {
         //background image
         game.load.image('dirt', 'Assets/dirt4.png');
 
-
-        game.load.image('menu', 'Assets/GUI/Menu.png');
 
         //board squares
         game.load.image('fire', 'Assets/red.png');
@@ -60,7 +60,15 @@ gameMain.prototype = {
         game.load.image('summon', 'Assets/Cards/summon_ugly_thing.png');
         game.load.image('centaur', 'Assets/Cards/centaur.png');
 
-        game.load.spritesheet('button', 'Assets/GUI/diceButtonsSpritesheet.png', 404, 177);
+        //GUI and buttons
+        game.load.image('menu', 'Assets/GUI/Menu.png');
+        game.load.image('menu2', 'Assets/GUI/Menu_2.png');
+        game.load.image('cursor', 'Assets/GUI/cursor.png');
+        game.load.spritesheet('diceButton', 'Assets/GUI/diceButtonsSpritesheet.png', 404, 177);
+        game.load.spritesheet('leftButton', 'Assets/GUI/leftButtonSpritesheet.png', 221, 229);
+        game.load.spritesheet('upButton', 'Assets/GUI/upButtonSpritesheet.png', 221, 229);
+        game.load.spritesheet('rightButton', 'Assets/GUI/rightButtonSpritesheet.png', 221, 229);
+        game.load.spritesheet('downButton', 'Assets/GUI/downButtonSpritesheet.png', 221, 229);
 
     },
     create: function () {
@@ -105,11 +113,23 @@ gameMain.prototype = {
             }
         }
 
+        cursor1 = game.add.sprite(1, 1, 'cursor');
+        cursor1.anchor.x = 0.5;
+        cursor1.anchor.y = 0.5;
+        cursor1.visible = false;
+        board_layer.add(cursor1);
+
+        cursor2 = game.add.sprite(1, 1, 'cursor');
+        cursor2.anchor.x = 0.5;
+        cursor2.anchor.y = 0.5;
+        cursor2.visible = false;
+        board_layer.add(cursor2);
+
         //Add dice roll sprites
         dice = game.add.sprite(game.width - 125, game.height - 150, '1');
         dice.width = 40;
         dice.height = 40;
-        button = game.add.button(game.width - 150, game.height - 75, 'button', actionOnClick, this, 1, 1, 4, 1);
+        button = game.add.button(game.width - 150, game.height - 75, 'diceButton', actionOnClick, this, 1, 1, 4, 1);
         button.width = 100;
         button.height = 44;
 
@@ -153,26 +173,89 @@ gameMain.prototype = {
 
         //Confirmation menu
         var style = { font: 'bold 15pt Arial', wordWrap: true, wordWrapWidth: 150, align: "center" };
-        menu = game.add.sprite(game.width / 2, game.height / 2, 'menu');
+        menu = game.add.sprite(game.width / 2, game.height / 2, 'menu2');
         menu.anchor.x = 0.5;
         menu.anchor.y = 0.5;
+        menu.visible = false;
         qText = game.add.text((game.width / 2), (game.height / 2) - 20, "Would you like to cast this spell?", style);
         qText.anchor.x = 0.5;
         qText.anchor.y = 0.5;
+        qText.visible = false;
         yesText = game.add.text((game.width / 2)-40, (game.height/ 2)+45, "Yes");
         yesText.anchor.x = 0.5;
         yesText.anchor.y = 0.5;
+        yesText.inputEnabled = true;
+        yesText.visible = false;
         noText = game.add.text((game.width / 2) + 40, (game.height / 2) + 45, "No");
         noText.anchor.x = 0.5;
         noText.anchor.y = 0.5;
+        noText.inputEnabled = true;
+        noText.visible = false;
+
+
+        //Direction confirmation menu
+        leftButt = game.add.button((game.width / 2 - 65), (game.height / 2) + 10, 'leftButton', dirButtonClick, this, 1, 1, 2, 1);
+        leftButt.width = 40;
+        leftButt.height = 40;
+        leftButt.direction = "left";
+        leftButt.visible = false;
+
+        upButt = game.add.button((game.width / 2 - 21), (game.height / 2) + 10, 'upButton', dirButtonClick, this, 1, 1, 2, 1);
+        upButt.width = 40;
+        upButt.height = 40;
+        upButt.direction = "up";
+        upButt.visible = false;
+        
+        rightButt = game.add.button((game.width / 2 + 25), (game.height / 2) + 10, 'rightButton', dirButtonClick, this, 1, 1, 2, 1);
+        rightButt.width = 40;
+        rightButt.height = 40;
+        rightButt.direction = "right";
+        rightButt.visible = false;
+
+
         pop_layer.add(menu);
         pop_layer.add(yesText);
         pop_layer.add(noText);
         pop_layer.add(qText);
-        pop_layer.visible = false;
+        pop_layer.add(leftButt);
+        pop_layer.add(upButt);
+        pop_layer.add(rightButt);
 
     },
     update: function () {
+
+        if (playerDestinations.length > 0) {
+            var cursorsFound = 0;
+            for (x = 0; x < playerDestinations.length; x++) {
+                for (i = 0; i < gameBoard.length; i++) {
+                    if (gameBoard[i].sprite.gameSquareId == playerDestinations[x]) {
+
+                        if (cursorsFound == 0) {
+                            cursor1.x = gameBoard[i].sprite.x;
+                            cursor1.y = gameBoard[i].sprite.y;
+
+                            cursor1.visible = true;
+                            cursorsFound++;
+                        }
+                        else {
+                            cursor2.x = gameBoard[i].sprite.x;
+                            cursor2.y = gameBoard[i].sprite.y;
+
+                            cursor2.visible = true;
+                        }
+
+                    }
+
+                }
+            }
+        }
+        else {
+
+        }
+        
+
+
+
         //for (i = 0; i < gameBoard.length; i++) {
         //    if (gameBoard[i].sprite.input.pointerOver()) {
         //        gameBoard[i].sprite.alpha = 0.5;
@@ -197,6 +280,10 @@ gameMain.prototype = {
 }
 
 function addGameCard() {
+
+}
+
+function displayDirMenu() {
 
 }
 
@@ -262,16 +349,14 @@ function addGameSquare(type, x, y, squareId, gridX, gridY) {
         }
 
     }
-
-
-
+    
     gameBoard.push(new gameSquare(squareId, x, y, sprite));
 
 }
 
 function cardClick(item) {
     console.log(item);
-
+    console.log(playerDestinations);
 
 }
 
@@ -312,6 +397,13 @@ function diceRoll(item) {
             break;
     }
 
+    cursor1.visible = false;
+    cursor2.visible = false;
+
+    playerDestinations.length = 0;
+
+    calculateDestinations(player.gameSquareId, roll);
+
     playerMove(player, roll);
 }
 
@@ -321,12 +413,17 @@ function actionOnClick() {
 
 }
 
+function dirButtonClick(item) {
+    console.log(item.direction);
+}
+
 function createMenu() {
 
 }
 
 function playerMove(playerSprite, roll) {
 
+    var nextPathIdArray = [];
 
     if (roll > 0) {
         var gameBoardResult = gameBoard.find(function (element) {
@@ -342,30 +439,37 @@ function playerMove(playerSprite, roll) {
                 return element == boardInfo.boardStart
             });
 
+            nextPathIdArray.push(boardPathId);
+
         } else if (playerSprite.gameSquareId == boardInfo.boardStart) {
 
-            var boardPathId = neighbors.find(function (element) {
+            var boardPathId = neighbors.filter(function (element) {
                 return element > playerSprite.gameSquareId && element != boardInfo.boardEnd
             });
 
+            nextPathIdArray.push(boardPathId[0]);
+
         } else {
-            var boardPathId = neighbors.find(function (element) {
+            var boardPathId = neighbors.filter(function (element) {
 
                 return element > playerSprite.gameSquareId
             });
+
+
+            nextPathIdArray.push(boardPathId[0]);
 
             //TODO: Add decisions by players for paths with multiple options.
         }
      
         var gameBoardDestResult = gameBoard.find(function (element) {
-            return element.sprite.gameSquareId == boardPathId
+            return element.sprite.gameSquareId == nextPathIdArray[0]
         });
         
         var tween = game.add.tween(playerSprite).to({ x: gameBoardDestResult.sprite.x, y: gameBoardDestResult.sprite.y }, 500, Phaser.Easing.Linear.None, true);
 
         //Callback to complete the rest of the roll
         tween.onComplete.add(function () {
-            playerSprite.gameSquareId = boardPathId;
+            playerSprite.gameSquareId = nextPathIdArray[0];
             playerMove(player, roll - 1);
         }, this);
 
@@ -373,6 +477,74 @@ function playerMove(playerSprite, roll) {
     else {
         button.inputEnabled = true;
     }
+
+
+}
+
+function calculateDestinations(currentSquareId, roll) {
+
+    if (roll > 0) {
+
+        var nextPathIdArray = [];
+        //Find current game board piece
+        var gameBoardResult = gameBoard.find(function (element) {
+            return element.sprite.gameSquareId == currentSquareId
+        });
+
+
+        var neighbors = Array2D.orthogonals(boardInfo.squares, gameBoardResult.sprite.gridY, gameBoardResult.sprite.gridX);
+
+
+        //Special cases if at end of board or beginning
+        if (currentSquareId == boardInfo.boardEnd) {
+
+            var boardPathId = neighbors.find(function (element) {
+                return element == boardInfo.boardStart
+            });
+
+            nextPathIdArray.push(boardPathId);
+
+        } else if (currentSquareId == boardInfo.boardStart) {
+
+            var boardPathId = neighbors.filter(function (element) {
+                return element > currentSquareId && element != boardInfo.boardEnd
+            });
+
+            nextPathIdArray = boardPathId;
+
+        } else {
+            var boardPathId = neighbors.filter(function (element) {
+
+                return element > currentSquareId
+            });
+
+
+            nextPathIdArray = boardPathId;
+
+            //TODO: Add decisions by players for paths with multiple options.
+        }
+
+        if (nextPathIdArray.length > 1) {
+
+            //Calculate each path at the fork
+            for (pathId = 0; pathId < nextPathIdArray.length; pathId++) {
+                calculateDestinations(nextPathIdArray[pathId], roll - 1);
+            }
+
+
+
+        }
+        else {
+            calculateDestinations(nextPathIdArray[0], roll - 1);
+
+
+        }
+    }
+    else {
+        playerDestinations.push(currentSquareId);
+
+    }
+
 
 
 }
