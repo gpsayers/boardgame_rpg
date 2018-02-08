@@ -1,8 +1,6 @@
 ﻿var gameMain = function () { };
 
 
-var gameBoard = [];
-
 function gameSquare(id, x, y, sprite) {
     this.id = id;
     this.x = x;
@@ -10,14 +8,23 @@ function gameSquare(id, x, y, sprite) {
     this.sprite = sprite;
 }
 
+function gameSquareCreature(cardId, squareId, sprite, hitpoints, armor, attack, def) {
+    this.cardId = cardId;
+    this.squareId = squareId;
+    this.sprite = sprite;
+    this.hitpoints = hitpoints;
+    this.armor = armor;
+    this.attack = attack;
+    this.def = def;
+}
+
+var gameBoard = [];
 var boardInfo = {};
-var dice = {};
-var player = {};
 var back_layer = {};
 var board_layer = {};
 var player_layer = {};
-var dirChoice = "";
 var playerDestinations = [];
+var playerDirChoiceMenu = false;
 var playerChoiceMenu = false;
 var playerRoll = 0;
 var activePlayerSquare = 0;
@@ -141,7 +148,7 @@ gameMain.prototype = {
         dice = game.add.sprite(game.width - 125, game.height - 150, '1');
         dice.width = 40;
         dice.height = 40;
-        button = game.add.button(game.width - 150, game.height - 75, 'diceButton', actionOnClick, this, 1, 1, 4, 1);
+        button = game.add.button(game.width - 150, game.height - 75, 'diceButton', diceRollButtonClick, this, 1, 1, 4, 1);
         button.width = 100;
         button.height = 44;
 
@@ -194,11 +201,13 @@ gameMain.prototype = {
         yesText.anchor.y = 0.5;
         yesText.inputEnabled = true;
         yesText.visible = false;
+        yesText.events.onInputUp.add(menuConfirmClick, this);
         noText = game.add.text((game.width / 2) + 40, (game.height / 2) + 45, "No");
         noText.anchor.x = 0.5;
         noText.anchor.y = 0.5;
         noText.inputEnabled = true;
         noText.visible = false;
+        noText.events.onInputUp.add(menuConfirmClick, this);
 
 
         //Direction confirmation menu
@@ -258,7 +267,7 @@ gameMain.prototype = {
         }
 
         //Display player direction choice menu
-        if (playerChoiceMenu == true) {
+        if (playerDirChoiceMenu == true) {
 
             var result = boardInfo.choiceSquares.find(function (element) {
                 return element.id == activePlayerSquare
@@ -282,6 +291,15 @@ gameMain.prototype = {
             }
         }
 
+        if (playerChoiceMenu == true) {
+            menu.visible = true;
+            qText.setText("Cast this spell?");
+            qText.visible = true;
+            yesText.visible = true;
+            yesText.choice = "yes";
+            noText.visible = true;
+            noText.choice = "no";
+        }
 
         //for (i = 0; i < gameBoard.length; i++) {
         //    if (gameBoard[i].sprite.input.pointerOver()) {
@@ -373,7 +391,52 @@ function addGameSquare(type, x, y, squareId, gridX, gridY) {
 }
 
 function cardClick(item) {
-    console.log(item);
+    playerChoiceMenu = true;
+    cardClicked = item.cardId;
+
+}
+
+function castSpell(id) {
+    var cardDetails = masterCardList.find(function(card) {
+        return card.id == id;
+    });
+
+    var boardSquareDetail = gameBoard.find(function (item) {
+        return item.id == player.gameSquareId;
+    });
+
+
+    if (cardDetails.creature == true && cardDetails.spell == false) {
+        //Basic summon creature spell to current player location
+
+        //Check if square already has a creature
+        var boardCreature = boardSquareDetail.creature || false;
+        if (boardCreature != false) {
+
+        } else {
+            boardSquareDetail.creature = new gameSquareCreature(cardDetails.id,boardSquareDetail.id,null,cardDetails.defense,0,cardDetails.attack,cardDetails.defense);
+        }
+
+        console.log(boardSquareDetail);
+
+        //Super awesome creature combat
+    }
+
+    console.log(boardSquareDetail);
+}
+
+function menuConfirmClick(item) {
+
+    if (item.choice == "yes") {
+        playerChoiceMenu = false;
+        castSpell(cardClicked);
+    }
+
+    playerChoiceMenu = false;
+    menu.visible = false;
+    qText.visible = false;
+    yesText.visible = false;
+    noText.visible = false;
 
 }
 
@@ -424,7 +487,7 @@ function diceRoll(item) {
     playerMove(player, roll);
 }
 
-function actionOnClick() {
+function diceRollButtonClick() {
     button.inputEnabled = false;
     diceRoll(dice);
 
@@ -432,7 +495,7 @@ function actionOnClick() {
 
 function dirButtonClick(item) {
     //Direction choice chosen. Hide popup and move player to choice. Then continue player move as normal.
-    playerChoiceMenu = false;
+    playerDirChoiceMenu = false;
     qText.visible = false;
     menu.visible = false;
     leftButt.visible = false;
@@ -497,7 +560,7 @@ function playerMove(playerSprite, roll) {
 
         if (nextPathIdArray.length > 1) {
             //If player has multiple choices start player choice menu and return.
-            playerChoiceMenu = true;
+            playerDirChoiceMenu = true;
             activePlayerSquare = playerSprite.gameSquareId;
             return;
         }
