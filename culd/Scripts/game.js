@@ -170,22 +170,22 @@ gameMain.prototype = {
             playerHand[i].sprite.events.onInputDown.add(cardClick, this);
 
             //Add card border
-            playerHand[i].sprite = game.add.sprite(110 * i + 100, game.height - 100, 'redFrame');
-            playerHand[i].sprite.width = 100;
-            playerHand[i].sprite.height = 140;
-            playerHand[i].sprite.anchor.x = 0.5;
-            playerHand[i].sprite.anchor.y = 0.5;
+            playerHand[i].cardBorder = game.add.sprite(110 * i + 100, game.height - 100, 'redFrame');
+            playerHand[i].cardBorder.width = 100;
+            playerHand[i].cardBorder.height = 140;
+            playerHand[i].cardBorder.anchor.x = 0.5;
+            playerHand[i].cardBorder.anchor.y = 0.5;
 
-            var cardImage = game.add.sprite(110 * i + 100, game.height - 110, playerHand[i].image);
-            cardImage.width = 70;
-            cardImage.height = 70;
-            cardImage.anchor.x = 0.5;
-            cardImage.anchor.y = 0.5;
+            playerHand[i].cardImage = game.add.sprite(110 * i + 100, game.height - 110, playerHand[i].image);
+            playerHand[i].cardImage.width = 70;
+            playerHand[i].cardImage.height = 70;
+            playerHand[i].cardImage.anchor.x = 0.5;
+            playerHand[i].cardImage.anchor.y = 0.5;
 
             var style = { font: "bold 10px Arial", fill: "#000000", wordWrap: true, wordWrapWidth: playerHand[i].sprite.width, align: "center" };
-            text = game.add.text(110 * i + 100, game.height - 150, playerHand[i].name, style);
-            text.anchor.set(0.5);
-            game.add.text(110 * i + 110, game.height - 60, playerHand[i].attack + "/" + playerHand[i].defense, {font: "15px bold Arial"});
+            playerHand[i].cardText = game.add.text(110 * i + 100, game.height - 150, playerHand[i].name, style);
+            playerHand[i].cardText.anchor.set(0.5);
+            playerHand[i].cardText1 = game.add.text(110 * i + 110, game.height - 60, playerHand[i].attack + "/" + playerHand[i].defense, { font: "15px bold Arial" });
 
 
         }
@@ -295,6 +295,7 @@ gameMain.prototype = {
             }
         }
 
+        //Player choice yes or no menu
         if (playerChoiceMenu == true) {
             menu.visible = true;
             qText.setText("Cast this spell?");
@@ -304,6 +305,25 @@ gameMain.prototype = {
             noText.visible = true;
             noText.choice = "no";
         }
+
+        //Display the player cards
+        for (var i = 0; i < playerHand.length; i++) {
+
+            //Add card front
+            var tween1 = game.add.tween(playerHand[i].sprite).to({ x: 110 * i + 100, y: game.height - 100},200,Phaser.Easing.Linear.None, false);
+
+            var tween2 = game.add.tween(playerHand[i].cardBorder).to({ x: 110 * i + 100, y: game.height - 100 }, 200, Phaser.Easing.Linear.None, false);
+            var tween3 = game.add.tween(playerHand[i].cardImage).to({ x: 110 * i + 100, y: game.height - 110 }, 200, Phaser.Easing.Linear.None, false);
+            var tween4 = game.add.tween(playerHand[i].cardText).to({ x: 110 * i + 100, y: game.height - 150 }, 200, Phaser.Easing.Linear.None, false);
+            var tween5 = game.add.tween(playerHand[i].cardText1).to({ x: 110 * i + 110, y: game.height - 60 }, 200, Phaser.Easing.Linear.None, false);
+            tween1.start();
+            tween2.start();
+            tween3.start();
+            tween4.start();
+            tween5.start();
+
+        }
+
 
         //for (i = 0; i < gameBoard.length; i++) {
         //    if (gameBoard[i].sprite.input.pointerOver()) {
@@ -428,51 +448,28 @@ function castSpell(id) {
             creatureSprite.anchor.y = 0.5;
             board_layer.add(creatureSprite);
             boardSquareDetail.creature.sprite = creatureSprite;
+
+            removeCardFromHand(id);
         }
 
-        console.log(boardSquareDetail);
 
 
     }
 
-    console.log(boardSquareDetail);
+
 }
 
 function removeCardFromHand(id) {
 
     for (i = 0; i < playerHand.length; i++) {
         if (playerHand[i].sprite.cardId == id) {
-            playerHand[i].sprite.kill();
+            playerHand[i].sprite.destroy();
+            playerHand[i].cardBorder.destroy();
+            playerHand[i].cardImage.destroy();
+            playerHand[i].cardText.destroy();
+            playerHand[i].cardText1.destroy();
+            playerHand.splice(i, 1);
         }
-
-        //    //Add card front
-        //    playerHand[i].sprite = game.add.sprite(110 * i + 100, game.height - 100, 'cardFront');
-        //playerHand[i].sprite.width = 100;
-        //playerHand[i].sprite.height = 140;
-        //playerHand[i].sprite.anchor.x = 0.5;
-        //playerHand[i].sprite.anchor.y = 0.5;
-        //playerHand[i].sprite.cardId = playerHand[i].id;
-        //playerHand[i].sprite.inputEnabled = true;
-        //playerHand[i].sprite.events.onInputDown.add(cardClick, this);
-
-        ////Add card border
-        //playerHand[i].sprite = game.add.sprite(110 * i + 100, game.height - 100, 'redFrame');
-        //playerHand[i].sprite.width = 100;
-        //playerHand[i].sprite.height = 140;
-        //playerHand[i].sprite.anchor.x = 0.5;
-        //playerHand[i].sprite.anchor.y = 0.5;
-
-        //var cardImage = game.add.sprite(110 * i + 100, game.height - 110, playerHand[i].image);
-        //cardImage.width = 70;
-        //cardImage.height = 70;
-        //cardImage.anchor.x = 0.5;
-        //cardImage.anchor.y = 0.5;
-
-        //var style = { font: "bold 10px Arial", fill: "#000000", wordWrap: true, wordWrapWidth: playerHand[i].sprite.width, align: "center" };
-        //text = game.add.text(110 * i + 100, game.height - 150, playerHand[i].name, style);
-        //text.anchor.set(0.5);
-        //game.add.text(110 * i + 110, game.height - 60, playerHand[i].attack + "/" + playerHand[i].defense, { font: "15px bold Arial" });
-
 
     }
 
