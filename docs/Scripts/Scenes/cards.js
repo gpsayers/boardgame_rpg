@@ -17,6 +17,25 @@
 var masterCardList = [];
 
 masterCardList.push(new card(1, "Bolt",             "Deal 3 damage.",                       1,      "common", 10,   false,  true,   0, 0, 3, "bolt"));
-masterCardList.push(new card(2, "Zombie",           "Zombie",                               1,      "common", 10,   true,   false,  2, 2, 0, "zombie"));
-masterCardList.push(new card(3, "Summon Sprite",    "Summon a sprite to an ajacent square.",1,      "common", 10,   true,   true,   1, 1, 0, "summon"));
-masterCardList.push(new card(4, "Sentry Centaur",   "Summon a Centaur and deal 2 damage",   1,      "common", 10,   true,   true,   1, 1, 2, "centaur"));
+masterCardList.push(new card(2, "Ogre Zombie",      "Summon Ogre Zombie",                   1,      "common", 10,   true,   false,  2, 2, 0, "zombie"));
+masterCardList.push(new card(3, "Summon Abyssal", "Summon an abyssal to an ajacent square.",1,      "common", 10,   true,   true,   1, 1, 0, "summon"));
+masterCardList.push(new card(4, "Sentry Centaur", "Summon a Centaur and deal 2 damage",     1,      "common", 10,   true,   true,   1, 1, 2, "centaur"));
+
+var cavalierCardList = [];
+
+var thiefCardList = [];
+
+var wizardCardList = [];
+
+var sorceressCardList = [];
+
+var fireCardList = [];
+
+var deathCardList = [];
+
+var waterCardList = [];
+
+var earthCardList = [];
+
+var lifeCardList = [];
+

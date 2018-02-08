@@ -18,6 +18,9 @@ var board_layer = {};
 var player_layer = {};
 var dirChoice = "";
 var playerDestinations = [];
+var playerChoiceMenu = false;
+var playerRoll = 0;
+var activePlayerSquare = 0;
 
 
 gameMain.prototype = {
@@ -41,6 +44,7 @@ gameMain.prototype = {
         game.load.image('chest', 'Assets/BoardElements/chest_2_closed.png');
         game.load.image('bluefountain', 'Assets/BoardElements/blue_fountain.png');
         game.load.image('trap', 'Assets/BoardElements/trap_blade.png');
+        game.load.image('door', 'Assets/BoardElements/open_door.png');
 
         //dice images
         game.load.image('1', 'Assets/front&side-1.png');
@@ -95,6 +99,14 @@ gameMain.prototype = {
                     addGameSquare("neutral", (50 * x) + 75, (50 * y) + 50, row[x], x, y);
                 }
                 if (row[x] == boardInfo.boardStart) {
+                    //Add starting door
+                    //var special = game.add.sprite((50 * x) + 75, (50 * y) + 50, 'door');
+                    //special.anchor.x = 0.5;
+                    //special.anchor.y = 0.5;
+                    //special.width= 50;
+                    //special.height = 50;
+                    //board_layer.add(special);
+
                     //Add player sprite
                     player = game.add.sprite(0, 0, gameVariables.playerImg);
 
@@ -152,16 +164,12 @@ gameMain.prototype = {
             playerHand[i].sprite.height = 140;
             playerHand[i].sprite.anchor.x = 0.5;
             playerHand[i].sprite.anchor.y = 0.5;
-            //playerHand[i].sprite.inputEnabled = true;
-            //playerHand[i].sprite.events.onInputDown.add(cardClick, this);
-
 
             var cardImage = game.add.sprite(110 * i + 100, game.height - 110, playerHand[i].image);
             cardImage.width = 70;
             cardImage.height = 70;
             cardImage.anchor.x = 0.5;
             cardImage.anchor.y = 0.5;
-
 
             var style = { font: "bold 10px Arial", fill: "#000000", wordWrap: true, wordWrapWidth: playerHand[i].sprite.width, align: "center" };
             text = game.add.text(110 * i + 100, game.height - 150, playerHand[i].name, style);
@@ -224,6 +232,7 @@ gameMain.prototype = {
     },
     update: function () {
 
+        //Display player destination cursors
         if (playerDestinations.length > 0) {
             var cursorsFound = 0;
             for (x = 0; x < playerDestinations.length; x++) {
@@ -243,17 +252,35 @@ gameMain.prototype = {
 
                             cursor2.visible = true;
                         }
-
                     }
-
                 }
             }
         }
-        else {
 
+        //Display player direction choice menu
+        if (playerChoiceMenu == true) {
+
+            var result = boardInfo.choiceSquares.find(function (element) {
+                return element.id == activePlayerSquare
+            });
+
+            menu.visible = true;
+            qText.setText("Please choose direction.");
+            qText.visible = true;
+
+            if (result.left > 0) {
+                leftButt.visible = true;
+                leftButt.choice = result.left;
+            }
+            if (result.up > 0) {
+                upButt.visible = true;
+                upButt.choice = result.up;
+            }
+            if (result.right > 0) {
+                rightButt.visible = true;
+                rightButt.choice = result.right;
+            }
         }
-        
-
 
 
         //for (i = 0; i < gameBoard.length; i++) {
@@ -276,14 +303,6 @@ gameMain.prototype = {
         //    }
         //}
     }
-
-}
-
-function addGameCard() {
-
-}
-
-function displayDirMenu() {
 
 }
 
@@ -311,7 +330,6 @@ function addGameSquare(type, x, y, squareId, gridX, gridY) {
 
             break;
     }
-
 
     sprite.width = 50;
     sprite.height = 50;
@@ -356,7 +374,6 @@ function addGameSquare(type, x, y, squareId, gridX, gridY) {
 
 function cardClick(item) {
     console.log(item);
-    console.log(playerDestinations);
 
 }
 
@@ -414,14 +431,34 @@ function actionOnClick() {
 }
 
 function dirButtonClick(item) {
-    console.log(item.direction);
+    //Direction choice chosen. Hide popup and move player to choice. Then continue player move as normal.
+    playerChoiceMenu = false;
+    qText.visible = false;
+    menu.visible = false;
+    leftButt.visible = false;
+    upButt.visible = false;
+    rightButt.visible = false;
+
+    var gameBoardResult = gameBoard.find(function (element) {
+        return element.sprite.gameSquareId == item.choice
+    });
+
+    var tween = game.add.tween(player).to({ x: gameBoardResult.sprite.x, y: gameBoardResult.sprite.y }, 500, Phaser.Easing.Linear.None, true);
+
+    //Callback to complete the rest of the roll
+    tween.onComplete.add(function () {
+        player.gameSquareId = item.choice;
+        playerDestinations.length = 0;
+
+        playerMove(player, playerRoll - 1);
+    }, this);
+
 }
 
-function createMenu() {
-
-}
 
 function playerMove(playerSprite, roll) {
+
+    playerRoll = roll;
 
     var nextPathIdArray = [];
 
@@ -447,7 +484,7 @@ function playerMove(playerSprite, roll) {
                 return element > playerSprite.gameSquareId && element != boardInfo.boardEnd
             });
 
-            nextPathIdArray.push(boardPathId[0]);
+            nextPathIdArray = boardPathId;
 
         } else {
             var boardPathId = neighbors.filter(function (element) {
@@ -455,10 +492,14 @@ function playerMove(playerSprite, roll) {
                 return element > playerSprite.gameSquareId
             });
 
+            nextPathIdArray = boardPathId;
+        }
 
-            nextPathIdArray.push(boardPathId[0]);
-
-            //TODO: Add decisions by players for paths with multiple options.
+        if (nextPathIdArray.length > 1) {
+            //If player has multiple choices start player choice menu and return.
+            playerChoiceMenu = true;
+            activePlayerSquare = playerSprite.gameSquareId;
+            return;
         }
      
         var gameBoardDestResult = gameBoard.find(function (element) {
@@ -477,12 +518,11 @@ function playerMove(playerSprite, roll) {
     else {
         button.inputEnabled = true;
     }
-
-
 }
 
-function calculateDestinations(currentSquareId, roll) {
 
+function calculateDestinations(currentSquareId, roll) {
+    //Used to calculate cursor location to mark player move.
     if (roll > 0) {
 
         var nextPathIdArray = [];
@@ -491,9 +531,7 @@ function calculateDestinations(currentSquareId, roll) {
             return element.sprite.gameSquareId == currentSquareId
         });
 
-
         var neighbors = Array2D.orthogonals(boardInfo.squares, gameBoardResult.sprite.gridY, gameBoardResult.sprite.gridX);
-
 
         //Special cases if at end of board or beginning
         if (currentSquareId == boardInfo.boardEnd) {
@@ -517,34 +555,23 @@ function calculateDestinations(currentSquareId, roll) {
 
                 return element > currentSquareId
             });
-
-
             nextPathIdArray = boardPathId;
-
-            //TODO: Add decisions by players for paths with multiple options.
         }
 
         if (nextPathIdArray.length > 1) {
 
-            //Calculate each path at the fork
+            //Calculate each path at the fork recursively
             for (pathId = 0; pathId < nextPathIdArray.length; pathId++) {
                 calculateDestinations(nextPathIdArray[pathId], roll - 1);
             }
-
-
-
         }
         else {
             calculateDestinations(nextPathIdArray[0], roll - 1);
-
-
         }
     }
     else {
         playerDestinations.push(currentSquareId);
-
     }
-
 
 
 }

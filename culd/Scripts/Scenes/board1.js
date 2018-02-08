@@ -11,9 +11,15 @@
     ],
     boardStart: 1,
     boardEnd: 33,
-    specialSquares: [[10,"T"],[25,"C"],[31,"B"]]
+    specialSquares: [[10, "T"], [25, "C"], [31, "B"]],
+    choiceSquares: []
 }
 
+//[[test = {id: 10, left: 11, up: 20, right: 0 }]]
+
+var choices = { id: 10, left: 11, up: 20, right: 0 }
+
+board1.choiceSquares.push(choices);
 
 
 
