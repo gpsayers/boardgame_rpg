@@ -70,6 +70,10 @@ gameMain.prototype = {
         game.load.image('bolt', 'Assets/Cards/bolt_of_fire_new.png');
         game.load.image('summon', 'Assets/Cards/summon_ugly_thing.png');
         game.load.image('centaur', 'Assets/Cards/centaur.png');
+        game.load.image('rat', 'Assets/Cards/rat.png');
+        game.load.image('turtle', 'Assets/Cards/turtle.png');
+        game.load.image('bear', 'Assets/Cards/bear.png');
+        game.load.image('spider', 'Assets/Cards/spider.png');
 
         //GUI and buttons
         game.load.image('menu', 'Assets/GUI/Menu.png');
@@ -405,24 +409,73 @@ function castSpell(id) {
         return item.id == player.gameSquareId;
     });
 
-
+    //Check if basic summon creature spell to current player location
     if (cardDetails.creature == true && cardDetails.spell == false) {
-        //Basic summon creature spell to current player location
-
+        
         //Check if square already has a creature
         var boardCreature = boardSquareDetail.creature || false;
         if (boardCreature != false) {
+            //Creature already exists!
+            //Super awesome creature combat
+
 
         } else {
-            boardSquareDetail.creature = new gameSquareCreature(cardDetails.id,boardSquareDetail.id,null,cardDetails.defense,0,cardDetails.attack,cardDetails.defense);
+            boardSquareDetail.creature = new gameSquareCreature(cardDetails.id, boardSquareDetail.id, null, cardDetails.defense, 0, cardDetails.attack, cardDetails.defense);
+            var creatureSprite = game.add.sprite(boardSquareDetail.sprite.x, boardSquareDetail.sprite.y, cardDetails.image);
+            creatureSprite.width = 45;
+            creatureSprite.height = 45;
+            creatureSprite.anchor.x = 0.5;
+            creatureSprite.anchor.y = 0.5;
+            board_layer.add(creatureSprite);
+            boardSquareDetail.creature.sprite = creatureSprite;
         }
 
         console.log(boardSquareDetail);
 
-        //Super awesome creature combat
+
     }
 
     console.log(boardSquareDetail);
+}
+
+function removeCardFromHand(id) {
+
+    for (i = 0; i < playerHand.length; i++) {
+        if (playerHand[i].sprite.cardId == id) {
+            playerHand[i].sprite.kill();
+        }
+
+        //    //Add card front
+        //    playerHand[i].sprite = game.add.sprite(110 * i + 100, game.height - 100, 'cardFront');
+        //playerHand[i].sprite.width = 100;
+        //playerHand[i].sprite.height = 140;
+        //playerHand[i].sprite.anchor.x = 0.5;
+        //playerHand[i].sprite.anchor.y = 0.5;
+        //playerHand[i].sprite.cardId = playerHand[i].id;
+        //playerHand[i].sprite.inputEnabled = true;
+        //playerHand[i].sprite.events.onInputDown.add(cardClick, this);
+
+        ////Add card border
+        //playerHand[i].sprite = game.add.sprite(110 * i + 100, game.height - 100, 'redFrame');
+        //playerHand[i].sprite.width = 100;
+        //playerHand[i].sprite.height = 140;
+        //playerHand[i].sprite.anchor.x = 0.5;
+        //playerHand[i].sprite.anchor.y = 0.5;
+
+        //var cardImage = game.add.sprite(110 * i + 100, game.height - 110, playerHand[i].image);
+        //cardImage.width = 70;
+        //cardImage.height = 70;
+        //cardImage.anchor.x = 0.5;
+        //cardImage.anchor.y = 0.5;
+
+        //var style = { font: "bold 10px Arial", fill: "#000000", wordWrap: true, wordWrapWidth: playerHand[i].sprite.width, align: "center" };
+        //text = game.add.text(110 * i + 100, game.height - 150, playerHand[i].name, style);
+        //text.anchor.set(0.5);
+        //game.add.text(110 * i + 110, game.height - 60, playerHand[i].attack + "/" + playerHand[i].defense, { font: "15px bold Arial" });
+
+
+    }
+
 }
 
 function menuConfirmClick(item) {
