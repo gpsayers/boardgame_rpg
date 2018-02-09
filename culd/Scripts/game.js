@@ -384,33 +384,23 @@ function addGameSquare(type, x, y, squareId, gridX, gridY) {
     sprite.gridY = gridY;
     board_layer.add(sprite);
 
-    for (i = 0; i < boardInfo.specialSquares.length; i++) {
-        var row = boardInfo.specialSquares[i];
-        if (row[0] == squareId && row[1] == "C") {
-            var special = game.add.sprite(x, y, 'chest');
+    var gs = new gameSquare(squareId, x, y, sprite);
+
+    for (i = 0; i < boardInfo.specialSquares.length; i++) {    
+
+        if (boardInfo.specialSquares[i].squareId == squareId) {
+
+            gs.special = boardInfo.specialSquares[i];
+            var special = game.add.sprite(x, y, boardInfo.specialSquares[i].type);
             special.anchor.x = 0.5;
             special.anchor.y = 0.5;
-
-            board_layer.add(special);
-        }
-        if (row[0] == squareId && row[1] == "B") {
-            var special = game.add.sprite(x, y, 'bluefountain');
-            special.anchor.x = 0.5;
-            special.anchor.y = 0.5;
-
-            board_layer.add(special);
-        }
-        if (row[0] == squareId && row[1] == "T") {
-            var special = game.add.sprite(x, y, 'trap');
-            special.anchor.x = 0.5;
-            special.anchor.y = 0.5;
-
+            gs.special.specialSprite = special;
             board_layer.add(special);
         }
 
     }
-    
-    gameBoard.push(new gameSquare(squareId, x, y, sprite));
+        
+    gameBoard.push(gs);
 
 }
 
@@ -459,6 +449,12 @@ function castSpell(id) {
 
 }
 
+function captureSquare(id) {
+    //Check for loot on the square
+
+
+}
+
 function removeCardFromHand(id) {
 
     for (i = 0; i < playerHand.length; i++) {
@@ -487,6 +483,10 @@ function menuConfirmClick(item) {
     qText.visible = false;
     yesText.visible = false;
     noText.visible = false;
+
+}
+
+function checkPlayerLandingSpot() {
 
 }
 

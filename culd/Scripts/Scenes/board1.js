@@ -11,15 +11,19 @@
     ],
     boardStart: 1,
     boardEnd: 33,
-    specialSquares: [[10, "T"], [25, "C"], [31, "B"]],
+    specialSquares: [],
     choiceSquares: []
-}
+};
 
 //[[test = {id: 10, left: 11, up: 20, right: 0 }]]
 
-var choices = { id: 10, left: 11, up: 20, right: 0 }
 
-board1.choiceSquares.push(choices);
+board1.choiceSquares.push({ id: 10, left: 11, up: 20, right: 0 });
+
+
+board1.specialSquares.push({ squareId: 10, type: "trap", looted: 0 });
+board1.specialSquares.push({ squareId: 25, type: "chest", looted: 0 });
+board1.specialSquares.push({ squareId: 31, type: "bluefountain", looted: 0 });
 
 
 
