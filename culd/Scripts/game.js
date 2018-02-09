@@ -16,6 +16,7 @@ function gameSquareCreature(cardId, squareId, sprite, hitpoints, armor, attack, 
     this.armor = armor;
     this.attack = attack;
     this.def = def;
+    this.hitsprite = {};
 }
 
 var gameBoard = [];
@@ -40,18 +41,19 @@ gameMain.prototype = {
 
 
         //board squares
-        game.load.image('fire', 'Assets/red.png');
-        game.load.image('water', 'Assets/blue.png');
+        game.load.image('red', 'Assets/red.png');
+        game.load.image('blue', 'Assets/blue.png');
         game.load.image('neutral', 'Assets/neutral.png');
-        game.load.image('life', 'Assets/yellow.png');
-        game.load.image('death', 'Assets/purple.png');
-        game.load.image('earth', 'Assets/green.png');
+        game.load.image('yellow', 'Assets/yellow.png');
+        game.load.image('purple', 'Assets/purple.png');
+        game.load.image('green', 'Assets/green.png');
 
         //board elements
         game.load.image('chest', 'Assets/BoardElements/chest_2_closed.png');
         game.load.image('bluefountain', 'Assets/BoardElements/blue_fountain.png');
         game.load.image('trap', 'Assets/BoardElements/trap_blade.png');
         game.load.image('door', 'Assets/BoardElements/open_door.png');
+        game.load.image('gpix', 'Assets/GUI/greenPixel.png');
 
         //dice images
         game.load.image('1', 'Assets/front&side-1.png');
@@ -74,6 +76,7 @@ gameMain.prototype = {
         game.load.image('turtle', 'Assets/Cards/turtle.png');
         game.load.image('bear', 'Assets/Cards/bear.png');
         game.load.image('spider', 'Assets/Cards/spider.png');
+        game.load.image('yellow_wasp', 'Assets/Cards/yellow_wasp.png');
 
         //GUI and buttons
         game.load.image('menu', 'Assets/GUI/Menu.png');
@@ -84,6 +87,7 @@ gameMain.prototype = {
         game.load.spritesheet('upButton', 'Assets/GUI/upButtonSpritesheet.png', 221, 229);
         game.load.spritesheet('rightButton', 'Assets/GUI/rightButtonSpritesheet.png', 221, 229);
         game.load.spritesheet('downButton', 'Assets/GUI/downButtonSpritesheet.png', 221, 229);
+        game.load.image('dialog', 'Assets/GUI/paper-dialog.png');
 
     },
     create: function () {
@@ -91,16 +95,31 @@ gameMain.prototype = {
         if (gameVariables.currentBoard == "board1") {
             boardInfo = board1;
         }
+        var style = { font: 'bold 15pt Arial', wordWrap: true, wordWrapWidth: 150, align: "center" };
 
         back_layer = game.add.group();
         board_layer = game.add.group();
         player_layer = game.add.group();
         pop_layer = game.add.group();
 
-
+        //Build the background
         var tile = game.add.tileSprite(0, 0, game.width, game.height, 'dirt');
         back_layer.add(tile);
-
+        var playerArea = game.add.sprite(game.width - 50, game.height - 50, 'dialog');
+        playerArea.width = 400;
+        playerArea.height = 218;
+        playerArea.anchor.x = 1;
+        playerArea.anchor.y = 1;
+        back_layer.add(playerArea);
+        var pbs = game.add.sprite(game.width - 435, game.height - 258, gameVariables.playerColor);
+        var pb = game.add.sprite(game.width - 435, game.height - 258, gameVariables.playerImg);
+        pbs.width = 35;
+        pbs.height = 35;
+        var ptxt = game.add.text(game.width - 395, game.height - 255, gameVariables.playerName, style);
+        var drawtext = game.add.text(game.width - 435, game.height - 110, "Draw Card", style);
+        drawtext.inputEnabled = true;
+        drawtext.events.onInputUp.add(drawCard, this);
+        drawtext.visible = false;
 
         //Build the game board
         for (y = 0; y < boardInfo.squares.length; y++) {
@@ -152,7 +171,7 @@ gameMain.prototype = {
         dice = game.add.sprite(game.width - 125, game.height - 150, '1');
         dice.width = 40;
         dice.height = 40;
-        button = game.add.button(game.width - 150, game.height - 75, 'diceButton', diceRollButtonClick, this, 1, 1, 4, 1);
+        button = game.add.button(game.width - 170, game.height - 110, 'diceButton', diceRollButtonClick, this, 1, 1, 4, 1);
         button.width = 100;
         button.height = 44;
 
@@ -191,7 +210,7 @@ gameMain.prototype = {
         }
 
         //Confirmation menu
-        var style = { font: 'bold 15pt Arial', wordWrap: true, wordWrapWidth: 150, align: "center" };
+        var style = { font: "bold 15px Arial", fill: "#000000", align: "center" };
         menu = game.add.sprite(game.width / 2, game.height / 2, 'menu2');
         menu.anchor.x = 0.5;
         menu.anchor.y = 0.5;
@@ -244,6 +263,11 @@ gameMain.prototype = {
 
     },
     update: function () {
+
+        //Manage player turns
+        if (gameVariables.playerTurn == true) {
+
+        }
 
         //Display player destination cursors
         if (playerDestinations.length > 0) {
@@ -430,6 +454,7 @@ function castSpell(id) {
 
 
         } else {
+            //Square is empty place creature and capture
             boardSquareDetail.creature = new gameSquareCreature(cardDetails.id, boardSquareDetail.id, null, cardDetails.defense, 0, cardDetails.attack, cardDetails.defense);
             var creatureSprite = game.add.sprite(boardSquareDetail.sprite.x, boardSquareDetail.sprite.y, cardDetails.image);
             creatureSprite.width = 45;
@@ -439,7 +464,13 @@ function castSpell(id) {
             board_layer.add(creatureSprite);
             boardSquareDetail.creature.sprite = creatureSprite;
 
+            var creatureHitpoints = game.add.sprite(boardSquareDetail.sprite.x-10, boardSquareDetail.sprite.y + 17, 'gpix');
+            creatureHitpoints.width = 20;
+            creatureHitpoints.height = 3;
+
             removeCardFromHand(id);
+
+            captureSquare(player.gameSquareId);
         }
 
 
@@ -453,6 +484,12 @@ function captureSquare(id) {
     //Check for loot on the square
 
 
+    //Claim the square color
+    var boardSquareDetail = gameBoard.find(function (item) {
+        return item.id == id;
+    });
+
+    boardSquareDetail.sprite.loadTexture(gameVariables.playerColor);
 }
 
 function removeCardFromHand(id) {
@@ -486,8 +523,13 @@ function menuConfirmClick(item) {
 
 }
 
-function checkPlayerLandingSpot() {
+function drawCard() {
 
+    var res = masterCardList.find(function (item) {
+        return item.id == 7;
+    });
+
+    playerHand.push(res);
 }
 
 //function listener(item) {

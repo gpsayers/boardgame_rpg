@@ -1,22 +1,25 @@
 ﻿/**
  * Created by Garth on 2/3/2018.
  */
+
+
 var gameProperties = {
-    screenWidth: 800,
-    screenHeight: 570
+    screenWidth: Math.min(( window.innerWidth * window.devicePixelRatio),1200),
+    screenHeight: Math.min((window.innerHeight * window.devicePixelRatio),800)
 };
 
 var gameVariables = {
     playerTurn: false,
     computerTurn: false,
-    playerName: "Bastion",
+    playerTurnArray: [],
+    playerName: "Merlin",
     playerGold: 100,
     playerMana: 0,
     playerHand: [],
     playerDeck: [],
     playerImg: "wizard",
     currentBoard: "board1",
-    playerColor: "Blue",
+    playerColor: "blue",
     playerClass: "Wizard"
 
 }
@@ -24,6 +27,14 @@ var gameVariables = {
 var mainState = function (game) { };
 
 mainState.prototype = {
+    init: function () {
+        //Making the screen work in different orientations on different devices
+        this.scale.pageAlignHorizontally = true;
+        this.scale.pageAlignVertically = true;
+        //this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+        //If the player clicks outside the game, it continues running - anti-cheating
+        this.stage.disableVisibiltyChange = true;
+    },
     preload: function () {
         game.load.script('mainMenu', 'Scripts/mainmenu1.js');
         game.load.script('game', 'Scripts/game.js');
