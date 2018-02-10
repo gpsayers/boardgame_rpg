@@ -45,18 +45,21 @@ var earthCardList = [];
 
 var lifeCardList = [];
 
-var redWizard1List = [];
+var redWizard1List = populateCardArray([6,7,8,9]);
 
-redWizard1List.push(new card(6, "Turtle", "Summon Turtle", 1, "common", 10, true, false, 1, 3, 0, "turtle", 0));
-redWizard1List.push(new card(7, "Bear", "Summon Bear", 2, "common", 10, true, false, 2, 2, 0, "bear", 1));
-redWizard1List.push(new card(8, "Spider", "Summon Spider", 1, "common", 10, true, false, 3, 1, 0, "spider", 0));
-redWizard1List.push(new card(9, "Wasp", "Summon Wasp", 1, "common", 10, true, false, 2, 1, 0, "yellow_wasp", 0));
+var blackSorceress1List = populateCardArray([2,5,7,8]);
 
-var blackSorceress1List = [];
+var testPlayerCardList = populateCardArray([2, 5, 6, 7, 8, 9]);
 
-masterCardList.push(new card(2, "Ogre Zombie", "Summon Ogre Zombie", 3, "common", 10, true, false, 3, 3, 0, "zombie", 0));
-masterCardList.push(new card(5, "Rat", "Summon Rat", 1, "common", 10, true, false, 1, 1, 0, "rat", 0));
-masterCardList.push(new card(7, "Bear", "Summon Bear", 2, "common", 10, true, false, 2, 2, 0, "bear", 1));
-masterCardList.push(new card(8, "Spider", "Summon Spider", 1, "common", 10, true, false, 3, 1, 0, "spider", 0));
-
-var testPlayerCardList = [2,5,6,7,8,9];
+function populateCardArray(array) {
+    var result = [];
+    for (i = 0; i < array.length; i++) {
+        var find = masterCardList.find(function (item) {
+            return item.id == array[i]
+        });
+        if (typeof find !== 'undefined') {
+            result.push(find);
+        }
+    }
+    return result;
+}

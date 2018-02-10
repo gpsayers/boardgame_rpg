@@ -1,6 +1,4 @@
 ﻿var gameVariables = {
-    playerTurn: false,
-    computerTurn: false,
     playerTurnArray: [],
     playerName: "Merlin",
     playerGold: 100,
@@ -20,6 +18,7 @@
     gameTurnOrder: [],
     gameBoard: [],
     boardInfo: {},
+    currentPlayer: 0
 
 }
 

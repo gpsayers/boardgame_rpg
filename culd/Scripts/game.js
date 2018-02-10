@@ -1,14 +1,13 @@
 ﻿var gameMain = function () { };
 
 
-var back_layer = {};
-var board_layer = {};
-var player_layer = {};
 var playerDestinations = [];
 var playerDirChoiceMenu = false;
 var playerChoiceMenu = false;
 var playerRoll = 0;
 var activePlayerSquare = 0;
+var addCardHand = false;
+
 
 
 gameMain.prototype = {
@@ -20,9 +19,7 @@ gameMain.prototype = {
         if (gameVariables.currentBoard == "board1") {
             gameVariables.boardInfo = board1;
         }
-
-
-
+        
         gameVariables.gamePlayerArray.push(new gamePlayer(99,
             gameVariables.boardInfo.boardStart,
             gameVariables.playerName,
@@ -33,6 +30,7 @@ gameMain.prototype = {
             true,
             shuffle(gameVariables.playerDeck)));
 
+        gameVariables.currentPlayer = 0;
 
         //Find AI players that don't match human players class or color
         var aiPlayers = gameVariables.boardInfo.computerPlayers.filter(function(gp) {
@@ -43,7 +41,6 @@ gameMain.prototype = {
             gameVariables.gamePlayerArray.push(item);
         });
         
-
 
         //background image
         game.load.image('dirt', 'Assets/dirt4.png');
@@ -101,12 +98,15 @@ gameMain.prototype = {
     },
     create: function () {
 
-
+        //Default text style
         var style = { font: 'bold 15pt Arial', wordWrap: true, wordWrapWidth: 150, align: "center" };
 
+        //Create layers for sprite z levels
         back_layer = game.add.group();
         board_layer = game.add.group();
         player_layer = game.add.group();
+        player_layer2 = game.add.group();
+        player_layer3 = game.add.group();
         pop_layer = game.add.group();
 
         //Build the background
@@ -126,7 +126,7 @@ gameMain.prototype = {
         var drawtext = game.add.text(game.width - 435, game.height - 110, "Draw Card", style);
         drawtext.inputEnabled = true;
         drawtext.events.onInputUp.add(drawCard, this);
-        drawtext.visible = false;
+        drawtext.visible = true;
 
         //Build the game board
         for (y = 0; y < gameVariables.boardInfo.squares.length; y++) {
@@ -135,39 +135,38 @@ gameMain.prototype = {
                 if (row[x] > 0) {
                     addGameSquare("neutral", (50 * x) + 75, (50 * y) + 50, row[x], x, y);
                 }
-                if (row[x] == gameVariables.boardInfo.boardStart) {
-                    //Add starting door
-                    //var special = game.add.sprite((50 * x) + 75, (50 * y) + 50, 'door');
-                    //special.anchor.x = 0.5;
-                    //special.anchor.y = 0.5;
-                    //special.width= 50;
-                    //special.height = 50;
-                    //board_layer.add(special);
-
-                    //Add player sprite
-                    player = game.add.sprite(0, 0, gameVariables.playerImg);
-
-                    player.width = 45;
-                    player.height = 45;
-                    player.anchor.x = 0.5;
-                    player.anchor.y = 0.5;
-
-                    player.x = (50 * x) + 75;
-                    player.y = (50 * y) + 50;
-
-                    player.gameSquareId = row[x];
-
-                    player_layer.add(player);
-                }
             }
         }
 
+        //Add the game players to the board
+        var gameBoardResult = gameVariables.gameBoard.find(function (element) {
+            return element.sprite.gameSquareId == gameVariables.boardInfo.boardStart;
+        });
+
+        for (i = 0; i < gameVariables.gamePlayerArray.length; i++) {
+            gameVariables.gamePlayerArray[i].sprite = game.add.sprite(0, 0, gameVariables.gamePlayerArray[i].class);
+            gameVariables.gamePlayerArray[i].sprite.width = 45;
+            gameVariables.gamePlayerArray[i].sprite.width = 45;
+            gameVariables.gamePlayerArray[i].sprite.anchor.x = 0.5;
+            gameVariables.gamePlayerArray[i].sprite.anchor.y = 0.5;
+            gameVariables.gamePlayerArray[i].sprite.x = gameBoardResult.x;
+            gameVariables.gamePlayerArray[i].sprite.y = gameBoardResult.y;
+            gameVariables.gamePlayerArray[i].sprite.gameSquareId = gameBoardResult.id;
+            if (i == 0) {
+                player_layer.add(gameVariables.gamePlayerArray[i].sprite);
+            }
+            else {
+                player_layer2.add(gameVariables.gamePlayerArray[i].sprite);
+            }
+
+        }
+        
+        //Add cursors for movement and targeting
         cursor1 = game.add.sprite(1, 1, 'cursor');
         cursor1.anchor.x = 0.5;
         cursor1.anchor.y = 0.5;
         cursor1.visible = false;
         board_layer.add(cursor1);
-
         cursor2 = game.add.sprite(1, 1, 'cursor');
         cursor2.anchor.x = 0.5;
         cursor2.anchor.y = 0.5;
@@ -188,7 +187,6 @@ gameMain.prototype = {
             gameVariables.gamePlayerArray[0].handTracker.push(new playerHandTracker(card.id, card, 0, 0));
             gameVariables.gamePlayerArray[0].hand.push(card);
         }
-
         createPlayerHand();
 
         //Confirmation menu
@@ -221,20 +219,16 @@ gameMain.prototype = {
         leftButt.height = 40;
         leftButt.direction = "left";
         leftButt.visible = false;
-
         upButt = game.add.button((game.width / 2 - 21), (game.height / 2) + 10, 'upButton', dirButtonClick, this, 1, 1, 2, 1);
         upButt.width = 40;
         upButt.height = 40;
         upButt.direction = "up";
-        upButt.visible = false;
-        
+        upButt.visible = false;      
         rightButt = game.add.button((game.width / 2 + 25), (game.height / 2) + 10, 'rightButton', dirButtonClick, this, 1, 1, 2, 1);
         rightButt.width = 40;
         rightButt.height = 40;
         rightButt.direction = "right";
         rightButt.visible = false;
-
-
         pop_layer.add(menu);
         pop_layer.add(yesText);
         pop_layer.add(noText);
@@ -246,9 +240,11 @@ gameMain.prototype = {
     },
     update: function () {
 
-        //Manage player turns
-        if (gameVariables.playerTurn == true) {
+        if (addCardHand == true) {
 
+
+
+            addCardHand = false;
         }
 
         //Display player destination cursors
@@ -356,50 +352,106 @@ gameMain.prototype = {
 function createPlayerHand() {
     for (var i = 0; i < gameVariables.gamePlayerArray[0].handTracker.length; i++) {
 
-        //Add card front
-        gameVariables.gamePlayerArray[0].handTracker[i].spritefront = game.add.sprite(110 * i + 100, game.height - 100, 'cardFront');
-        gameVariables.gamePlayerArray[0].handTracker[i].spritefront.width = 100;
-        gameVariables.gamePlayerArray[0].handTracker[i].spritefront.height = 140;
-        gameVariables.gamePlayerArray[0].handTracker[i].spritefront.anchor.x = 0.5;
-        gameVariables.gamePlayerArray[0].handTracker[i].spritefront.anchor.y = 0.5;
-        gameVariables.gamePlayerArray[0].handTracker[i].spritefront.cardId = gameVariables.gamePlayerArray[0].handTracker[i].id;
-        gameVariables.gamePlayerArray[0].handTracker[i].spritefront.inputEnabled = true;
-        gameVariables.gamePlayerArray[0].handTracker[i].spritefront.events.onInputDown.add(cardClick, this);
-
-        //Add card border
-        gameVariables.gamePlayerArray[0].handTracker[i].spriteborder = game.add.sprite(110 * i + 100, game.height - 100, 'redFrame');
-        gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.width = 100;
-        gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.height = 140;
-        gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.anchor.x = 0.5;
-        gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.anchor.y = 0.5;
-
-        //Add card sprite picture
-        gameVariables.gamePlayerArray[0].handTracker[i].spriteimage = game.add.sprite(110 * i + 100, game.height - 110, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.image);
-        gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.width = 70;
-        gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.height = 70;
-        gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.anchor.x = 0.5;
-        gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.anchor.y = 0.5;
-
-        //Add card text
-        var style = { font: "bold 10px Arial", fill: "#000000", wordWrap: true, wordWrapWidth: gameVariables.gamePlayerArray[0].handTracker[i].spritefront.width, align: "center" };
-        gameVariables.gamePlayerArray[0].handTracker[i].text1 = game.add.text(110 * i + 100, game.height - 150, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.name, style);
-        gameVariables.gamePlayerArray[0].handTracker[i].text1.anchor.set(0.5);
-        gameVariables.gamePlayerArray[0].handTracker[i].text2 = game.add.text(110 * i + 110, game.height - 60, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.attack + "/" + gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.defense, { font: "15px bold Arial" });
-
+        addCardToHand(i);
 
     }   
 }
+
+
+function addCardToHand(i) {
+
+
+    //Add card front
+    gameVariables.gamePlayerArray[0].handTracker[i].spritefront = game.add.sprite(110 * i + 100, game.height - 100, 'cardFront');
+    gameVariables.gamePlayerArray[0].handTracker[i].spritefront.width = 100;
+    gameVariables.gamePlayerArray[0].handTracker[i].spritefront.height = 140;
+    gameVariables.gamePlayerArray[0].handTracker[i].spritefront.anchor.x = 0.5;
+    gameVariables.gamePlayerArray[0].handTracker[i].spritefront.anchor.y = 0.5;
+    gameVariables.gamePlayerArray[0].handTracker[i].spritefront.cardId = gameVariables.gamePlayerArray[0].handTracker[i].id;
+    gameVariables.gamePlayerArray[0].handTracker[i].spritefront.inputEnabled = true;
+    gameVariables.gamePlayerArray[0].handTracker[i].spritefront.events.onInputDown.add(cardClick, this);
+
+    //Add card border
+    gameVariables.gamePlayerArray[0].handTracker[i].spriteborder = game.add.sprite(110 * i + 100, game.height - 100, 'redFrame');
+    gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.width = 100;
+    gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.height = 140;
+    gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.anchor.x = 0.5;
+    gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.anchor.y = 0.5;
+
+    //Add card sprite picture
+    gameVariables.gamePlayerArray[0].handTracker[i].spriteimage = game.add.sprite(110 * i + 100, game.height - 110, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.image);
+    gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.width = 70;
+    gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.height = 70;
+    gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.anchor.x = 0.5;
+    gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.anchor.y = 0.5;
+
+    //Add card text
+    var style = { font: "bold 10px Arial", fill: "#000000", wordWrap: true, wordWrapWidth: gameVariables.gamePlayerArray[0].handTracker[i].spritefront.width, align: "center" };
+    gameVariables.gamePlayerArray[0].handTracker[i].text1 = game.add.text(110 * i + 100, game.height - 150, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.name, style);
+    gameVariables.gamePlayerArray[0].handTracker[i].text1.anchor.set(0.5);
+    gameVariables.gamePlayerArray[0].handTracker[i].text2 = game.add.text(110 * i + 110, game.height - 60, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.attack + "/" + gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.defense, { font: "15px bold Arial" });
+
+
+}
+
+
+function drawCard() {
+    console.log(gameVariables.gamePlayerArray[0].hand);
+
+    if (gameVariables.gamePlayerArray[0].deck.length < 1) {
+        gameVariables.gamePlayerArray[0].deck = shuffle(gameVariables.gamePlayerArray[gameVariables.currentPlayer].discard);
+    }
+
+    var card = gameVariables.gamePlayerArray[0].deck.pop();
+
+    if (typeof card !== 'undefined') {
+        gameVariables.gamePlayerArray[0].handTracker.push(new playerHandTracker(card.id, card, 0, 0));
+        gameVariables.gamePlayerArray[0].hand.push(card);
+    }
+
+    addCardToHand(gameVariables.gamePlayerArray[0].handTracker.length-1);
+
+    //clearPlayerHand();
+
+    //createPlayerHand();
+}
+
 
 function clearPlayerHand() {
     for (var i = 0; i < gameVariables.gamePlayerArray[0].handTracker.length; i++) {
-
-        gameVariables.gamePlayerArray[0].handTracker[i].spritefront.destroy();
-        gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.destroy();
-        gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.destroy();
-        gameVariables.gamePlayerArray[0].handTracker[i].text1.destroy();
-        gameVariables.gamePlayerArray[0].handTracker[i].text2.destroy();
+        removeCardFromHand(gameVariables.gamePlayerArray[0].handTracker[i].id);
     }   
 }
+
+
+function removeCardFromHand(id) {
+
+    for (i = 0; i < gameVariables.gamePlayerArray[0].handTracker.length; i++) {
+        if (gameVariables.gamePlayerArray[0].handTracker[i].id == id) {
+
+            //Destroy sprites in handtracker
+            gameVariables.gamePlayerArray[0].handTracker[i].spritefront.destroy();
+            gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.destroy();
+            gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.destroy();
+            gameVariables.gamePlayerArray[0].handTracker[i].text1.destroy();
+            gameVariables.gamePlayerArray[0].handTracker[i].text2.destroy();
+
+            //Remove card from hand tracker
+            gameVariables.gamePlayerArray[0].handTracker.splice(i, 1);
+
+            var index = gameVariables.gamePlayerArray[0].hand.findIndex(x => x.id == id);
+
+            //Add card to discard
+            gameVariables.gamePlayerArray[0].discard.push(gameVariables.gamePlayerArray[0].hand[index]);
+
+            //Remove card from hand
+            gameVariables.gamePlayerArray[0].hand.splice(index, 1);
+
+        }
+
+    }
+}
+
 
 function addGameSquare(type, x, y, squareId, gridX, gridY) {
     var sprite = {};
@@ -457,13 +509,15 @@ function addGameSquare(type, x, y, squareId, gridX, gridY) {
 
 }
 
+
 function cardClick(item) {
     playerChoiceMenu = true;
     cardClicked = item.cardId;
 
 }
 
-function castSpell(id) {
+
+function castSpell(id, player) {
     var cardDetails = masterCardList.find(function(card) {
         return card.id == id;
     });
@@ -509,6 +563,7 @@ function castSpell(id) {
 
 }
 
+
 function captureSquare(id) {
     //Check for loot on the square
 
@@ -521,28 +576,12 @@ function captureSquare(id) {
     boardSquareDetail.sprite.loadTexture(gameVariables.playerColor);
 }
 
-function removeCardFromHand(id) {
-
-    for (i = 0; i < gameVariables.gamePlayerArray[0].handTracker.length; i++) {
-        if (gameVariables.gamePlayerArray[0].handTracker[i].id == id) {
-
-            gameVariables.gamePlayerArray[0].handTracker[i].spritefront.destroy();
-            gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.destroy();
-            gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.destroy();
-            gameVariables.gamePlayerArray[0].handTracker[i].text1.destroy();
-            gameVariables.gamePlayerArray[0].handTracker[i].text2.destroy();
-
-            gameVariables.gamePlayerArray[0].handTracker.splice(i, 1);
-        }
-
-    }
-}
 
 function menuConfirmClick(item) {
 
     if (item.choice == "yes") {
         playerChoiceMenu = false;
-        castSpell(cardClicked);
+        castSpell(cardClicked, gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite);
     }
 
     playerChoiceMenu = false;
@@ -553,14 +592,6 @@ function menuConfirmClick(item) {
 
 }
 
-function drawCard() {
-
-    var res = masterCardList.find(function (item) {
-        return item.id == 7;
-    });
-
-    playerHand.push(res);
-}
 
 //function listener(item) {
     
@@ -604,16 +635,18 @@ function diceRoll(item) {
 
     playerDestinations.length = 0;
 
-    calculateDestinations(player.gameSquareId, roll);
+    calculateDestinations(gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite.gameSquareId, roll);
 
-    playerMove(player, roll);
+    playerMove(gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite, roll);
 }
+
 
 function diceRollButtonClick() {
     button.inputEnabled = false;
     diceRoll(dice);
 
 }
+
 
 function dirButtonClick(item) {
     //Direction choice chosen. Hide popup and move player to choice. Then continue player move as normal.
@@ -627,15 +660,15 @@ function dirButtonClick(item) {
     var gameBoardResult = gameVariables.gameBoard.find(function (element) {
         return element.sprite.gameSquareId == item.choice
     });
-
-    var tween = game.add.tween(player).to({ x: gameBoardResult.sprite.x, y: gameBoardResult.sprite.y }, 500, Phaser.Easing.Linear.None, true);
+    gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite
+    var tween = game.add.tween(gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite).to({ x: gameBoardResult.sprite.x, y: gameBoardResult.sprite.y }, 500, Phaser.Easing.Linear.None, true);
 
     //Callback to complete the rest of the roll
     tween.onComplete.add(function () {
-        player.gameSquareId = item.choice;
+        gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite.gameSquareId = item.choice;
         playerDestinations.length = 0;
 
-        playerMove(player, playerRoll - 1);
+        playerMove(gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite, playerRoll - 1);
     }, this);
 
 }
@@ -696,7 +729,7 @@ function playerMove(playerSprite, roll) {
         //Callback to complete the rest of the roll
         tween.onComplete.add(function () {
             playerSprite.gameSquareId = nextPathIdArray[0];
-            playerMove(player, roll - 1);
+            playerMove(gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite, roll - 1);
         }, this);
 
     }
