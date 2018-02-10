@@ -8,21 +8,7 @@ var gameProperties = {
     screenHeight: Math.min((window.innerHeight * window.devicePixelRatio),800)
 };
 
-var gameVariables = {
-    playerTurn: false,
-    computerTurn: false,
-    playerTurnArray: [],
-    playerName: "Merlin",
-    playerGold: 100,
-    playerMana: 0,
-    playerHand: [],
-    playerDeck: [],
-    playerImg: "wizard",
-    currentBoard: "board1",
-    playerColor: "blue",
-    playerClass: "Wizard"
 
-}
 
 var mainState = function (game) { };
 
@@ -36,13 +22,16 @@ mainState.prototype = {
         this.stage.disableVisibiltyChange = true;
     },
     preload: function () {
+        game.load.script('models', 'Scripts/models.js');
+        game.load.script('cards', 'Scripts/Scenes/cards.js');
         game.load.script('mainMenu', 'Scripts/mainmenu1.js');
         game.load.script('game', 'Scripts/game.js');
         game.load.script('credits', 'Scripts/Scenes/credits.js');
-        game.load.script('cards', 'Scripts/Scenes/cards.js');
+        
 
         game.load.script('board1', 'Scripts/Scenes/board1.js');
 
+        //Load player images
         game.load.image('cavalier', 'Assets/Players/cavalier.png');
         game.load.image('wizard', 'Assets/Players/wizard.png');
         game.load.image('sorceress', 'Assets/Players/sorceress.png');

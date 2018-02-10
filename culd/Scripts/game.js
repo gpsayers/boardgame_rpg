@@ -1,26 +1,6 @@
 ﻿var gameMain = function () { };
 
 
-function gameSquare(id, x, y, sprite) {
-    this.id = id;
-    this.x = x;
-    this.y = y;
-    this.sprite = sprite;
-}
-
-function gameSquareCreature(cardId, squareId, sprite, hitpoints, armor, attack, def) {
-    this.cardId = cardId;
-    this.squareId = squareId;
-    this.sprite = sprite;
-    this.hitpoints = hitpoints;
-    this.armor = armor;
-    this.attack = attack;
-    this.def = def;
-    this.hitsprite = {};
-}
-
-var gameBoard = [];
-var boardInfo = {};
 var back_layer = {};
 var board_layer = {};
 var player_layer = {};
@@ -34,7 +14,36 @@ var activePlayerSquare = 0;
 gameMain.prototype = {
     preload: function () {
 
-        playerHand = masterCardList;
+        //Temp assign of player deck to static array
+        gameVariables.playerDeck = testPlayerCardList;
+
+        if (gameVariables.currentBoard == "board1") {
+            gameVariables.boardInfo = board1;
+        }
+
+
+
+        gameVariables.gamePlayerArray.push(new gamePlayer(99,
+            gameVariables.boardInfo.boardStart,
+            gameVariables.playerName,
+            gameVariables.playerClass,
+            gameVariables.playerColor,
+            gameVariables.hitpoints,
+            gameVariables.playerMana,
+            true,
+            shuffle(gameVariables.playerDeck)));
+
+
+        //Find AI players that don't match human players class or color
+        var aiPlayers = gameVariables.boardInfo.computerPlayers.filter(function(gp) {
+            return gp.class != gameVariables.playerClass && gp.color != gameVariables.playerColor;
+        });
+
+        aiPlayers.forEach(function(item) {
+            gameVariables.gamePlayerArray.push(item);
+        });
+        
+
 
         //background image
         game.load.image('dirt', 'Assets/dirt4.png');
@@ -92,9 +101,7 @@ gameMain.prototype = {
     },
     create: function () {
 
-        if (gameVariables.currentBoard == "board1") {
-            boardInfo = board1;
-        }
+
         var style = { font: 'bold 15pt Arial', wordWrap: true, wordWrapWidth: 150, align: "center" };
 
         back_layer = game.add.group();
@@ -122,13 +129,13 @@ gameMain.prototype = {
         drawtext.visible = false;
 
         //Build the game board
-        for (y = 0; y < boardInfo.squares.length; y++) {
-            var row = boardInfo.squares[y];
+        for (y = 0; y < gameVariables.boardInfo.squares.length; y++) {
+            var row = gameVariables.boardInfo.squares[y];
             for (x = 0; x < row.length; x++) {
                 if (row[x] > 0) {
                     addGameSquare("neutral", (50 * x) + 75, (50 * y) + 50, row[x], x, y);
                 }
-                if (row[x] == boardInfo.boardStart) {
+                if (row[x] == gameVariables.boardInfo.boardStart) {
                     //Add starting door
                     //var special = game.add.sprite((50 * x) + 75, (50 * y) + 50, 'door');
                     //special.anchor.x = 0.5;
@@ -176,38 +183,13 @@ gameMain.prototype = {
         button.height = 44;
 
         //Display the player cards
-        for (var i = 0; i < playerHand.length; i++) {
-
-            //Add card front
-            playerHand[i].sprite = game.add.sprite(110 * i + 100, game.height - 100, 'cardFront');
-            playerHand[i].sprite.width = 100;
-            playerHand[i].sprite.height = 140;
-            playerHand[i].sprite.anchor.x = 0.5;
-            playerHand[i].sprite.anchor.y = 0.5;
-            playerHand[i].sprite.cardId = playerHand[i].id;
-            playerHand[i].sprite.inputEnabled = true;
-            playerHand[i].sprite.events.onInputDown.add(cardClick, this);
-
-            //Add card border
-            playerHand[i].cardBorder = game.add.sprite(110 * i + 100, game.height - 100, 'redFrame');
-            playerHand[i].cardBorder.width = 100;
-            playerHand[i].cardBorder.height = 140;
-            playerHand[i].cardBorder.anchor.x = 0.5;
-            playerHand[i].cardBorder.anchor.y = 0.5;
-
-            playerHand[i].cardImage = game.add.sprite(110 * i + 100, game.height - 110, playerHand[i].image);
-            playerHand[i].cardImage.width = 70;
-            playerHand[i].cardImage.height = 70;
-            playerHand[i].cardImage.anchor.x = 0.5;
-            playerHand[i].cardImage.anchor.y = 0.5;
-
-            var style = { font: "bold 10px Arial", fill: "#000000", wordWrap: true, wordWrapWidth: playerHand[i].sprite.width, align: "center" };
-            playerHand[i].cardText = game.add.text(110 * i + 100, game.height - 150, playerHand[i].name, style);
-            playerHand[i].cardText.anchor.set(0.5);
-            playerHand[i].cardText1 = game.add.text(110 * i + 110, game.height - 60, playerHand[i].attack + "/" + playerHand[i].defense, { font: "15px bold Arial" });
-
-
+        for (i = 0; i < gameVariables.playerMaxHand; i++) {
+            var card = gameVariables.gamePlayerArray[0].deck.pop();
+            gameVariables.gamePlayerArray[0].handTracker.push(new playerHandTracker(card.id, card, 0, 0));
+            gameVariables.gamePlayerArray[0].hand.push(card);
         }
+
+        createPlayerHand();
 
         //Confirmation menu
         var style = { font: "bold 15px Arial", fill: "#000000", align: "center" };
@@ -273,19 +255,19 @@ gameMain.prototype = {
         if (playerDestinations.length > 0) {
             var cursorsFound = 0;
             for (x = 0; x < playerDestinations.length; x++) {
-                for (i = 0; i < gameBoard.length; i++) {
-                    if (gameBoard[i].sprite.gameSquareId == playerDestinations[x]) {
+                for (i = 0; i < gameVariables.gameBoard.length; i++) {
+                    if (gameVariables.gameBoard[i].sprite.gameSquareId == playerDestinations[x]) {
 
                         if (cursorsFound == 0) {
-                            cursor1.x = gameBoard[i].sprite.x;
-                            cursor1.y = gameBoard[i].sprite.y;
+                            cursor1.x = gameVariables.gameBoard[i].sprite.x;
+                            cursor1.y = gameVariables.gameBoard[i].sprite.y;
 
                             cursor1.visible = true;
                             cursorsFound++;
                         }
                         else {
-                            cursor2.x = gameBoard[i].sprite.x;
-                            cursor2.y = gameBoard[i].sprite.y;
+                            cursor2.x = gameVariables.gameBoard[i].sprite.x;
+                            cursor2.y = gameVariables.gameBoard[i].sprite.y;
 
                             cursor2.visible = true;
                         }
@@ -297,7 +279,7 @@ gameMain.prototype = {
         //Display player direction choice menu
         if (playerDirChoiceMenu == true) {
 
-            var result = boardInfo.choiceSquares.find(function (element) {
+            var result = gameVariables.boardInfo.choiceSquares.find(function (element) {
                 return element.id == activePlayerSquare
             });
 
@@ -331,15 +313,14 @@ gameMain.prototype = {
         }
 
         //Display the player cards
-        for (var i = 0; i < playerHand.length; i++) {
+        for (var i = 0; i < gameVariables.gamePlayerArray[0].handTracker.length; i++) {
 
             //Add card front
-            var tween1 = game.add.tween(playerHand[i].sprite).to({ x: 110 * i + 100, y: game.height - 100},200,Phaser.Easing.Linear.None, false);
-
-            var tween2 = game.add.tween(playerHand[i].cardBorder).to({ x: 110 * i + 100, y: game.height - 100 }, 200, Phaser.Easing.Linear.None, false);
-            var tween3 = game.add.tween(playerHand[i].cardImage).to({ x: 110 * i + 100, y: game.height - 110 }, 200, Phaser.Easing.Linear.None, false);
-            var tween4 = game.add.tween(playerHand[i].cardText).to({ x: 110 * i + 100, y: game.height - 150 }, 200, Phaser.Easing.Linear.None, false);
-            var tween5 = game.add.tween(playerHand[i].cardText1).to({ x: 110 * i + 110, y: game.height - 60 }, 200, Phaser.Easing.Linear.None, false);
+            var tween1 = game.add.tween(gameVariables.gamePlayerArray[0].handTracker[i].spritefront).to({ x: 110 * i + 100, y: game.height - 100},200,Phaser.Easing.Linear.None, false);
+            var tween2 = game.add.tween(gameVariables.gamePlayerArray[0].handTracker[i].spriteborder).to({ x: 110 * i + 100, y: game.height - 100 }, 200, Phaser.Easing.Linear.None, false);
+            var tween3 = game.add.tween(gameVariables.gamePlayerArray[0].handTracker[i].spriteimage).to({ x: 110 * i + 100, y: game.height - 110 }, 200, Phaser.Easing.Linear.None, false);
+            var tween4 = game.add.tween(gameVariables.gamePlayerArray[0].handTracker[i].text1).to({ x: 110 * i + 100, y: game.height - 150 }, 200, Phaser.Easing.Linear.None, false);
+            var tween5 = game.add.tween(gameVariables.gamePlayerArray[0].handTracker[i].text2).to({ x: 110 * i + 110, y: game.height - 60 }, 200, Phaser.Easing.Linear.None, false);
             tween1.start();
             tween2.start();
             tween3.start();
@@ -370,6 +351,54 @@ gameMain.prototype = {
         //}
     }
 
+}
+
+function createPlayerHand() {
+    for (var i = 0; i < gameVariables.gamePlayerArray[0].handTracker.length; i++) {
+
+        //Add card front
+        gameVariables.gamePlayerArray[0].handTracker[i].spritefront = game.add.sprite(110 * i + 100, game.height - 100, 'cardFront');
+        gameVariables.gamePlayerArray[0].handTracker[i].spritefront.width = 100;
+        gameVariables.gamePlayerArray[0].handTracker[i].spritefront.height = 140;
+        gameVariables.gamePlayerArray[0].handTracker[i].spritefront.anchor.x = 0.5;
+        gameVariables.gamePlayerArray[0].handTracker[i].spritefront.anchor.y = 0.5;
+        gameVariables.gamePlayerArray[0].handTracker[i].spritefront.cardId = gameVariables.gamePlayerArray[0].handTracker[i].id;
+        gameVariables.gamePlayerArray[0].handTracker[i].spritefront.inputEnabled = true;
+        gameVariables.gamePlayerArray[0].handTracker[i].spritefront.events.onInputDown.add(cardClick, this);
+
+        //Add card border
+        gameVariables.gamePlayerArray[0].handTracker[i].spriteborder = game.add.sprite(110 * i + 100, game.height - 100, 'redFrame');
+        gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.width = 100;
+        gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.height = 140;
+        gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.anchor.x = 0.5;
+        gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.anchor.y = 0.5;
+
+        //Add card sprite picture
+        gameVariables.gamePlayerArray[0].handTracker[i].spriteimage = game.add.sprite(110 * i + 100, game.height - 110, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.image);
+        gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.width = 70;
+        gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.height = 70;
+        gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.anchor.x = 0.5;
+        gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.anchor.y = 0.5;
+
+        //Add card text
+        var style = { font: "bold 10px Arial", fill: "#000000", wordWrap: true, wordWrapWidth: gameVariables.gamePlayerArray[0].handTracker[i].spritefront.width, align: "center" };
+        gameVariables.gamePlayerArray[0].handTracker[i].text1 = game.add.text(110 * i + 100, game.height - 150, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.name, style);
+        gameVariables.gamePlayerArray[0].handTracker[i].text1.anchor.set(0.5);
+        gameVariables.gamePlayerArray[0].handTracker[i].text2 = game.add.text(110 * i + 110, game.height - 60, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.attack + "/" + gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.defense, { font: "15px bold Arial" });
+
+
+    }   
+}
+
+function clearPlayerHand() {
+    for (var i = 0; i < gameVariables.gamePlayerArray[0].handTracker.length; i++) {
+
+        gameVariables.gamePlayerArray[0].handTracker[i].spritefront.destroy();
+        gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.destroy();
+        gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.destroy();
+        gameVariables.gamePlayerArray[0].handTracker[i].text1.destroy();
+        gameVariables.gamePlayerArray[0].handTracker[i].text2.destroy();
+    }   
 }
 
 function addGameSquare(type, x, y, squareId, gridX, gridY) {
@@ -410,12 +439,12 @@ function addGameSquare(type, x, y, squareId, gridX, gridY) {
 
     var gs = new gameSquare(squareId, x, y, sprite);
 
-    for (i = 0; i < boardInfo.specialSquares.length; i++) {    
+    for (i = 0; i < gameVariables.boardInfo.specialSquares.length; i++) {    
 
-        if (boardInfo.specialSquares[i].squareId == squareId) {
+        if (gameVariables.boardInfo.specialSquares[i].squareId == squareId) {
 
-            gs.special = boardInfo.specialSquares[i];
-            var special = game.add.sprite(x, y, boardInfo.specialSquares[i].type);
+            gs.special = gameVariables.boardInfo.specialSquares[i];
+            var special = game.add.sprite(x, y, gameVariables.boardInfo.specialSquares[i].type);
             special.anchor.x = 0.5;
             special.anchor.y = 0.5;
             gs.special.specialSprite = special;
@@ -424,7 +453,7 @@ function addGameSquare(type, x, y, squareId, gridX, gridY) {
 
     }
         
-    gameBoard.push(gs);
+    gameVariables.gameBoard.push(gs);
 
 }
 
@@ -439,7 +468,7 @@ function castSpell(id) {
         return card.id == id;
     });
 
-    var boardSquareDetail = gameBoard.find(function (item) {
+    var boardSquareDetail = gameVariables.gameBoard.find(function (item) {
         return item.id == player.gameSquareId;
     });
 
@@ -485,7 +514,7 @@ function captureSquare(id) {
 
 
     //Claim the square color
-    var boardSquareDetail = gameBoard.find(function (item) {
+    var boardSquareDetail = gameVariables.gameBoard.find(function (item) {
         return item.id == id;
     });
 
@@ -494,18 +523,19 @@ function captureSquare(id) {
 
 function removeCardFromHand(id) {
 
-    for (i = 0; i < playerHand.length; i++) {
-        if (playerHand[i].sprite.cardId == id) {
-            playerHand[i].sprite.destroy();
-            playerHand[i].cardBorder.destroy();
-            playerHand[i].cardImage.destroy();
-            playerHand[i].cardText.destroy();
-            playerHand[i].cardText1.destroy();
-            playerHand.splice(i, 1);
+    for (i = 0; i < gameVariables.gamePlayerArray[0].handTracker.length; i++) {
+        if (gameVariables.gamePlayerArray[0].handTracker[i].id == id) {
+
+            gameVariables.gamePlayerArray[0].handTracker[i].spritefront.destroy();
+            gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.destroy();
+            gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.destroy();
+            gameVariables.gamePlayerArray[0].handTracker[i].text1.destroy();
+            gameVariables.gamePlayerArray[0].handTracker[i].text2.destroy();
+
+            gameVariables.gamePlayerArray[0].handTracker.splice(i, 1);
         }
 
     }
-
 }
 
 function menuConfirmClick(item) {
@@ -594,7 +624,7 @@ function dirButtonClick(item) {
     upButt.visible = false;
     rightButt.visible = false;
 
-    var gameBoardResult = gameBoard.find(function (element) {
+    var gameBoardResult = gameVariables.gameBoard.find(function (element) {
         return element.sprite.gameSquareId == item.choice
     });
 
@@ -618,25 +648,25 @@ function playerMove(playerSprite, roll) {
     var nextPathIdArray = [];
 
     if (roll > 0) {
-        var gameBoardResult = gameBoard.find(function (element) {
+        var gameBoardResult = gameVariables.gameBoard.find(function (element) {
             return element.sprite.gameSquareId == playerSprite.gameSquareId
         });
         
-        var neighbors = Array2D.orthogonals(boardInfo.squares, gameBoardResult.sprite.gridY, gameBoardResult.sprite.gridX);
+        var neighbors = Array2D.orthogonals(gameVariables.boardInfo.squares, gameBoardResult.sprite.gridY, gameBoardResult.sprite.gridX);
 
         //Special cases if at end of board or beginning
-        if (playerSprite.gameSquareId == boardInfo.boardEnd) {
+        if (playerSprite.gameSquareId == gameVariables.boardInfo.boardEnd) {
 
             var boardPathId = neighbors.find(function (element) {
-                return element == boardInfo.boardStart
+                return element == gameVariables.boardInfo.boardStart
             });
 
             nextPathIdArray.push(boardPathId);
 
-        } else if (playerSprite.gameSquareId == boardInfo.boardStart) {
+        } else if (playerSprite.gameSquareId == gameVariables.boardInfo.boardStart) {
 
             var boardPathId = neighbors.filter(function (element) {
-                return element > playerSprite.gameSquareId && element != boardInfo.boardEnd
+                return element > playerSprite.gameSquareId && element != gameVariables.boardInfo.boardEnd
             });
 
             nextPathIdArray = boardPathId;
@@ -657,7 +687,7 @@ function playerMove(playerSprite, roll) {
             return;
         }
      
-        var gameBoardDestResult = gameBoard.find(function (element) {
+        var gameBoardDestResult = gameVariables.gameBoard.find(function (element) {
             return element.sprite.gameSquareId == nextPathIdArray[0]
         });
         
@@ -682,25 +712,25 @@ function calculateDestinations(currentSquareId, roll) {
 
         var nextPathIdArray = [];
         //Find current game board piece
-        var gameBoardResult = gameBoard.find(function (element) {
+        var gameBoardResult = gameVariables.gameBoard.find(function (element) {
             return element.sprite.gameSquareId == currentSquareId
         });
 
-        var neighbors = Array2D.orthogonals(boardInfo.squares, gameBoardResult.sprite.gridY, gameBoardResult.sprite.gridX);
+        var neighbors = Array2D.orthogonals(gameVariables.boardInfo.squares, gameBoardResult.sprite.gridY, gameBoardResult.sprite.gridX);
 
         //Special cases if at end of board or beginning
-        if (currentSquareId == boardInfo.boardEnd) {
+        if (currentSquareId == gameVariables.boardInfo.boardEnd) {
 
             var boardPathId = neighbors.find(function (element) {
-                return element == boardInfo.boardStart
+                return element == gameVariables.boardInfo.boardStart
             });
 
             nextPathIdArray.push(boardPathId);
 
-        } else if (currentSquareId == boardInfo.boardStart) {
+        } else if (currentSquareId == gameVariables.boardInfo.boardStart) {
 
             var boardPathId = neighbors.filter(function (element) {
-                return element > currentSquareId && element != boardInfo.boardEnd
+                return element > currentSquareId && element != gameVariables.boardInfo.boardEnd
             });
 
             nextPathIdArray = boardPathId;
