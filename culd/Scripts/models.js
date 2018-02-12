@@ -4,6 +4,7 @@
     playerGold: 100,
     playerMana: 3,
     playerHealth: 10,
+    playerMaxHealth: 10,
     playerArmor: 0,
     playerInitiative: 3,
     playerMaxHand: 4,
@@ -29,6 +30,7 @@ function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human,
     this.class = playerClass;
     this.color = playerColor;
     this.hp = hp;
+    this.maxhp = hp;
     this.mana = mana;
     this.human = human;
     this.deck = deck;
@@ -36,6 +38,7 @@ function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human,
     this.discard = [];
     this.handTracker = [];
     this.sprite = {};
+    this.turnSprite = {};
 }
 
 function gameSquare(id, x, y, sprite) {
@@ -43,19 +46,38 @@ function gameSquare(id, x, y, sprite) {
     this.x = x;
     this.y = y;
     this.sprite = sprite;
+    this.creature = null;
 }
 
-function gameSquareCreature(cardId, squareId, sprite, hitpoints, armor, attack, def) {
+function gameSquareCreature(cardId, squareId, sprite, hitpoints, maxhitpoints, armor, attack, def) {
     this.cardId = cardId;
     this.squareId = squareId;
     this.sprite = sprite;
+    this.maxhitpoints = maxhitpoints;
     this.hitpoints = hitpoints;
     this.armor = armor;
     this.attack = attack;
     this.def = def;
-    this.hitsprite = {};
+    this.hitspritegreen = {};
+    this.hitspritered = {};
+
 }
 
+function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense, damage, image, armor) {
+    this.id = id;
+    this.name = name;
+    this.desc = desc;
+    this.cost = cost;
+    this.rare = rare;
+    this.gold = gold;
+    this.creature = creature;
+    this.spell = spell;
+    this.attack = attack;
+    this.defense = defense;
+    this.damage = damage;
+    this.image = image;
+    this.armor = armor;
+}
 
 function playerHandTracker(id, cardInfo, positionx, positiony) {
     this.id = id;

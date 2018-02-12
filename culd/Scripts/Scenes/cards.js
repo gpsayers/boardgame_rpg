@@ -1,19 +1,4 @@
-﻿function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense, damage, image, armor) {
-    this.id = id;
-    this.name = name;
-    this.desc = desc;
-    this.cost = cost;
-    this.rare = rare;
-    this.gold = gold;
-    this.creature = creature;
-    this.spell = spell;
-    this.attack = attack;
-    this.defense = defense;
-    this.damage = damage;
-    this.image = image;
-    this.armor = armor;
-}
-
+﻿
 
 var masterCardList = [];
 
@@ -45,11 +30,11 @@ var earthCardList = [];
 
 var lifeCardList = [];
 
-var redWizard1List = populateCardArray([6,7,8,9]);
+var redWizard1List = populateCardArray([8,8,8,8,8,8]);
 
-var blackSorceress1List = populateCardArray([2,5,7,8]);
+var blackSorceress1List = populateCardArray([5,5,5,5,5,5]);
 
-var testPlayerCardList = populateCardArray([2, 5, 6, 7, 8, 9]);
+var testPlayerCardList = populateCardArray([2, 6, 7, 8, 2, 2]);
 
 function populateCardArray(array) {
     var result = [];
