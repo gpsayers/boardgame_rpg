@@ -2,7 +2,7 @@
     playerTurnArray: [],
     playerName: "Merlin",
     playerGold: 100,
-    playerStartingMana: 1,
+    playerMana: 3,
     playerHealth: 10,
     playerMaxHealth: 10,
     playerArmor: 0,
@@ -32,7 +32,6 @@ function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human,
     this.hp = hp;
     this.maxhp = hp;
     this.mana = mana;
-    this.maxmana = mana;
     this.human = human;
     this.deck = deck;
     this.hand = [];
@@ -42,7 +41,6 @@ function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human,
     this.turnSprite = {};
     this.maxhand = maxhand;
     this.capturedSquares = 0;
-    this.manasprite = {};
 }
 
 function gameSquare(id, x, y, sprite) {
@@ -92,7 +90,6 @@ function playerHandTracker(id, cardInfo, positionx, positiony) {
     this.spriteborder = {};
     this.spriteimage = {};
     this.spriteInfoButton = {};
-    this.group = {};
     this.text1 = {};
     this.text2 = {};
     this.text3 = {};

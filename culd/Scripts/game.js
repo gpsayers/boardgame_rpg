@@ -31,7 +31,7 @@ gameMain.prototype = {
             gameVariables.playerClass,
             gameVariables.playerColor,
             gameVariables.hitpoints,
-            gameVariables.playerMana,
+            gameVariables.playerStartingMana,
             true,
             shuffle(gameVariables.playerDeck)));
 
@@ -49,7 +49,6 @@ gameMain.prototype = {
 
         //background image
         game.load.image('dirt', 'Assets/dirt4.png');
-
 
         //board squares
         game.load.image('red', 'Assets/fire.png');
@@ -104,6 +103,9 @@ gameMain.prototype = {
         game.load.image('dialog', 'Assets/GUI/paper-dialog.png');
         game.load.image('dialogorange', 'Assets/GUI/dialog.png');
         game.load.image('dialogblue', 'Assets/GUI/dialog-box.png');
+        game.load.image('mana', 'Assets/GUI/mana_orb.png');
+        game.load.image('mana_empty', 'Assets/GUI/mana_orb_empty.png');
+        game.load.image('gold', 'Assets/GUI/gold_pile.png');
 
     },
     create: function () {
@@ -206,7 +208,7 @@ gameMain.prototype = {
 
         }
 
-        //Game info text
+        //Game info text and GUI
         var infoText = game.add.text(game.width - 450, 60, "Info", style);
         back_layer.add(infoText);
         playerSquareCount = {};
@@ -214,9 +216,15 @@ gameMain.prototype = {
             playerSquareCount[i] = game.add.text(game.width - 60, (50 * i) + 65, "25%", style);
             playerSquareCount[i].anchor.setTo(1, 0);
             back_layer.add(playerSquareCount[i]);
-
+           
         }
-
+        gameVariables.gamePlayerArray[0].manasprite = game.add.sprite(game.width - 535, game.height - 208, 'mana');
+        gameVariables.gamePlayerArray[0].manasprite.width = 20;
+        gameVariables.gamePlayerArray[0].manasprite.height = 20;
+        goldText = game.add.text(game.width - 60, game.height - 250, gameVariables.playerGold, style);
+        goldText.anchor.setTo(1, 0);
+        goldIcon = game.add.sprite(game.width - 60 - goldText.width, game.height - 258, 'gold');
+        goldIcon.anchor.setTo(1, 0);
 
         //Add cursors for movement and targeting
         cursor1 = game.add.sprite(1, 1, 'cursor');
@@ -239,7 +247,7 @@ gameMain.prototype = {
         button.width = 100;
         button.height = 44;
 
-        //Add cards to the player hands
+        //Add cards to the players hands
         for (i = 0; i < gameVariables.playerMaxHand; i++) {
             var card = gameVariables.gamePlayerArray[0].deck.pop();
             gameVariables.gamePlayerArray[0].handTracker.push(new playerHandTracker(card.id, card, 0, 0));
@@ -308,16 +316,34 @@ gameMain.prototype = {
     },
     update: function () {
 
+        //Add player square capture percentage
         for (i = 0; i < gameVariables.gamePlayerArray.length; i++) {
             var calc = Math.round((gameVariables.gamePlayerArray[i].capturedSquares / gameVariables.boardInfo.boardTotal) * 100);
-
             playerSquareCount[i].setText(calc + '%');
+            
         }
+
+
+        //Add player mana nodes
+        gameVariables.gamePlayerArray[0].manasprite.destroy();
+        gameVariables.gamePlayerArray[0].manasprite = game.add.sprite(game.width - 535, game.height - 208, 'mana');
+        gameVariables.gamePlayerArray[0].manasprite.width = 20;
+        gameVariables.gamePlayerArray[0].manasprite.height = 20;
+        if (gameVariables.gamePlayerArray[0].mana == 0) {
+            gameVariables.gamePlayerArray[0].manasprite.loadTexture('mana_empty');
+        }
+        for (i = 1; i < gameVariables.gamePlayerArray[0].maxmana; i++) {
+            var child = game.add.sprite(40 * i, 0, 'mana');
+            if (i > gameVariables.gamePlayerArray[0].mana-1) {
+                child.loadTexture('mana_empty');
+            }
+            gameVariables.gamePlayerArray[0].manasprite.addChild(child);
+        }
+
 
         //Determine player turn
         if (gameVariables.currentPlayer == 0) {
-
-
+            //Human player turn
             if (playerNotified == false) {
                 //Display player turn notification
                 playerNotificationMenu = true;
@@ -332,7 +358,7 @@ gameMain.prototype = {
 
         }
         else {
-            //Computer turn
+            //Computer player turn
             //game.time.events.add(2000, function () { }, this);
             game.world.bringToTop(player_layer[gameVariables.currentPlayer]);
 
@@ -461,17 +487,20 @@ gameMain.prototype = {
         //Display the player cards
         for (var i = 0; i < gameVariables.gamePlayerArray[0].handTracker.length; i++) {
 
-            //Add card front
-            var tween1 = game.add.tween(gameVariables.gamePlayerArray[0].handTracker[i].spritefront).to({ x: 110 * i + 100, y: game.height - 100},200,Phaser.Easing.Linear.None, false);
-            var tween2 = game.add.tween(gameVariables.gamePlayerArray[0].handTracker[i].spriteborder).to({ x: 110 * i + 100, y: game.height - 100 }, 200, Phaser.Easing.Linear.None, false);
-            var tween3 = game.add.tween(gameVariables.gamePlayerArray[0].handTracker[i].spriteimage).to({ x: 110 * i + 100, y: game.height - 110 }, 200, Phaser.Easing.Linear.None, false);
-            var tween4 = game.add.tween(gameVariables.gamePlayerArray[0].handTracker[i].text1).to({ x: 110 * i + 100, y: game.height - 150 }, 200, Phaser.Easing.Linear.None, false);
-            var tween5 = game.add.tween(gameVariables.gamePlayerArray[0].handTracker[i].text2).to({ x: 110 * i + 110, y: game.height - 60 }, 200, Phaser.Easing.Linear.None, false);
+            //tween card front
+            //var tween1 = game.add.tween(gameVariables.gamePlayerArray[0].handTracker[i].group).to({ x: 0 + (i *10), y: 0 }, 200, Phaser.Easing.Linear.None, false);
+            var tween1 = game.add.tween(gameVariables.gamePlayerArray[0].handTracker[i].spritefront).to({ x: 110 * i + 50, y: game.height - 50},200,Phaser.Easing.Linear.None, false);
+            var tween2 = game.add.tween(gameVariables.gamePlayerArray[0].handTracker[i].spriteborder).to({ x: 110 * i + 50, y: game.height - 50 }, 200, Phaser.Easing.Linear.None, false);
+            var tween3 = game.add.tween(gameVariables.gamePlayerArray[0].handTracker[i].spriteimage).to({ x: 110 * i + 100, y: game.height - 130 }, 200, Phaser.Easing.Linear.None, false);
+            var tween4 = game.add.tween(gameVariables.gamePlayerArray[0].handTracker[i].text1).to({ x: 110 * i + 105, y: game.height - 170 }, 200, Phaser.Easing.Linear.None, false);
+            var tween5 = game.add.tween(gameVariables.gamePlayerArray[0].handTracker[i].text2).to({ x: 110 * i + 115, y: game.height - 75 }, 200, Phaser.Easing.Linear.None, false);
+
             tween1.start();
             tween2.start();
             tween3.start();
             tween4.start();
             tween5.start();
+
 
         }
 
@@ -512,35 +541,54 @@ function createPlayerHand() {
 function addCardToHand(i) {
     
     //Add card front
-    gameVariables.gamePlayerArray[0].handTracker[i].spritefront = game.add.sprite(110 * i + 100, game.height - 100, 'cardFront');
+    gameVariables.gamePlayerArray[0].handTracker[i].spritefront = game.add.sprite(110 * i + 50, game.height - 50, 'cardFront');
     gameVariables.gamePlayerArray[0].handTracker[i].spritefront.width = 100;
     gameVariables.gamePlayerArray[0].handTracker[i].spritefront.height = 140;
-    gameVariables.gamePlayerArray[0].handTracker[i].spritefront.anchor.x = 0.5;
-    gameVariables.gamePlayerArray[0].handTracker[i].spritefront.anchor.y = 0.5;
+    gameVariables.gamePlayerArray[0].handTracker[i].spritefront.anchor.x = 0;
+    gameVariables.gamePlayerArray[0].handTracker[i].spritefront.anchor.y = 1;
     gameVariables.gamePlayerArray[0].handTracker[i].spritefront.cardId = gameVariables.gamePlayerArray[0].handTracker[i].id;
     gameVariables.gamePlayerArray[0].handTracker[i].spritefront.inputEnabled = true;
     gameVariables.gamePlayerArray[0].handTracker[i].spritefront.events.onInputDown.add(cardClick, this);
 
     //Add card border
-    gameVariables.gamePlayerArray[0].handTracker[i].spriteborder = game.add.sprite(110 * i + 100, game.height - 100, 'redFrame');
+    gameVariables.gamePlayerArray[0].handTracker[i].spriteborder = game.add.sprite(110 * i + 50, game.height - 50, 'redFrame');
     gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.width = 100;
     gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.height = 140;
-    gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.anchor.x = 0.5;
-    gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.anchor.y = 0.5;
+    gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.anchor.x = 0;
+    gameVariables.gamePlayerArray[0].handTracker[i].spriteborder.anchor.y = 1;
 
     //Add card sprite picture
-    gameVariables.gamePlayerArray[0].handTracker[i].spriteimage = game.add.sprite(110 * i + 100, game.height - 110, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.image);
-    gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.width = 70;
-    gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.height = 70;
+    gameVariables.gamePlayerArray[0].handTracker[i].spriteimage = game.add.sprite(110 * i + 100, game.height - 130, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.image);
+    gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.width = 60;
+    gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.height = 60;
     gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.anchor.x = 0.5;
     gameVariables.gamePlayerArray[0].handTracker[i].spriteimage.anchor.y = 0.5;
 
     //Add card text
     var style = { font: "bold 10px Arial", fill: "#000000", wordWrap: true, wordWrapWidth: gameVariables.gamePlayerArray[0].handTracker[i].spritefront.width, align: "center" };
-    gameVariables.gamePlayerArray[0].handTracker[i].text1 = game.add.text(110 * i + 100, game.height - 150, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.name, style);
+    gameVariables.gamePlayerArray[0].handTracker[i].text1 = game.add.text(110 * i + 105, game.height - 170, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.name, style);
     gameVariables.gamePlayerArray[0].handTracker[i].text1.anchor.set(0.5);
-    gameVariables.gamePlayerArray[0].handTracker[i].text2 = game.add.text(110 * i + 110, game.height - 60, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.attack + "/" + gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.defense, { font: "15px bold Arial" });
+    gameVariables.gamePlayerArray[0].handTracker[i].text2 = game.add.text(110 * i + 115, game.height - 75, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.attack + "/" + gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.defense, { font: "bold 15px Arial" });
 
+
+    //Add card mana
+    for (m = 0; m < gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.cost; m++) {
+        var manacost = game.add.sprite(5, -51 + (m * 4), 'mana');
+        manacost.height = 3;
+        manacost.width = 3;
+        gameVariables.gamePlayerArray[0].handTracker[i].spritefront.addChild(manacost);
+    }
+
+
+    gameVariables.gamePlayerArray[0].handTracker[i].group = game.add.group();
+
+    gameVariables.gamePlayerArray[0].handTracker[i].group.add(gameVariables.gamePlayerArray[0].handTracker[i].spritefront);
+    gameVariables.gamePlayerArray[0].handTracker[i].group.add(gameVariables.gamePlayerArray[0].handTracker[i].spriteborder);
+    gameVariables.gamePlayerArray[0].handTracker[i].group.add(gameVariables.gamePlayerArray[0].handTracker[i].spriteimage);
+    gameVariables.gamePlayerArray[0].handTracker[i].group.add(gameVariables.gamePlayerArray[0].handTracker[i].text1);
+    gameVariables.gamePlayerArray[0].handTracker[i].group.add(gameVariables.gamePlayerArray[0].handTracker[i].text2);
+
+       
 
 }
 
@@ -577,7 +625,7 @@ function removeCardFromHandTracker(handTrackerIndex) {
 
     //for (i = 0; i < gameVariables.gamePlayerArray[0].handTracker.length; i++) {
     //if (gameVariables.gamePlayerArray[0].handTracker[handTrackerIndex].id == id) {
-
+    gameVariables.gamePlayerArray[0].handTracker[handTrackerIndex].group.removeAll(true);
     //Destroy sprites in handtracker
     gameVariables.gamePlayerArray[0].handTracker[handTrackerIndex].spritefront.destroy();
     gameVariables.gamePlayerArray[0].handTracker[handTrackerIndex].spriteborder.destroy();
