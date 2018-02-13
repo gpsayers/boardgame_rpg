@@ -23,7 +23,7 @@
 
 }
 
-function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human, deck) {
+function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human, deck, maxhand) {
     this.id = id;
     this.square = square;
     this.name = name;
@@ -39,6 +39,7 @@ function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human,
     this.handTracker = [];
     this.sprite = {};
     this.turnSprite = {};
+    this.maxhand = maxhand;
 }
 
 function gameSquare(id, x, y, sprite) {

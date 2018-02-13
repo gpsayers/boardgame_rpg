@@ -52,10 +52,10 @@ gameMain.prototype = {
 
 
         //board squares
-        game.load.image('red', 'Assets/red.png');
-        game.load.image('blue', 'Assets/blue.png');
+        game.load.image('red', 'Assets/fire.png');
+        game.load.image('blue', 'Assets/ice.png');
         game.load.image('neutral', 'Assets/neutral.png');
-        game.load.image('yellow', 'Assets/yellow.png');
+        game.load.image('yellow', 'Assets/divination.png');
         game.load.image('purple', 'Assets/purple.png');
         game.load.image('green', 'Assets/green.png');
 
@@ -102,6 +102,8 @@ gameMain.prototype = {
         game.load.image('turnArrow', 'Assets/GUI/arrow.png');
         game.load.image('turnSprite', 'Assets/GUI/paper-button-off.png');
         game.load.image('dialog', 'Assets/GUI/paper-dialog.png');
+        game.load.image('dialogorange', 'Assets/GUI/dialog.png');
+        game.load.image('dialogblue', 'Assets/GUI/dialog-box.png');
 
     },
     create: function () {
@@ -122,21 +124,37 @@ gameMain.prototype = {
         var tile = game.add.tileSprite(0, 0, game.width, game.height, 'dirt');
         back_layer.add(tile);
         var playerArea = game.add.sprite(game.width - 50, game.height - 50, 'dialog');
-        playerArea.width = 400;
+        playerArea.width = 500;
         playerArea.height = 218;
         playerArea.anchor.x = 1;
         playerArea.anchor.y = 1;
         back_layer.add(playerArea);
-        var pbs = game.add.sprite(game.width - 435, game.height - 258, gameVariables.playerColor);
-        var pb = game.add.sprite(game.width - 435, game.height - 258, gameVariables.playerImg);
+        //var turnArea = game.add.sprite(game.width - 50, game.height - 278, 'dialog');
+        //turnArea.width = 250;
+        //turnArea.height = game.height-318;
+        //turnArea.anchor.x = 1;
+        //turnArea.anchor.y = 1;
+        //back_layer.add(turnArea);
+        var infoArea = game.add.sprite(game.width - 310, game.height - 278, 'dialog');
+        infoArea.width = 250;
+        infoArea.height = game.height - 318;
+        infoArea.anchor.x = 1;
+        infoArea.anchor.y = 1;
+        back_layer.add(infoArea);
+        var infoText = game.add.text(game.width-450, 60, "Info", style);
+        back_layer.add(infoText);
+
+        var pbs = game.add.sprite(game.width - 535, game.height - 258, gameVariables.playerColor);
+        var pb = game.add.sprite(game.width - 535, game.height - 258, gameVariables.playerImg);
         pbs.width = 35;
         pbs.height = 35;
-        var ptxt = game.add.text(game.width - 395, game.height - 255, gameVariables.playerName, style);
-        var drawtext = game.add.text(game.width - 435, game.height - 110, "End Turn", style);
+        back_layer.add(pbs);
+        back_layer.add(pb);
+        var ptxt = game.add.text(game.width - 495, game.height - 255, gameVariables.playerName, style);
+        var drawtext = game.add.text(game.width - 535, game.height - 90, "End Turn", style);
         drawtext.inputEnabled = true;
         drawtext.events.onInputUp.add(endPlayerTurn, this);
         drawtext.visible = true;
-
         turnArrow = game.add.sprite(10, 10, 'turnArrow');
         turnArrow.x = game.width - 280;
         turnArrow.y = (50 * gameVariables.currentPlayer) + 60;
@@ -290,12 +308,15 @@ gameMain.prototype = {
                 qText.setText("Your turn!");
                 qText.visible = true;
 
+                game.world.bringToTop(player_layer);
+
             }
 
         }
         else {
             //Computer turn
-            game.time.events.add(2000, function () { }, this);
+            //game.time.events.add(2000, function () { }, this);
+            game.world.bringToTop(player_layer[gameVariables.currentPlayer]);
 
 
             if (computerMoved == false) {
