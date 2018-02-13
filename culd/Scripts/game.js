@@ -13,6 +13,11 @@ var playerCardDrawn = false;
 var computerMoved = false;
 var computerMoving = false;
 var computerActing = false;
+var playerCrossStart = false,
+    playerCrossStartMenu = false,
+    playerDiscardMenu = false,
+    playerDiscardWaiting = false,
+    playerManaNotificationMenu = false;
 
 
 gameMain.prototype = {
@@ -33,7 +38,8 @@ gameMain.prototype = {
             gameVariables.hitpoints,
             gameVariables.playerStartingMana,
             true,
-            shuffle(gameVariables.playerDeck)));
+            shuffle(gameVariables.playerDeck),
+            gameVariables.playerMaxHand));
 
         gameVariables.currentPlayer = 0;
 
@@ -289,6 +295,28 @@ gameMain.prototype = {
         noText.events.onInputUp.add(menuConfirmClick, this);
 
 
+        //Cross start menu
+        manaText = game.add.text((game.width / 2) - 60, (game.height / 2) + 40, "Mana", style);
+        manaText.inputEnabled = true;
+        manaText.visible = false;
+        manaText.events.onInputUp.add(menuStartClick, this);
+
+        cardText = game.add.text((game.width / 2) -60, (game.height / 2) + 10, "Card", style);
+        cardText.inputEnabled = true;
+        cardText.visible = false;
+        cardText.events.onInputUp.add(menuStartClick, this);
+
+        healthText = game.add.text((game.width / 2) +20, (game.height / 2) + 40, "Health", style);
+        healthText.inputEnabled = true;
+        healthText.visible = false;
+        healthText.events.onInputUp.add(menuStartClick, this);
+
+        goldText = game.add.text((game.width / 2) + 20, (game.height / 2) + 10, "Gold", style);
+        goldText.inputEnabled = true;
+        goldText.visible = false;
+        goldText.events.onInputUp.add(menuStartClick, this);
+
+
         //Direction confirmation menu
         leftButt = game.add.button((game.width / 2 - 65), (game.height / 2) + 10, 'leftButton', dirButtonClick, this, 1, 1, 2, 1);
         leftButt.width = 40;
@@ -312,6 +340,10 @@ gameMain.prototype = {
         pop_layer.add(leftButt);
         pop_layer.add(upButt);
         pop_layer.add(rightButt);
+        pop_layer.add(manaText);
+        pop_layer.add(cardText);
+        pop_layer.add(healthText);
+        pop_layer.add(goldText);
 
     },
     update: function () {
@@ -322,8 +354,7 @@ gameMain.prototype = {
             playerSquareCount[i].setText(calc + '%');
             
         }
-
-
+        
         //Add player mana nodes
         gameVariables.gamePlayerArray[0].manasprite.destroy();
         gameVariables.gamePlayerArray[0].manasprite = game.add.sprite(game.width - 535, game.height - 208, 'mana');
@@ -354,6 +385,8 @@ gameMain.prototype = {
 
                 game.world.bringToTop(player_layer);
 
+                gameVariables.gamePlayerArray[gameVariables.currentPlayer].mana = gameVariables.gamePlayerArray[gameVariables.currentPlayer].maxmana;
+
             }
 
         }
@@ -362,6 +395,7 @@ gameMain.prototype = {
             //game.time.events.add(2000, function () { }, this);
             game.world.bringToTop(player_layer[gameVariables.currentPlayer]);
 
+            gameVariables.gamePlayerArray[gameVariables.currentPlayer].mana = gameVariables.gamePlayerArray[gameVariables.currentPlayer].maxmana;
 
             if (computerMoved == false) {
                 //Execute a move
@@ -448,6 +482,21 @@ gameMain.prototype = {
             }
         }
 
+        //Display start cross menu
+        if (playerCrossStartMenu == true) {
+
+            playerCrossStartMenu = false;
+
+            menu.visible = true;
+            qText.setText("Please choose a reward.");
+            qText.visible = true;
+            manaText.visible = true;
+            cardText.visible = true;
+            healthText.visible = true;
+            goldText.visible = true;
+
+        }
+
         //Display player direction choice menu
         if (playerDirChoiceMenu == true) {
 
@@ -473,6 +522,14 @@ gameMain.prototype = {
             }
         }
 
+        if (playerManaNotificationMenu == true) {
+            playerManaNotificationMenu = false;
+
+            menu.visible = true;
+            qText.setText("Not enough mana.");
+            qText.visible = true;
+        }
+
         //Player choice yes or no menu
         if (playerChoiceMenu == true) {
             menu.visible = true;
@@ -484,10 +541,19 @@ gameMain.prototype = {
             noText.choice = "no";
         }
 
-        //Display the player cards
+        //discard menu
+        if (playerDiscardMenu == true) {
+            menu.visible = true;
+            qText.setText("Please discard a card.");
+            qText.visible = true;
+
+            playerDiscardMenu = false;
+            playerDiscardWaiting = true;
+        }
+
+        //Tween the cards back to starting position if moved if hand changes
         for (var i = 0; i < gameVariables.gamePlayerArray[0].handTracker.length; i++) {
 
-            //tween card front
             //var tween1 = game.add.tween(gameVariables.gamePlayerArray[0].handTracker[i].group).to({ x: 0 + (i *10), y: 0 }, 200, Phaser.Easing.Linear.None, false);
             var tween1 = game.add.tween(gameVariables.gamePlayerArray[0].handTracker[i].spritefront).to({ x: 110 * i + 50, y: game.height - 50},200,Phaser.Easing.Linear.None, false);
             var tween2 = game.add.tween(gameVariables.gamePlayerArray[0].handTracker[i].spriteborder).to({ x: 110 * i + 50, y: game.height - 50 }, 200, Phaser.Easing.Linear.None, false);
@@ -701,8 +767,50 @@ function addGameSquare(type, x, y, squareId, gridX, gridY) {
 
 
 function cardClick(item) {
-    playerChoiceMenu = true;
     cardClicked = item.cardId;
+
+    if (playerDiscardWaiting == true) {
+
+        //Discard spell that was cast
+        if (gameVariables.currentPlayer == 0) {
+
+            for (i = 0; i < gameVariables.gamePlayerArray[0].handTracker.length; i++) {
+                if (gameVariables.gamePlayerArray[0].handTracker[i].id == cardClicked) {
+                    removeCardFromHandTracker(i);
+                    break;
+                }
+            }
+
+            for (m = 0; m < gameVariables.gamePlayerArray[0].hand.length; m++) {
+                if (gameVariables.gamePlayerArray[0].hand[m].id == cardClicked) {
+                    //Add card to discard
+                    gameVariables.gamePlayerArray[0].discard.push(gameVariables.gamePlayerArray[0].hand[m]);
+
+                    //Remove card from hand
+                    gameVariables.gamePlayerArray[0].hand.splice(m, 1);
+
+                    break;
+                }
+            }
+
+        }
+
+        if (gameVariables.gamePlayerArray[0].hand.length <= gameVariables.gamePlayerArray[0].maxhand) {
+            playerDiscardWaiting = false;
+
+            menu.visible = false;
+            qText.visible = false;
+
+            endPlayerTurn();
+        }
+
+    }
+    else {
+        playerChoiceMenu = true;
+
+    }
+
+
 
 }
 
@@ -715,6 +823,19 @@ function castSpell(id, player) {
     var boardSquareDetail = gameVariables.gameBoard.find(function (item) {
         return item.id == player.gameSquareId;
     });
+
+
+
+    //check if player has enough mana for spell
+    if (cardDetails.cost > gameVariables.gamePlayerArray[gameVariables.currentPlayer].mana) {
+        //Not enough mana
+        playerManaNotificationMenu = true;
+
+        return;
+    }
+    else {
+        gameVariables.gamePlayerArray[gameVariables.currentPlayer].mana = gameVariables.gamePlayerArray[gameVariables.currentPlayer].mana - cardDetails.cost;
+    }
 
     //Check if basic summon creature spell to current player location
     if (cardDetails.creature == true && cardDetails.spell == false) {
@@ -878,25 +999,75 @@ function menuConfirmClick(item) {
 
 function menuClick() {
     if (playerNotificationMenu == true) {
+
+        playerNotificationMenu = false;
+
         playerNotified = true;
 
-        menu.visible = false;
-        qText.visible = false;
+        drawCard();
 
         //Enable roll dice button
         button.inputEnabled = true;
         button.frame = 1;
-
-        drawCard();
-
     }
+
+    menu.visible = false;
+    qText.visible = false;
+
+
+}
+
+
+function menuStartClick(choice) {
+
+    console.log(choice.text);
+
+    switch (choice.text) {
+        case "Gold":
+            gameVariables.playerGold = gameVariables.playerGold + 100;
+            break;
+        case "Mana":
+            gameVariables.gamePlayerArray[0].maxmana++;
+            gameVariables.gamePlayerArray[0].mana++;
+            break;
+        case "Card":
+            drawCard();
+            break;
+        case "Health":
+            gameVariables.gamePlayerArray[0].hp = gameVariables.gamePlayerArray[0].hp + 2;
+            if (gameVariables.gamePlayerArray[0].hp > gameVariables.gamePlayerArray[0].maxhp) {
+                gameVariables.gamePlayerArray[0].hp = gameVariables.gamePlayerArray[0].maxhp;
+            }
+            break;
+    }
+
+
+    menu.visible = false;
+    qText.setText("Please choose a reward.");
+    qText.visible = false;
+    manaText.visible = false;
+    cardText.visible = false;
+    healthText.visible = false;
+    goldText.visible = false;
+
 }
 
 
 function endPlayerTurn() {
 
-    playerNotified = false;
-    endCurrentPlayerTurn();
+    if (playerDiscardWaiting == true) {
+        return;
+    }
+
+    if (gameVariables.gamePlayerArray[0].hand.length > gameVariables.gamePlayerArray[0].maxhand) {
+        playerDiscardMenu = true;
+    }
+    else {
+        playerNotified = false;
+        endCurrentPlayerTurn();
+    }
+
+
 
 }
 
@@ -923,6 +1094,8 @@ function diceRoll(item) {
 
     //Create random number between 1-6
     var roll = 1 + Math.floor(Math.random() * 6);
+
+    roll = roll + 10;
 
     switch (roll) {
         case 1:
@@ -1041,7 +1214,12 @@ function playerMove(playerSprite, roll) {
         var gameBoardDestResult = gameVariables.gameBoard.find(function (element) {
             return element.sprite.gameSquareId == nextPathIdArray[0]
         });
-        
+
+        if (nextPathIdArray[0] == gameVariables.boardInfo.boardStart)
+        {
+            playerCrossStart = true;
+        }
+
         var tween = game.add.tween(playerSprite).to({ x: gameBoardDestResult.sprite.x, y: gameBoardDestResult.sprite.y }, 500, Phaser.Easing.Linear.None, true);
 
         //Callback to complete the rest of the roll
@@ -1054,6 +1232,9 @@ function playerMove(playerSprite, roll) {
     else {
         //Player movement done.
         computerMoving = false;
+        if (playerCrossStart == true) {
+            playerCrossStartMenu = true;
+        }
     }
 }
 
