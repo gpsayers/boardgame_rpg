@@ -54,9 +54,9 @@ gameMain.prototype = {
         //board squares
         game.load.image('red', 'Assets/fire.png');
         game.load.image('blue', 'Assets/ice.png');
-        game.load.image('neutral', 'Assets/neutral.png');
+        game.load.image('neutral', 'Assets/summoning.png');
         game.load.image('yellow', 'Assets/divination.png');
-        game.load.image('purple', 'Assets/purple.png');
+        game.load.image('purple', 'Assets/necromancy.png');
         game.load.image('green', 'Assets/green.png');
 
         //board elements
@@ -141,8 +141,6 @@ gameMain.prototype = {
         infoArea.anchor.x = 1;
         infoArea.anchor.y = 1;
         back_layer.add(infoArea);
-        var infoText = game.add.text(game.width-450, 60, "Info", style);
-        back_layer.add(infoText);
 
         var pbs = game.add.sprite(game.width - 535, game.height - 258, gameVariables.playerColor);
         var pb = game.add.sprite(game.width - 535, game.height - 258, gameVariables.playerImg);
@@ -159,12 +157,14 @@ gameMain.prototype = {
         turnArrow.x = game.width - 280;
         turnArrow.y = (50 * gameVariables.currentPlayer) + 60;
 
+
+
         //Build the game board
         for (y = 0; y < gameVariables.boardInfo.squares.length; y++) {
             var row = gameVariables.boardInfo.squares[y];
             for (x = 0; x < row.length; x++) {
                 if (row[x] > 0) {
-                    addGameSquare("neutral", (50 * x) + 75, (50 * y) + 50, row[x], x, y);
+                    addGameSquare("neutral", (50 * x) + 75, (50 * y) + 75, row[x], x, y);
                 }
             }
         }
@@ -202,10 +202,22 @@ gameMain.prototype = {
             gameVariables.gamePlayerArray[i].turnSprite.addChild(child);
             var txt = game.add.text(45, 15, gameVariables.gamePlayerArray[i].name, style);
             gameVariables.gamePlayerArray[i].turnSprite.addChild(txt);
-                       
+            back_layer.add(gameVariables.gamePlayerArray[i].turnSprite);         
 
         }
-        
+
+        //Game info text
+        var infoText = game.add.text(game.width - 450, 60, "Info", style);
+        back_layer.add(infoText);
+        playerSquareCount = {};
+        for (i = 0; i < gameVariables.gamePlayerArray.length; i++) {
+            playerSquareCount[i] = game.add.text(game.width - 60, (50 * i) + 65, "25%", style);
+            playerSquareCount[i].anchor.setTo(1, 0);
+            back_layer.add(playerSquareCount[i]);
+
+        }
+
+
         //Add cursors for movement and targeting
         cursor1 = game.add.sprite(1, 1, 'cursor');
         cursor1.anchor.x = 0.5;
@@ -296,6 +308,12 @@ gameMain.prototype = {
     },
     update: function () {
 
+        for (i = 0; i < gameVariables.gamePlayerArray.length; i++) {
+            var calc = Math.round((gameVariables.gamePlayerArray[i].capturedSquares / gameVariables.boardInfo.boardTotal) * 100);
+
+            playerSquareCount[i].setText(calc + '%');
+        }
+
         //Determine player turn
         if (gameVariables.currentPlayer == 0) {
 
@@ -374,12 +392,7 @@ gameMain.prototype = {
                     //Wait for actions to complete
                 }
 
-
-
-            }
-            
-
-
+            }          
 
         }
 
@@ -461,6 +474,7 @@ gameMain.prototype = {
             tween5.start();
 
         }
+
 
 
         //for (i = 0; i < gameBoard.length; i++) {
@@ -776,12 +790,25 @@ function captureSquare(id) {
     //Check for loot on the square
 
 
+
+
     //Claim the square color
     var boardSquareDetail = gameVariables.gameBoard.find(function (item) {
         return item.id == id;
     });
 
+    for (i = 0; i < gameVariables.gamePlayerArray.length; i++) {
+        if (gameVariables.gamePlayerArray[i].color == boardSquareDetail.sprite.key) {
+            gameVariables.gamePlayerArray[i].capturedSquares--;
+        } 
+        
+    }
+
+    gameVariables.gamePlayerArray[gameVariables.currentPlayer].capturedSquares++;
+
     boardSquareDetail.sprite.loadTexture(gameVariables.gamePlayerArray[gameVariables.currentPlayer].color);
+
+
 }
 
 
@@ -824,6 +851,7 @@ function endPlayerTurn() {
     endCurrentPlayerTurn();
 
 }
+
 
 function endCurrentPlayerTurn() {
     gameVariables.currentPlayer++;

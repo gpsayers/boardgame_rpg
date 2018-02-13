@@ -5,7 +5,7 @@
 
 var gameProperties = {
     screenWidth: Math.min(( window.innerWidth * window.devicePixelRatio),1200),
-    screenHeight: Math.min((window.innerHeight * window.devicePixelRatio),800)
+    screenHeight: Math.min((window.innerHeight * window.devicePixelRatio),700)
 };
 
 
