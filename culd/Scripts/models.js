@@ -67,7 +67,7 @@ function gameSquareCreature(cardId, squareId, sprite, hitpoints, maxhitpoints, a
 
 }
 
-function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense, damage, image, armor) {
+function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense, damage, image, armor, threat) {
     this.id = id;
     this.name = name;
     this.desc = desc;
@@ -81,6 +81,7 @@ function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense
     this.damage = damage;
     this.image = image;
     this.armor = armor;
+    this.threat = threat;
 }
 
 function playerHandTracker(id, cardInfo, positionx, positiony) {

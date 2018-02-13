@@ -1,19 +1,19 @@
 ﻿var gameMain = function () { };
 
 
-var playerDestinations = [];
-var playerDirChoiceMenu = false;
-var playerChoiceMenu = false;
-var playerRoll = 0;
-var activePlayerSquare = 0;
-var addCardHand = false;
-var playerNotificationMenu = false;
-var playerNotified = false;
-var playerCardDrawn = false;
-var computerMoved = false;
-var computerMoving = false;
-var computerActing = false;
-var playerCrossStart = false,
+var playerDestinations = [],
+    playerDirChoiceMenu = false,
+    playerChoiceMenu = false,
+    playerRoll = 0,
+    activePlayerSquare = 0,
+    addCardHand = false,
+    playerNotificationMenu = false,
+    playerNotified = false,
+    playerCardDrawn = false,
+    computerMoved = false;
+    computerMoving = false,
+    computerActing = false,
+    playerCrossStart = false,
     playerCrossStartMenu = false,
     playerDiscardMenu = false,
     playerDiscardWaiting = false,
@@ -231,6 +231,37 @@ gameMain.prototype = {
         goldText.anchor.setTo(1, 0);
         goldIcon = game.add.sprite(game.width - 60 - goldText.width, game.height - 258, 'gold');
         goldIcon.anchor.setTo(1, 0);
+        infoText1 = game.add.text(game.width - 550, 75, 'row 1 col 1', style);
+        infoText2 = game.add.text(game.width - 425, 75, 'row 1 col 2', style);
+        infoText3 = game.add.text(game.width - 550, 95, 'row 2 col 1', style);
+        infoText4 = game.add.text(game.width - 425, 95, 'row 2 col 2', style);
+        infoText5 = game.add.text(game.width - 550, 115, 'row', style);
+        infoText6 = game.add.text(game.width - 425, 115, 'row', style);
+        infoText7 = game.add.text(game.width - 550, 175, 'row', style);
+        infoText8 = game.add.text(game.width - 425, 175, 'row', style);
+        infoText9 = game.add.text(game.width - 550, 195, 'row', style);
+        infoText10 = game.add.text(game.width - 425, 195, 'row', style);
+        infoImage1 = game.add.sprite(game.width - 550, 75, 'wizard');
+        infoImage2 = game.add.sprite(game.width -500, 75, 'wizard');
+        infoImage3 = game.add.sprite(game.width -450, 75, 'wizard');
+        infoImage4 = game.add.sprite(game.width -550, 75, 'wizard');
+        infoImage5 = game.add.sprite(game.width -550, 75, 'wizard');
+        infoText1.visible = false;
+        infoText2.visible = false;
+        infoText3.visible = false;
+        infoText4.visible = false;
+        infoText5.visible = false;
+        infoText6.visible = false;
+        infoText7.visible = false;
+        infoText8.visible = false;
+        infoText9.visible = false;
+        infoText10.visible = false;
+        infoImage1.visible = false;
+        infoImage2.visible = false;
+        infoImage3.visible = false;
+        infoImage4.visible = false;
+        infoImage5.visible = false;
+
 
         //Add cursors for movement and targeting
         cursor1 = game.add.sprite(1, 1, 'cursor');
@@ -348,14 +379,14 @@ gameMain.prototype = {
     },
     update: function () {
 
-        //Add player square capture percentage
+        //Update player square capture percentage
         for (i = 0; i < gameVariables.gamePlayerArray.length; i++) {
             var calc = Math.round((gameVariables.gamePlayerArray[i].capturedSquares / gameVariables.boardInfo.boardTotal) * 100);
             playerSquareCount[i].setText(calc + '%');
             
         }
         
-        //Add player mana nodes
+        //UPdate player mana nodes
         gameVariables.gamePlayerArray[0].manasprite.destroy();
         gameVariables.gamePlayerArray[0].manasprite = game.add.sprite(game.width - 535, game.height - 208, 'mana');
         gameVariables.gamePlayerArray[0].manasprite.width = 20;
@@ -522,6 +553,7 @@ gameMain.prototype = {
             }
         }
 
+        //Display if player doesn't have enough mana for spell
         if (playerManaNotificationMenu == true) {
             playerManaNotificationMenu = false;
 
@@ -567,11 +599,8 @@ gameMain.prototype = {
             tween4.start();
             tween5.start();
 
-
         }
-
-
-
+        
         //for (i = 0; i < gameBoard.length; i++) {
         //    if (gameBoard[i].sprite.input.pointerOver()) {
         //        gameBoard[i].sprite.alpha = 0.5;
@@ -806,7 +835,13 @@ function cardClick(item) {
 
     }
     else {
-        playerChoiceMenu = true;
+
+        if (gameVariables.currentPlayer == 0) {
+
+            //Confirm that player wants to cast the spell
+            playerChoiceMenu = true;
+        }
+
 
     }
 
@@ -1056,6 +1091,7 @@ function menuStartClick(choice) {
 function endPlayerTurn() {
 
     if (playerDiscardWaiting == true) {
+        playerDiscardMenu = true;
         return;
     }
 
