@@ -43,6 +43,7 @@ function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human,
     this.maxhand = maxhand;
     this.capturedSquares = 0;
     this.manasprite = {};
+    this.gold = 100;
 }
 
 function gameSquare(id, x, y, sprite) {

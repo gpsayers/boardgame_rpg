@@ -231,37 +231,37 @@ gameMain.prototype = {
         goldText.anchor.setTo(1, 0);
         goldIcon = game.add.sprite(game.width - 60 - goldText.width, game.height - 258, 'gold');
         goldIcon.anchor.setTo(1, 0);
-        infoText1 = game.add.text(game.width - 550, 75, 'row 1 col 1', style);
-        infoText2 = game.add.text(game.width - 425, 75, 'row 1 col 2', style);
-        infoText3 = game.add.text(game.width - 550, 95, 'row 2 col 1', style);
-        infoText4 = game.add.text(game.width - 425, 95, 'row 2 col 2', style);
-        infoText5 = game.add.text(game.width - 550, 115, 'row', style);
-        infoText6 = game.add.text(game.width - 425, 115, 'row', style);
-        infoText7 = game.add.text(game.width - 550, 175, 'row', style);
-        infoText8 = game.add.text(game.width - 425, 175, 'row', style);
-        infoText9 = game.add.text(game.width - 550, 195, 'row', style);
-        infoText10 = game.add.text(game.width - 425, 195, 'row', style);
-        infoImage1 = game.add.sprite(game.width - 550, 75, 'wizard');
-        infoImage2 = game.add.sprite(game.width -500, 75, 'wizard');
-        infoImage3 = game.add.sprite(game.width -450, 75, 'wizard');
-        infoImage4 = game.add.sprite(game.width -550, 75, 'wizard');
-        infoImage5 = game.add.sprite(game.width -550, 75, 'wizard');
-        infoText1.visible = false;
-        infoText2.visible = false;
-        infoText3.visible = false;
-        infoText4.visible = false;
-        infoText5.visible = false;
-        infoText6.visible = false;
-        infoText7.visible = false;
-        infoText8.visible = false;
-        infoText9.visible = false;
-        infoText10.visible = false;
-        infoImage1.visible = false;
-        infoImage2.visible = false;
-        infoImage3.visible = false;
-        infoImage4.visible = false;
-        infoImage5.visible = false;
-
+        infoText1 = game.add.text(game.width - 550, 115, 'text1', style);
+        infoText2 = game.add.text(game.width - 425, 115, 'text2', style);
+        infoText3 = game.add.text(game.width - 550, 175, 'text3', style);
+        infoText4 = game.add.text(game.width - 425, 175, 'text4', style);
+        infoText5 = game.add.text(game.width - 550, 235, 'text5', style);
+        infoText6 = game.add.text(game.width - 425, 235, 'text6', style);
+        infoText7 = game.add.text(game.width - 550, 255, 'text7', style);
+        infoText8 = game.add.text(game.width - 425, 255, 'text8', style);
+        infoText9 = game.add.text(game.width - 550, 335, 'text9', style);
+        infoText10 = game.add.text(game.width - 425, 335, 'text10', style);
+        infoImage1 = game.add.sprite(game.width - 550, 80, 'wizard');
+        infoImage2 = game.add.sprite(game.width -550, 140, 'wizard');
+        infoImage3 = game.add.sprite(game.width -550, 200, 'wizard');
+        infoImage4 = game.add.sprite(game.width -550, 305, 'wizard');
+        infoImage5 = game.add.sprite(game.width -450, 305, 'wizard');
+        back_layer.add(infoText1);
+        back_layer.add(infoText2);
+        back_layer.add(infoText3);
+        back_layer.add(infoText4);
+        back_layer.add(infoText5);
+        back_layer.add(infoText6);
+        back_layer.add(infoText7);
+        back_layer.add(infoText8);
+        back_layer.add(infoText9);
+        back_layer.add(infoText10);
+        back_layer.add(infoImage1);
+        back_layer.add(infoImage2);
+        back_layer.add(infoImage3);
+        back_layer.add(infoImage4);
+        back_layer.add(infoImage5);
+        makeInfoInvis(false);
 
         //Add cursors for movement and targeting
         cursor1 = game.add.sprite(1, 1, 'cursor');
@@ -423,15 +423,37 @@ gameMain.prototype = {
         }
         else {
             //Computer player turn
-            //game.time.events.add(2000, function () { }, this);
+
+            if (playerCrossStart == true) {
+
+                //Must be computer that crossed the start. 
+                playerCrossStart = false;
+
+                if (gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp < 3) {
+                    //Take the health option
+                    gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp + 2;
+                }
+                else if (gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.length < 2) {
+                    //Draw cards
+                    computerDrawCard(gameVariables.currentPlayer);
+                    computerDrawCard(gameVariables.currentPlayer);
+                }
+                else if (gameVariables.gamePlayerArray[gameVariables.currentPlayer].maxmana < 6) {
+                    //Max mana increase
+                    gameVariables.gamePlayerArray[gameVariables.currentPlayer].maxmana++;
+                }
+                else {
+                    //Gain gold
+                    gameVariables.gamePlayerArray[gameVariables.currentPlayer].gold = gameVariables.gamePlayerArray[gameVariables.currentPlayer].gold + 100;
+                }
+            }
+
             game.world.bringToTop(player_layer[gameVariables.currentPlayer]);
 
             gameVariables.gamePlayerArray[gameVariables.currentPlayer].mana = gameVariables.gamePlayerArray[gameVariables.currentPlayer].maxmana;
 
             if (computerMoved == false) {
                 //Execute a move
-
-                //Create random number between 1-6
                 var roll = 1 + Math.floor(Math.random() * 6);
 
                 computerMoved = true;
@@ -457,18 +479,8 @@ gameMain.prototype = {
                     //take computer actions.
                     computerActing = true;
 
-
                     //Draw Card
-                    if (gameVariables.gamePlayerArray[gameVariables.currentPlayer].deck.length < 1) {
-                        gameVariables.gamePlayerArray[gameVariables.currentPlayer].deck = shuffle(gameVariables.gamePlayerArray[gameVariables.currentPlayer].discard);
-                        gameVariables.gamePlayerArray[gameVariables.currentPlayer].discard.length = 0;
-                    }
-
-                    var card = gameVariables.gamePlayerArray[gameVariables.currentPlayer].deck.pop();
-
-                    if (typeof card !== 'undefined') {
-                        gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.push(card);
-                    }
+                    computerDrawCard(gameVariables.currentPlayer);
 
                     //Play a random spell
                     var randCard = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.splice(Math.floor(Math.random() * gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.length), 1);
@@ -514,7 +526,7 @@ gameMain.prototype = {
         }
 
         //Display start cross menu
-        if (playerCrossStartMenu == true) {
+        if (playerCrossStartMenu == true && gameVariables.currentPlayer == 0) {
 
             playerCrossStartMenu = false;
 
@@ -527,6 +539,7 @@ gameMain.prototype = {
             goldText.visible = true;
 
         }
+        
 
         //Display player direction choice menu
         if (playerDirChoiceMenu == true) {
@@ -768,7 +781,7 @@ function addGameSquare(type, x, y, squareId, gridX, gridY) {
     sprite.anchor.x = 0.5;
     sprite.anchor.y = 0.5;
     sprite.inputEnabled = true;
-    //sprite.events.onInputDown.add(listener, this);
+    sprite.events.onInputDown.add(boardSquareClicked, this);
     sprite.gameSquareId = squareId;
     sprite.gridX = gridX;
     sprite.gridY = gridY;
@@ -1055,7 +1068,6 @@ function menuClick() {
 
 function menuStartClick(choice) {
 
-    console.log(choice.text);
 
     switch (choice.text) {
         case "Gold":
@@ -1130,8 +1142,6 @@ function diceRoll(item) {
 
     //Create random number between 1-6
     var roll = 1 + Math.floor(Math.random() * 6);
-
-    roll = roll + 10;
 
     switch (roll) {
         case 1:
@@ -1270,6 +1280,7 @@ function playerMove(playerSprite, roll) {
         computerMoving = false;
         if (playerCrossStart == true) {
             playerCrossStartMenu = true;
+            playerCrossStart = false;
         }
     }
 }
@@ -1328,4 +1339,77 @@ function calculateDestinations(currentSquareId, roll) {
     }
 
 
+}
+
+
+function computerDrawCard(currentPlayer) {
+    //Draw Card
+    if (gameVariables.gamePlayerArray[currentPlayer].deck.length < 1) {
+        gameVariables.gamePlayerArray[currentPlayer].deck = shuffle(gameVariables.gamePlayerArray[currentPlayer].discard);
+        gameVariables.gamePlayerArray[currentPlayer].discard.length = 0;
+    }
+
+    var card = gameVariables.gamePlayerArray[currentPlayer].deck.pop();
+
+    if (typeof card !== 'undefined') {
+        gameVariables.gamePlayerArray[currentPlayer].hand.push(card);
+    }
+}
+
+
+function boardSquareClicked(item) {
+    makeInfoInvis(false);
+
+    infoImage1.loadTexture(item.key);
+    infoImage1.visible = true;
+    infoText1.setText(item.key);
+    infoText1.visible = true;
+
+
+    var boardSquareDetail = gameVariables.gameBoard.find(function (board) {
+        return board.id == item.gameSquareId;
+    });
+
+
+    if (boardSquareDetail.creature != null) {
+        var creature = boardSquareDetail.creature;
+
+        var cardDetails = masterCardList.find(function (card) {
+            return card.id == creature.cardId;
+        });
+
+        infoImage3.loadTexture(creature.sprite.key);
+        infoImage3.visible = true;
+        infoText3.setText(cardDetails.name + " HP: " + creature.hitpoints)
+        infoText3.visible = true;
+    }
+    else {
+        var find = gameVariables.gamePlayerArray.filter(function (player) {
+            return player.sprite.gameSquareId == item.gameSquareId;
+        });
+
+        console.log(find);
+    }
+
+
+
+}
+
+
+function makeInfoInvis(visible) {
+    infoText1.visible = visible;
+    infoText2.visible = visible;
+    infoText3.visible = visible;
+    infoText4.visible = visible;
+    infoText5.visible = visible;
+    infoText6.visible = visible;
+    infoText7.visible = visible;
+    infoText8.visible = visible;
+    infoText9.visible = visible;
+    infoText10.visible = visible;
+    infoImage1.visible = visible;
+    infoImage2.visible = visible;
+    infoImage3.visible = visible;
+    infoImage4.visible = visible;
+    infoImage5.visible = visible;
 }
