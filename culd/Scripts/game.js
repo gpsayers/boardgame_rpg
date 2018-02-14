@@ -10,14 +10,16 @@ var playerDestinations = [],
     playerNotificationMenu = false,
     playerNotified = false,
     playerCardDrawn = false,
-    computerMoved = false;
+    computerMoved = false,
     computerMoving = false,
     computerActing = false,
     playerCrossStart = false,
     playerCrossStartMenu = false,
     playerDiscardMenu = false,
     playerDiscardWaiting = false,
-    playerManaNotificationMenu = false;
+    playerManaNotificationMenu = false,
+    playerSpellTargeting = false,
+    targetArray = [];
 
 
 gameMain.prototype = {
@@ -525,6 +527,23 @@ gameMain.prototype = {
             }
         }
 
+        //Display spell target cursors
+        if (playerSpellTargeting == true) {
+
+            playerSpellTargeting = false;
+
+            for (var i = 0; i < targetArray.length; i++) {
+
+                var cur = game.add.sprite(targetArray[i].x, targetArray[i].y, 'cursor');
+                cur.anchor.setTo(0.5);
+                targetArray[i].sprite = cur;
+                game.add.tween(targetArray[i].sprite).to({ alpha: 1 }, 500, Phaser.Easing.Linear.NONE, true,0,1);
+            }
+
+
+        }
+
+
         //Display start cross menu
         if (playerCrossStartMenu == true && gameVariables.currentPlayer == 0) {
 
@@ -813,7 +832,7 @@ function cardClick(item) {
 
     if (playerDiscardWaiting == true) {
 
-        //Discard spell that was cast
+        //Discard spell 
         if (gameVariables.currentPlayer == 0) {
 
             for (i = 0; i < gameVariables.gamePlayerArray[0].handTracker.length; i++) {
@@ -837,6 +856,7 @@ function cardClick(item) {
 
         }
 
+        //If hand is under max hand end turn
         if (gameVariables.gamePlayerArray[0].hand.length <= gameVariables.gamePlayerArray[0].maxhand) {
             playerDiscardWaiting = false;
 
@@ -888,7 +908,7 @@ function castSpell(id, player) {
     //Check if basic summon creature spell to current player location
     if (cardDetails.creature == true && cardDetails.spell == false) {
 
-        
+
         //Check if square already has a creature
         if (boardSquareDetail.creature != null) {
 
@@ -897,9 +917,9 @@ function castSpell(id, player) {
             //Creature already exists!
             //Super awesome creature combat battle
 
-            var defHp = (boardCreature.hitpoints - Math.max( (cardDetails.attack - boardCreature.armor), 0));
+            var defHp = (boardCreature.hitpoints - Math.max((cardDetails.attack - boardCreature.armor), 0));
 
-            var attackerHP = cardDetails.defense - Math.max( (boardCreature.attack - cardDetails.armor),0);
+            var attackerHP = (cardDetails.defense - Math.max((boardCreature.attack - cardDetails.armor), 0));
 
             if (defHp < 1) {
                 //defender dead
@@ -910,8 +930,17 @@ function castSpell(id, player) {
 
                 if (attackerHP > 0) {
                     //Square is empty place creature and capture
-                    boardSquareDetail.creature = new gameSquareCreature(cardDetails.id, boardSquareDetail.id, null, attackerHP, cardDetails.defense, 0, cardDetails.attack, cardDetails.defense);
-                    var creatureSprite = game.add.sprite(boardSquareDetail.sprite.x, boardSquareDetail.sprite.y, cardDetails.image);
+                    boardSquareDetail.creature = new gameSquareCreature(cardDetails.id,
+                        boardSquareDetail.id,
+                        null,
+                        attackerHP,
+                        cardDetails.defense,
+                        0,
+                        cardDetails.attack,
+                        cardDetails.defense);
+                    var creatureSprite = game.add.sprite(boardSquareDetail.sprite.x,
+                        boardSquareDetail.sprite.y,
+                        cardDetails.image);
                     creatureSprite.width = 45;
                     creatureSprite.height = 45;
                     creatureSprite.anchor.x = 0.5;
@@ -922,10 +951,14 @@ function castSpell(id, player) {
                     var test = (attackerHP / cardDetails.defense) * 100;
                     var newtest = Math.ceil(test / 20) * 20;
 
-                    var creatureHitpointsG = game.add.sprite(boardSquareDetail.sprite.x - 10, boardSquareDetail.sprite.y + 17, 'gpix');
+                    var creatureHitpointsG = game.add.sprite(boardSquareDetail.sprite.x - 10,
+                        boardSquareDetail.sprite.y + 17,
+                        'gpix');
                     creatureHitpointsG.width = 20;
                     creatureHitpointsG.height = 3;
-                    var creatureHitpointsR = game.add.sprite(boardSquareDetail.sprite.x - 10, boardSquareDetail.sprite.y + 17, 'rpix');
+                    var creatureHitpointsR = game.add.sprite(boardSquareDetail.sprite.x - 10,
+                        boardSquareDetail.sprite.y + 17,
+                        'rpix');
                     creatureHitpointsR.width = newtest * .1;
                     creatureHitpointsR.height = 3;
 
@@ -936,8 +969,7 @@ function castSpell(id, player) {
                 }
 
 
-            }
-            else {
+            } else {
                 //Defender takes damage but lives. Attacker is discarded
                 var test = (defHp / boardCreature.maxhitpoints) * 100;
                 var newtest = Math.ceil(test / 20) * 20;
@@ -947,11 +979,18 @@ function castSpell(id, player) {
             }
 
 
-
         } else {
             //Square is empty place creature and capture
-            boardSquareDetail.creature = new gameSquareCreature(cardDetails.id, boardSquareDetail.id, null, cardDetails.defense, cardDetails.defense, 0, cardDetails.attack, cardDetails.defense);
-            var creatureSprite = game.add.sprite(boardSquareDetail.sprite.x, boardSquareDetail.sprite.y, cardDetails.image);
+            boardSquareDetail.creature = new gameSquareCreature(cardDetails.id,
+                boardSquareDetail.id,
+                null,
+                cardDetails.defense,
+                cardDetails.defense,
+                0,
+                cardDetails.attack,
+                cardDetails.defense);
+            var creatureSprite =
+                game.add.sprite(boardSquareDetail.sprite.x, boardSquareDetail.sprite.y, cardDetails.image);
             creatureSprite.width = 45;
             creatureSprite.height = 45;
             creatureSprite.anchor.x = 0.5;
@@ -959,10 +998,12 @@ function castSpell(id, player) {
             board_layer.add(creatureSprite);
             boardSquareDetail.creature.sprite = creatureSprite;
 
-            var creatureHitpointsG = game.add.sprite(boardSquareDetail.sprite.x - 10, boardSquareDetail.sprite.y + 17, 'gpix');
+            var creatureHitpointsG =
+                game.add.sprite(boardSquareDetail.sprite.x - 10, boardSquareDetail.sprite.y + 17, 'gpix');
             creatureHitpointsG.width = 20;
             creatureHitpointsG.height = 3;
-            var creatureHitpointsR = game.add.sprite(boardSquareDetail.sprite.x - 10, boardSquareDetail.sprite.y + 17, 'rpix');
+            var creatureHitpointsR =
+                game.add.sprite(boardSquareDetail.sprite.x - 10, boardSquareDetail.sprite.y + 17, 'rpix');
             creatureHitpointsR.width = 0;
             creatureHitpointsR.height = 3;
 
@@ -973,6 +1014,8 @@ function castSpell(id, player) {
         }
 
 
+    } else {
+        
     }
 
     //Discard spell that was cast
@@ -1318,7 +1361,7 @@ function calculateDestinations(currentSquareId, roll) {
         } else {
             var boardPathId = neighbors.filter(function (element) {
 
-                return element > currentSquareId
+                return element > currentSquareId;
             });
             nextPathIdArray = boardPathId;
         }
