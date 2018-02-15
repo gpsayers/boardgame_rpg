@@ -931,7 +931,16 @@ function castSpell(id, player) {
 
 
 
-    } 
+    } else if (cardDetails.special == 0) {
+        //Damage effect
+        //Determine target
+        highlightTargets(cardDetails, boardSquareDetail, player);
+    } else {
+        //Special effect
+        
+    }
+        
+
 
     //Discard spell that was cast
     if (gameVariables.currentPlayer == 0) {
@@ -1016,12 +1025,40 @@ function targetClicked(target) {
         return item.id == targetArrayItem.targetSquare;
     });
 
+    if (targetArray[target.targetArrayIndex].card.spell == true) {
+        //Target player or creature?
+    }
 
 
     if (targetArray[target.targetArrayIndex].card.creature == true) {
-        playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player)
+        playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
     }
 
+}
+
+
+function damageCreatureOnSquare(boardSquareDetail, cardDetails, player) {
+    boardSquareDetail.creature.hitpoints = (boardSquareDetail.creature.hitpoints -
+        Math.max((cardDetails.damage - boardSquareDetail.creature.armor), 0));
+
+    if (boardSquareDetail.creature.hitpoints < 1) {
+        //defender dead
+        boardCreature.sprite.destroy();
+        boardCreature.hitspritegreen.destroy();
+        boardCreature.hitspritered.destroy();
+        boardSquareDetail.creature = null;
+    } else {
+        //Defender takes damage but lives.
+        var test = (boardSquareDetail.creature.hitpoints / boardSquareDetail.creature.maxhitpoints) * 100;
+        var newtest = Math.ceil(test / 20) * 20;
+
+        boardSquareDetail.creature.hitspritered.width = newtest * .1;
+    }
+}
+
+
+function damagePlayerOnSquare(boardSquareDetail, cardDetails, player) {
+    
 }
 
 
