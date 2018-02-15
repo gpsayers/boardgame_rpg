@@ -54,7 +54,7 @@ function gameSquare(id, x, y, sprite) {
     this.creature = null;
 }
 
-function gameSquareCreature(cardId, squareId, sprite, hitpoints, maxhitpoints, armor, attack, def) {
+function gameSquareCreature(cardId, squareId, sprite, hitpoints, maxhitpoints, armor, attack, def, player) {
     this.cardId = cardId;
     this.squareId = squareId;
     this.sprite = sprite;
@@ -65,7 +65,7 @@ function gameSquareCreature(cardId, squareId, sprite, hitpoints, maxhitpoints, a
     this.def = def;
     this.hitspritegreen = {};
     this.hitspritered = {};
-
+    this.playerOwnedId = player;
 }
 
 function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense, damage, image, armor, threat, target) {
@@ -86,7 +86,6 @@ function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense
     this.target = target;
 }
 
-//Valid options for target include: Entire board (all), adjacent (adj), current square (square), any creature or player (any), any creature (creature), any player (player), self (self)
 
 function playerHandTracker(id, cardInfo, positionx, positiony) {
     this.id = id;

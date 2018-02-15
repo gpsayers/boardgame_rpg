@@ -101,6 +101,7 @@ gameMain.prototype = {
         game.load.image('menu', 'Assets/GUI/Menu.png');
         game.load.image('menu2', 'Assets/GUI/Menu_2.png');
         game.load.image('cursor', 'Assets/GUI/cursor.png');
+        game.load.image('target', 'Assets/GUI/silenced.png');
         game.load.spritesheet('diceButton', 'Assets/GUI/diceButtonsSpritesheet.png', 404, 177);
         game.load.spritesheet('leftButton', 'Assets/GUI/leftButtonSpritesheet.png', 221, 229);
         game.load.spritesheet('upButton', 'Assets/GUI/upButtonSpritesheet.png', 221, 229);
@@ -276,6 +277,11 @@ gameMain.prototype = {
         cursor2.anchor.y = 0.5;
         cursor2.visible = false;
         board_layer.add(cursor2);
+        target = game.add.sprite(1, 1, 'target');
+        target.anchor.x = 0.5;
+        target.anchor.y = 0.5;
+        target.visible = false;
+        board_layer.add(target);
 
         //Add dice roll sprites
         dice = game.add.sprite(game.width - 125, game.height - 150, '1');
@@ -534,7 +540,7 @@ gameMain.prototype = {
 
             for (var i = 0; i < targetArray.length; i++) {
 
-                var cur = game.add.sprite(targetArray[i].x, targetArray[i].y, 'cursor');
+                var cur = game.add.sprite(targetArray[i].x, targetArray[i].y, 'target');
                 cur.anchor.setTo(0.5);
                 targetArray[i].sprite = cur;
                 game.add.tween(targetArray[i].sprite).to({ alpha: 1 }, 500, Phaser.Easing.Linear.NONE, true,0,1);
@@ -905,118 +911,20 @@ function castSpell(id, player) {
         gameVariables.gamePlayerArray[gameVariables.currentPlayer].mana = gameVariables.gamePlayerArray[gameVariables.currentPlayer].mana - cardDetails.cost;
     }
 
-    //Check if basic summon creature spell to current player location
-    if (cardDetails.creature == true && cardDetails.spell == false) {
+    //Check if summon creature spell
+    if (cardDetails.creature == true) {
 
-
-        //Check if square already has a creature
-        if (boardSquareDetail.creature != null) {
-
-            boardCreature = boardSquareDetail.creature;
-
-            //Creature already exists!
-            //Super awesome creature combat battle
-
-            var defHp = (boardCreature.hitpoints - Math.max((cardDetails.attack - boardCreature.armor), 0));
-
-            var attackerHP = (cardDetails.defense - Math.max((boardCreature.attack - cardDetails.armor), 0));
-
-            if (defHp < 1) {
-                //defender dead
-                boardCreature.sprite.destroy();
-                boardCreature.hitspritegreen.destroy();
-                boardCreature.hitspritered.destroy();
-                boardSquareDetail.creature = null;
-
-                if (attackerHP > 0) {
-                    //Square is empty place creature and capture
-                    boardSquareDetail.creature = new gameSquareCreature(cardDetails.id,
-                        boardSquareDetail.id,
-                        null,
-                        attackerHP,
-                        cardDetails.defense,
-                        0,
-                        cardDetails.attack,
-                        cardDetails.defense);
-                    var creatureSprite = game.add.sprite(boardSquareDetail.sprite.x,
-                        boardSquareDetail.sprite.y,
-                        cardDetails.image);
-                    creatureSprite.width = 45;
-                    creatureSprite.height = 45;
-                    creatureSprite.anchor.x = 0.5;
-                    creatureSprite.anchor.y = 0.5;
-                    board_layer.add(creatureSprite);
-                    boardSquareDetail.creature.sprite = creatureSprite;
-
-                    var test = (attackerHP / cardDetails.defense) * 100;
-                    var newtest = Math.ceil(test / 20) * 20;
-
-                    var creatureHitpointsG = game.add.sprite(boardSquareDetail.sprite.x - 10,
-                        boardSquareDetail.sprite.y + 17,
-                        'gpix');
-                    creatureHitpointsG.width = 20;
-                    creatureHitpointsG.height = 3;
-                    var creatureHitpointsR = game.add.sprite(boardSquareDetail.sprite.x - 10,
-                        boardSquareDetail.sprite.y + 17,
-                        'rpix');
-                    creatureHitpointsR.width = newtest * .1;
-                    creatureHitpointsR.height = 3;
-
-                    boardSquareDetail.creature.hitspritegreen = creatureHitpointsG;
-                    boardSquareDetail.creature.hitspritered = creatureHitpointsR;
-
-                    captureSquare(player.gameSquareId);
-                }
-
-
-            } else {
-                //Defender takes damage but lives. Attacker is discarded
-                var test = (defHp / boardCreature.maxhitpoints) * 100;
-                var newtest = Math.ceil(test / 20) * 20;
-
-                boardSquareDetail.creature.hitspritered.width = newtest * .1;
-
-            }
-
-
-        } else {
-            //Square is empty place creature and capture
-            boardSquareDetail.creature = new gameSquareCreature(cardDetails.id,
-                boardSquareDetail.id,
-                null,
-                cardDetails.defense,
-                cardDetails.defense,
-                0,
-                cardDetails.attack,
-                cardDetails.defense);
-            var creatureSprite =
-                game.add.sprite(boardSquareDetail.sprite.x, boardSquareDetail.sprite.y, cardDetails.image);
-            creatureSprite.width = 45;
-            creatureSprite.height = 45;
-            creatureSprite.anchor.x = 0.5;
-            creatureSprite.anchor.y = 0.5;
-            board_layer.add(creatureSprite);
-            boardSquareDetail.creature.sprite = creatureSprite;
-
-            var creatureHitpointsG =
-                game.add.sprite(boardSquareDetail.sprite.x - 10, boardSquareDetail.sprite.y + 17, 'gpix');
-            creatureHitpointsG.width = 20;
-            creatureHitpointsG.height = 3;
-            var creatureHitpointsR =
-                game.add.sprite(boardSquareDetail.sprite.x - 10, boardSquareDetail.sprite.y + 17, 'rpix');
-            creatureHitpointsR.width = 0;
-            creatureHitpointsR.height = 3;
-
-            boardSquareDetail.creature.hitspritegreen = creatureHitpointsG;
-            boardSquareDetail.creature.hitspritered = creatureHitpointsR;
-
-            captureSquare(player.gameSquareId);
+        if (cardDetails.spell == false) {
+            playCreatureOnSquare(boardSquareDetail, cardDetails, player);
+        }
+        else {
+            //Determine target
+            highlightTargets(cardDetails.target, boardSquareDetail);
         }
 
 
-    } else {
-        
-    }
+
+    } 
 
     //Discard spell that was cast
     if (gameVariables.currentPlayer == 0) {
@@ -1042,6 +950,153 @@ function castSpell(id, player) {
 
     }
 
+
+}
+
+
+function highlightTargets(targetType, boardSquareDetail) {
+    playerSpellTargeting = true;
+
+    if (targetType == "square") {
+
+    }
+
+    if (targetType == "adj") {
+        //Adjacent squares
+        var gameBoardResult = gameVariables.gameBoard.find(function (element) {
+            return element.sprite.gameSquareId == boardSquareDetail.sprite.gameSquareId;
+        });
+
+        var neighbors = Array2D.orthogonals(gameVariables.boardInfo.squares, gameBoardResult.sprite.gridY, gameBoardResult.sprite.gridX);
+
+        console.log(neighbors);
+
+        neighbors.forEach(function (item) {
+
+            var gbr = gameVariables.gameBoard.find(function (orth) {
+                return orth.sprite.gameSquareId == item;
+            });
+
+            console.log(gbr);
+
+            if (typeof gbr !== 'undefined') {
+                targetArray.push({ x: gbr.x, y: gbr.y, sprite: {} })
+            }
+
+
+        })
+    }
+
+}
+
+
+function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
+
+    //Check if square already has a creature
+    if (boardSquareDetail.creature != null) {
+
+        boardCreature = boardSquareDetail.creature;
+
+        //Creature already exists!
+        //Super awesome creature combat battle
+
+        var defHp = (boardCreature.hitpoints - Math.max((cardDetails.attack - boardCreature.armor), 0));
+
+        var attackerHP = (cardDetails.defense - Math.max((boardCreature.attack - cardDetails.armor), 0));
+
+        if (defHp < 1) {
+            //defender dead
+            boardCreature.sprite.destroy();
+            boardCreature.hitspritegreen.destroy();
+            boardCreature.hitspritered.destroy();
+            boardSquareDetail.creature = null;
+
+            if (attackerHP > 0) {
+                //Square is empty place creature and capture
+                boardSquareDetail.creature = new gameSquareCreature(cardDetails.id,
+                    boardSquareDetail.id,
+                    null,
+                    attackerHP,
+                    cardDetails.defense,
+                    0,
+                    cardDetails.attack,
+                    cardDetails.defense,
+                    gameVariables.gamePlayerArray[gameVariables.currentPlayer].id);
+                var creatureSprite = game.add.sprite(boardSquareDetail.sprite.x,
+                    boardSquareDetail.sprite.y,
+                    cardDetails.image);
+                creatureSprite.width = 45;
+                creatureSprite.height = 45;
+                creatureSprite.anchor.x = 0.5;
+                creatureSprite.anchor.y = 0.5;
+                board_layer.add(creatureSprite);
+                boardSquareDetail.creature.sprite = creatureSprite;
+
+                var test = (attackerHP / cardDetails.defense) * 100;
+                var newtest = Math.ceil(test / 20) * 20;
+
+                var creatureHitpointsG = game.add.sprite(boardSquareDetail.sprite.x - 10,
+                    boardSquareDetail.sprite.y + 17,
+                    'gpix');
+                creatureHitpointsG.width = 20;
+                creatureHitpointsG.height = 3;
+                var creatureHitpointsR = game.add.sprite(boardSquareDetail.sprite.x - 10,
+                    boardSquareDetail.sprite.y + 17,
+                    'rpix');
+                creatureHitpointsR.width = newtest * .1;
+                creatureHitpointsR.height = 3;
+
+                boardSquareDetail.creature.hitspritegreen = creatureHitpointsG;
+                boardSquareDetail.creature.hitspritered = creatureHitpointsR;
+
+                captureSquare(player.gameSquareId);
+            }
+
+
+        } else {
+            //Defender takes damage but lives. Attacker is discarded
+            var test = (defHp / boardCreature.maxhitpoints) * 100;
+            var newtest = Math.ceil(test / 20) * 20;
+
+            boardSquareDetail.creature.hitspritered.width = newtest * .1;
+
+        }
+
+
+    } else {
+        //Square is empty place creature and capture
+        boardSquareDetail.creature = new gameSquareCreature(cardDetails.id,
+            boardSquareDetail.id,
+            null,
+            cardDetails.defense,
+            cardDetails.defense,
+            0,
+            cardDetails.attack,
+            cardDetails.defense,
+            gameVariables.gamePlayerArray[gameVariables.currentPlayer].id);
+        var creatureSprite =
+            game.add.sprite(boardSquareDetail.sprite.x, boardSquareDetail.sprite.y, cardDetails.image);
+        creatureSprite.width = 45;
+        creatureSprite.height = 45;
+        creatureSprite.anchor.x = 0.5;
+        creatureSprite.anchor.y = 0.5;
+        board_layer.add(creatureSprite);
+        boardSquareDetail.creature.sprite = creatureSprite;
+
+        var creatureHitpointsG =
+            game.add.sprite(boardSquareDetail.sprite.x - 10, boardSquareDetail.sprite.y + 17, 'gpix');
+        creatureHitpointsG.width = 20;
+        creatureHitpointsG.height = 3;
+        var creatureHitpointsR =
+            game.add.sprite(boardSquareDetail.sprite.x - 10, boardSquareDetail.sprite.y + 17, 'rpix');
+        creatureHitpointsR.width = 0;
+        creatureHitpointsR.height = 3;
+
+        boardSquareDetail.creature.hitspritegreen = creatureHitpointsG;
+        boardSquareDetail.creature.hitspritered = creatureHitpointsR;
+
+        captureSquare(player.gameSquareId);
+    }
 
 }
 
@@ -1074,17 +1129,18 @@ function captureSquare(id) {
 
 function menuConfirmClick(item) {
 
-    if (item.choice == "yes") {
-        playerChoiceMenu = false;
-        castSpell(cardClicked, gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite);
-    }
-
     playerChoiceMenu = false;
     menu.visible = false;
     qText.visible = false;
     yesText.visible = false;
     noText.visible = false;
 
+    if (item.choice == "yes") {
+
+        castSpell(cardClicked, gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite);
+    }
+
+    
 }
 
 
