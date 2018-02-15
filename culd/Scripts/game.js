@@ -130,6 +130,7 @@ gameMain.prototype = {
         player_layer['2'] = game.add.group();
         player_layer['3'] = game.add.group();
         cursor_layer = game.add.group();
+        target_layer = game.add.group();
         pop_layer = game.add.group();
 
         //Build the background
@@ -546,9 +547,10 @@ gameMain.prototype = {
                 cur.targetArrayIndex = i;
                 cur.inputEnabled = true;
                 cur.events.onInputDown.add(targetClicked, this);
-                cursor_layer.add(cur);
+                target_layer.add(cur);
+                game.world.bringToTop(target_layer);
                 targetArray[i].sprite = cur;
-                game.add.tween(targetArray[i].sprite).to({ alpha: 0 }, 500, Phaser.Easing.Linear.NONE, true,0,1);
+                game.add.tween(targetArray[i].sprite).to({ alpha: 0 }, 500, Phaser.Easing.Linear.NONE, true,0,1000);
             }
 
 
@@ -924,7 +926,7 @@ function castSpell(id, player) {
         }
         else {
             //Determine target
-            highlightTargets(cardDetails.target, boardSquareDetail);
+            highlightTargets(cardDetails, boardSquareDetail, player);
         }
 
 
@@ -959,12 +961,16 @@ function castSpell(id, player) {
 }
 
 
-function highlightTargets(targetType, boardSquareDetail) {
+function highlightTargets(cardDetails, boardSquareDetail, player) {
     playerSpellTargeting = true;
     targetArray.length = 0;
 
-    if (targetType == "square") {
+    console.log(cardDetails);
 
+    var targetType = cardDetails.target;
+
+    if (targetType == "square") {
+        targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {} });
     }
 
     if (targetType == "adj") {
@@ -976,15 +982,15 @@ function highlightTargets(targetType, boardSquareDetail) {
         var neighbors = Array2D.orthogonals(gameVariables.boardInfo.squares, gameBoardResult.sprite.gridY, gameBoardResult.sprite.gridX);
 
 
-        neighbors.forEach(function(item) {
+        neighbors.forEach(function(neighborSquare) {
 
             var gbr = gameVariables.gameBoard.find(function(orth) {
-                return orth.sprite.gameSquareId == item;
+                return orth.sprite.gameSquareId == neighborSquare;
             });
 
 
             if (typeof gbr !== 'undefined') {
-                targetArray.push({ x: gbr.x, y: gbr.y, sprite: {} });
+                targetArray.push({ x: gbr.x, y: gbr.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: neighborSquare, player: player });
             }
 
 
@@ -996,9 +1002,9 @@ function highlightTargets(targetType, boardSquareDetail) {
 
 function targetClicked(target) {
 
-    var test = targetArray[target.targetArrayIndex];
 
-    console.log(test);
+    var targetArrayItem = targetArray[target.targetArrayIndex];
+
 
     for (var i = 0; i < targetArray.length; i++) {
 
@@ -1006,10 +1012,22 @@ function targetClicked(target) {
 
     }
 
+    var boardSquareDetail = gameVariables.gameBoard.find(function (item) {
+        return item.id == targetArrayItem.targetSquare;
+    });
+
+
+
+    if (targetArray[target.targetArrayIndex].card.creature == true) {
+        playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player)
+    }
+
 }
 
 
 function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
+
+    
 
     //Check if square already has a creature
     if (boardSquareDetail.creature != null) {
@@ -1114,7 +1132,7 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
         boardSquareDetail.creature.hitspritegreen = creatureHitpointsG;
         boardSquareDetail.creature.hitspritered = creatureHitpointsR;
 
-        captureSquare(player.gameSquareId);
+        captureSquare(boardSquareDetail.id);
     }
 
 }
