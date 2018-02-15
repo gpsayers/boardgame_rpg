@@ -129,6 +129,7 @@ gameMain.prototype = {
         player_layer['1'] = game.add.group();
         player_layer['2'] = game.add.group();
         player_layer['3'] = game.add.group();
+        cursor_layer = game.add.group();
         pop_layer = game.add.group();
 
         //Build the background
@@ -271,17 +272,17 @@ gameMain.prototype = {
         cursor1.anchor.x = 0.5;
         cursor1.anchor.y = 0.5;
         cursor1.visible = false;
-        board_layer.add(cursor1);
+        cursor_layer.add(cursor1);
         cursor2 = game.add.sprite(1, 1, 'cursor');
         cursor2.anchor.x = 0.5;
         cursor2.anchor.y = 0.5;
         cursor2.visible = false;
-        board_layer.add(cursor2);
+        cursor_layer.add(cursor2);
         target = game.add.sprite(1, 1, 'target');
         target.anchor.x = 0.5;
         target.anchor.y = 0.5;
         target.visible = false;
-        board_layer.add(target);
+        cursor_layer.add(target);
 
         //Add dice roll sprites
         dice = game.add.sprite(game.width - 125, game.height - 150, '1');
@@ -542,8 +543,12 @@ gameMain.prototype = {
 
                 var cur = game.add.sprite(targetArray[i].x, targetArray[i].y, 'target');
                 cur.anchor.setTo(0.5);
+                cur.targetArrayIndex = i;
+                cur.inputEnabled = true;
+                cur.events.onInputDown.add(targetClicked, this);
+                cursor_layer.add(cur);
                 targetArray[i].sprite = cur;
-                game.add.tween(targetArray[i].sprite).to({ alpha: 1 }, 500, Phaser.Easing.Linear.NONE, true,0,1);
+                game.add.tween(targetArray[i].sprite).to({ alpha: 0 }, 500, Phaser.Easing.Linear.NONE, true,0,1);
             }
 
 
@@ -956,6 +961,7 @@ function castSpell(id, player) {
 
 function highlightTargets(targetType, boardSquareDetail) {
     playerSpellTargeting = true;
+    targetArray.length = 0;
 
     if (targetType == "square") {
 
@@ -969,22 +975,35 @@ function highlightTargets(targetType, boardSquareDetail) {
 
         var neighbors = Array2D.orthogonals(gameVariables.boardInfo.squares, gameBoardResult.sprite.gridY, gameBoardResult.sprite.gridX);
 
-        console.log(neighbors);
 
-        neighbors.forEach(function (item) {
+        neighbors.forEach(function(item) {
 
-            var gbr = gameVariables.gameBoard.find(function (orth) {
+            var gbr = gameVariables.gameBoard.find(function(orth) {
                 return orth.sprite.gameSquareId == item;
             });
 
-            console.log(gbr);
 
             if (typeof gbr !== 'undefined') {
-                targetArray.push({ x: gbr.x, y: gbr.y, sprite: {} })
+                targetArray.push({ x: gbr.x, y: gbr.y, sprite: {} });
             }
 
 
-        })
+        });
+    }
+
+}
+
+
+function targetClicked(target) {
+
+    var test = targetArray[target.targetArrayIndex];
+
+    console.log(test);
+
+    for (var i = 0; i < targetArray.length; i++) {
+
+        targetArray[i].sprite.destroy();
+
     }
 
 }
@@ -1487,7 +1506,6 @@ function boardSquareClicked(item) {
             return player.sprite.gameSquareId == item.gameSquareId;
         });
 
-        console.log(find);
     }
 
 
