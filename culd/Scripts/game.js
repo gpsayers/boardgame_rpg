@@ -19,7 +19,8 @@ var playerDestinations = [],
     playerDiscardWaiting = false,
     playerManaNotificationMenu = false,
     playerSpellTargeting = false,
-    targetArray = [];
+    targetArray = [],
+    multipleTargetsArray = [];
 
 
 gameMain.prototype = {
@@ -562,6 +563,30 @@ gameMain.prototype = {
 
         }
 
+        if (multipleTargetsMenu == true) {
+
+            multipleTargetsMenu = false;
+
+            menu.visible = true;
+            qText.setText("Please choose a target.");
+            qText.visible = true;
+
+            for (var i = 0; i < multipleTargetsArray.length; i++) {
+
+                var cur = game.add.sprite(50, 50 + (i * 50), multipleTargetsArray.image);
+                cur.anchor.setTo(0.5);
+                cur.targetArrayIndex = i;
+                cur.inputEnabled = true;
+                cur.events.onInputDown.add(targetMenuClicked, this);
+                pop_layer.add(cur);
+                multipleTargetsArray[i].sprite = cur;
+
+            }
+
+            
+
+        }
+
 
         //Display start cross menu
         if (playerCrossStartMenu == true && gameVariables.currentPlayer == 0) {
@@ -1026,9 +1051,34 @@ function targetClicked(target) {
         return item.id == targetArrayItem.targetSquare;
     });
 
-    if (targetArray[target.targetArrayIndex].card.spell == true) {
+    var card = targetArrayItem.card;
+
+    if (card.spell == true) {
+
         //Check for multiple targets
 
+        //multipleTargetsArray
+
+        //sprite
+        //targetIndex
+        //image
+        //cardDetails
+        //boardSquareDetails
+        //player
+        //targetCreature = boardSquareDetails
+        //targetPlayer = gameplayer
+
+
+        //function targetMenuClicked(this) {
+        //    var stuff = multipleTargetsArray[this.targetIndex]
+        //}
+
+        if (card.special == 0) {
+
+        }
+        else {
+            //Special effect with targets
+        }
 
     }
 
