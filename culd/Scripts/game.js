@@ -96,6 +96,12 @@ gameMain.prototype = {
         game.load.image('bear', 'Assets/Cards/bear.png');
         game.load.image('spider', 'Assets/Cards/spider.png');
         game.load.image('yellow_wasp', 'Assets/Cards/yellow_wasp.png');
+        game.load.image('death', 'Assets/Cards/symbol_of_torment.png');
+        game.load.image('heal', 'Assets/Cards/regeneration_new.png');
+        game.load.image('disengage', 'Assets/Cards/ledas_liquefaction.png');
+        game.load.image('blizzard', 'Assets/Cards/ice_storm_new.png');
+        game.load.image('steal', 'Assets/Cards/apportation_new.png');
+
 
         //GUI and buttons
         game.load.image('menu', 'Assets/GUI/Menu.png');
@@ -905,8 +911,6 @@ function castSpell(id, player) {
         return item.id == player.gameSquareId;
     });
 
-
-
     //check if player has enough mana for spell
     if (cardDetails.cost > gameVariables.gamePlayerArray[gameVariables.currentPlayer].mana) {
         //Not enough mana
@@ -976,10 +980,10 @@ function highlightTargets(cardDetails, boardSquareDetail, player) {
 
     console.log(cardDetails);
 
-    var targetType = cardDetails.target;
+    var targetType = cardDetails.targettype;
 
     if (targetType == "square") {
-        targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {} });
+        targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: boardSquareDetail, player: player });
     }
 
     if (targetType == "adj") {
@@ -990,18 +994,15 @@ function highlightTargets(cardDetails, boardSquareDetail, player) {
 
         var neighbors = Array2D.orthogonals(gameVariables.boardInfo.squares, gameBoardResult.sprite.gridY, gameBoardResult.sprite.gridX);
 
-
         neighbors.forEach(function(neighborSquare) {
 
             var gbr = gameVariables.gameBoard.find(function(orth) {
                 return orth.sprite.gameSquareId == neighborSquare;
             });
 
-
             if (typeof gbr !== 'undefined') {
                 targetArray.push({ x: gbr.x, y: gbr.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: neighborSquare, player: player });
             }
-
 
         });
     }
@@ -1026,7 +1027,9 @@ function targetClicked(target) {
     });
 
     if (targetArray[target.targetArrayIndex].card.spell == true) {
-        //Target player or creature?
+        //Check for multiple targets
+
+
     }
 
 
@@ -1062,9 +1065,7 @@ function damagePlayerOnSquare(boardSquareDetail, cardDetails, player) {
 }
 
 
-function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
-
-    
+function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {  
 
     //Check if square already has a creature
     if (boardSquareDetail.creature != null) {
@@ -1073,7 +1074,6 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
 
         //Creature already exists!
         //Super awesome creature combat battle
-
         var defHp = (boardCreature.hitpoints - Math.max((cardDetails.attack - boardCreature.armor), 0));
 
         var attackerHP = (cardDetails.defense - Math.max((boardCreature.attack - cardDetails.armor), 0));

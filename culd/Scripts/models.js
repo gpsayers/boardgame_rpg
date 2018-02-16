@@ -68,7 +68,7 @@ function gameSquareCreature(cardId, squareId, sprite, hitpoints, maxhitpoints, a
     this.playerOwnedId = player;
 }
 
-function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense, damage, image, armor, threat, target, special) {
+function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense, damage, image, armor, threat, tartype, tarlocation, tarcount, special) {
     this.id = id;
     this.name = name;
     this.desc = desc;
@@ -83,7 +83,9 @@ function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense
     this.image = image;
     this.armor = armor;
     this.threat = threat;
-    this.target = target;
+    this.targettype = tartype;
+    this.targetlocation = tarlocation;
+    this.targetcount = tarcount;
     this.special = special;
 }
 
