@@ -608,7 +608,7 @@ gameMain.prototype = {
         if (playerDirChoiceMenu == true) {
 
             var result = gameVariables.boardInfo.choiceSquares.find(function (element) {
-                return element.id == activePlayerSquare
+                return element.id == activePlayerSquare;
             });
 
             menu.visible = true;
@@ -1005,13 +1005,14 @@ function highlightTargets(cardDetails, boardSquareDetail, player) {
 
     console.log(cardDetails);
 
-    var targetType = cardDetails.targettype;
+    var location = cardDetails.targetlocation;
+    var type = cardDetails.targettype;
 
-    if (targetType == "square") {
+    if (location == "square") {
         targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: boardSquareDetail, player: player });
     }
 
-    if (targetType == "adj") {
+    if (location == "adj") {
         //Adjacent squares
         var gameBoardResult = gameVariables.gameBoard.find(function (element) {
             return element.sprite.gameSquareId == boardSquareDetail.sprite.gameSquareId;
@@ -1030,6 +1031,30 @@ function highlightTargets(cardDetails, boardSquareDetail, player) {
             }
 
         });
+    }
+
+    if (location == "any") {
+
+        if (type == "creature" || type == "both") {
+            //Any squares with creatures
+            var gameBoardCreatureArray = gameVariables.gameBoard.filter(function (element) {
+                return element.creature != null;
+            });
+
+            gameBoardCreatureArray.forEach(function(gbc) {
+                targetArray.push({ x: gbc.creature.sprite.x, y: gbc.creature.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: gbc.creature.squareId, player: player });
+            });
+        }
+
+
+        if (type == "player" || type == "both") {
+
+            gameVariables.gamePlayerArray.forEach(function (gp) {
+                targetArray.push({ x: gp.sprite.x, y: gp.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: gp.sprite.gameSquareId, player: player });
+            });
+
+        }
+
     }
 
 }
@@ -1056,22 +1081,19 @@ function targetClicked(target) {
     if (card.spell == true) {
 
         //Check for multiple targets
+        if (card.targettype == "creature") {
+            
+        }
 
-        //multipleTargetsArray
+        if (card.targettype == "player") {
+            
+        }
 
-        //sprite
-        //targetIndex
-        //image
-        //cardDetails
-        //boardSquareDetails
-        //player
-        //targetCreature = boardSquareDetails
-        //targetPlayer = gameplayer
+        if (card.targettype == "both") {
 
 
-        //function targetMenuClicked(this) {
-        //    var stuff = multipleTargetsArray[this.targetIndex]
-        //}
+        }
+
 
         if (card.special == 0) {
 
@@ -1416,16 +1438,15 @@ function dirButtonClick(item) {
     rightButt.visible = false;
 
     var gameBoardResult = gameVariables.gameBoard.find(function (element) {
-        return element.sprite.gameSquareId == item.choice
+        return element.sprite.gameSquareId == item.choice;
     });
-    gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite
+
     var tween = game.add.tween(gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite).to({ x: gameBoardResult.sprite.x, y: gameBoardResult.sprite.y }, 500, Phaser.Easing.Linear.None, true);
 
     //Callback to complete the rest of the roll
     tween.onComplete.add(function () {
         gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite.gameSquareId = item.choice;
         playerDestinations.length = 0;
-
         playerMove(gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite, playerRoll - 1);
     }, this);
 
@@ -1434,6 +1455,7 @@ function dirButtonClick(item) {
 
 function playerMove(playerSprite, roll) {
 
+    //Change roll button to "locked" frame
     button.frame = 2;
 
     playerRoll = roll;
@@ -1481,13 +1503,14 @@ function playerMove(playerSprite, roll) {
         }
      
         var gameBoardDestResult = gameVariables.gameBoard.find(function (element) {
-            return element.sprite.gameSquareId == nextPathIdArray[0]
+            return element.sprite.gameSquareId == nextPathIdArray[0];
         });
 
         if (nextPathIdArray[0] == gameVariables.boardInfo.boardStart)
         {
             playerCrossStart = true;
         }
+
 
         var tween = game.add.tween(playerSprite).to({ x: gameBoardDestResult.sprite.x, y: gameBoardDestResult.sprite.y }, 500, Phaser.Easing.Linear.None, true);
 
