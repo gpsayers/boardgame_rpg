@@ -51,7 +51,7 @@ var redWizard1List = populateCardArray([8,8,8,8,8,8]);
 
 var blackSorceress1List = populateCardArray([5,5,5,5,5,5]);
 
-var testPlayerCardList = populateCardArray([3, 6, 7, 8, 3, 3]);
+var testPlayerCardList = populateCardArray([1, 6, 7, 1, 1, 3]);
 
 function populateCardArray(array) {
     var result = [];
