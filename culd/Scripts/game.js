@@ -442,7 +442,6 @@ gameMain.prototype = {
         else {
             //Computer player turn
 
-
             if (playerCrossStart == true) {
 
                 //Must be computer that crossed the start. 
@@ -506,7 +505,7 @@ gameMain.prototype = {
                     //var randCard = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.splice(Math.floor(Math.random() * gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.length), 1);
 
                     //Play spell with hightest threat that we have mana for
-                    var sorted = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.sort(compareHandThreat);
+                    gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.sort(compareHandThreat);
 
                     var ai_card_to_cast = null;
 
@@ -518,8 +517,6 @@ gameMain.prototype = {
                     }
 
                     castSpell(ai_card_to_cast.id, gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite);
-
-                    gameVariables.gamePlayerArray[gameVariables.currentPlayer].discard.push(ai_card_to_cast);
 
                     endCurrentPlayerTurn();
                 }
@@ -995,7 +992,7 @@ function castSpell(id, player) {
     for (m = 0; m < gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.length; m++) {
         if (gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand[m].id == id) {
             //Add card to discard
-            gameVariables.gamePlayerArray[gameVariables.currentPlayer].discard.push(gameVariables.gamePlayerArray[0].hand[m]);
+            gameVariables.gamePlayerArray[gameVariables.currentPlayer].discard.push(gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand[m]);
 
             //Remove card from hand
             gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.splice(m, 1);
