@@ -125,3 +125,20 @@ function shuffle(array) {
 
     return array;
 }
+
+
+function compareHandThreat(a, b) {
+    if (a.threat < b.threat)
+        return -1;
+    if (a.threat > b.threat)
+        return 1;
+    return 0;
+}
+
+function compareHandCost(a, b) {
+    if (a.cost < b.cost)
+        return -1;
+    if (a.cost > b.cost)
+        return 1;
+    return 0;
+}

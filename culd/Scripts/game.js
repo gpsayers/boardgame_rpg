@@ -39,11 +39,11 @@ gameMain.prototype = {
             gameVariables.playerName,
             gameVariables.playerClass,
             gameVariables.playerColor,
-            gameVariables.hitpoints,
+            gameVariables.playerHealth,
             gameVariables.playerStartingMana,
             true,
             shuffle(gameVariables.playerDeck),
-            gameVariables.playerMaxHand));
+            gameVariables.playerMaxHand, 0));
 
         gameVariables.currentPlayer = 0;
 
@@ -72,7 +72,7 @@ gameMain.prototype = {
         game.load.image('chest', 'Assets/BoardElements/chest_2_closed.png');
         game.load.image('bluefountain', 'Assets/BoardElements/blue_fountain.png');
         game.load.image('trap', 'Assets/BoardElements/trap_blade.png');
-        game.load.image('door', 'Assets/BoardElements/open_door.png');
+        game.load.image('start', 'Assets/BoardElements/trap_magical.png');
         game.load.image('gpix', 'Assets/GUI/greenPixel.png');
         game.load.image('rpix', 'Assets/GUI/redPixel.png');
 
@@ -442,6 +442,7 @@ gameMain.prototype = {
         else {
             //Computer player turn
 
+
             if (playerCrossStart == true) {
 
                 //Must be computer that crossed the start. 
@@ -456,7 +457,7 @@ gameMain.prototype = {
                     computerDrawCard(gameVariables.currentPlayer);
                     computerDrawCard(gameVariables.currentPlayer);
                 }
-                else if (gameVariables.gamePlayerArray[gameVariables.currentPlayer].maxmana < 6) {
+                else if (gameVariables.gamePlayerArray[gameVariables.currentPlayer].maxmana < 5) {
                     //Max mana increase
                     gameVariables.gamePlayerArray[gameVariables.currentPlayer].maxmana++;
                 }
@@ -493,19 +494,32 @@ gameMain.prototype = {
             else {
 
                 if (computerActing == false) {
-
                     //take computer actions.
                     computerActing = true;
+
+                    gameVariables.gamePlayerArray[gameVariables.currentPlayer].mana = gameVariables.gamePlayerArray[gameVariables.currentPlayer].maxmana;
 
                     //Draw Card
                     computerDrawCard(gameVariables.currentPlayer);
 
                     //Play a random spell
-                    var randCard = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.splice(Math.floor(Math.random() * gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.length), 1);
+                    //var randCard = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.splice(Math.floor(Math.random() * gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.length), 1);
 
-                    castSpell(randCard[0].id, gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite);
+                    //Play spell with hightest threat that we have mana for
+                    var sorted = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.sort(compareHandThreat);
 
-                    gameVariables.gamePlayerArray[gameVariables.currentPlayer].discard.push(randCard[0]);
+                    var ai_card_to_cast = null;
+
+                    for (i = 0; i < gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.length; i++) {
+                        if (gameVariables.gamePlayerArray[gameVariables.currentPlayer].mana >= gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand[i].cost) {
+                            //Cast this card
+                            ai_card_to_cast = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand[i];
+                        }
+                    }
+
+                    castSpell(ai_card_to_cast.id, gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite);
+
+                    gameVariables.gamePlayerArray[gameVariables.currentPlayer].discard.push(ai_card_to_cast);
 
                     endCurrentPlayerTurn();
                 }
@@ -960,15 +974,8 @@ function castSpell(id, player) {
             highlightTargets(cardDetails, boardSquareDetail, player);
         }
 
-
-
-    } else if (cardDetails.special == 0) {
-        //Damage effect
-        //Determine target
-        highlightTargets(cardDetails, boardSquareDetail, player);
     } else {
-        //Special effect
-        
+        highlightTargets(cardDetails, boardSquareDetail, player);
     }
         
 
@@ -983,18 +990,18 @@ function castSpell(id, player) {
             }
         }
 
-        for (m = 0; m < gameVariables.gamePlayerArray[0].hand.length; m++) {
-            if (gameVariables.gamePlayerArray[0].hand[m].id == id) {
-                //Add card to discard
-                gameVariables.gamePlayerArray[0].discard.push(gameVariables.gamePlayerArray[0].hand[m]);
+    }
 
-                //Remove card from hand
-                gameVariables.gamePlayerArray[0].hand.splice(m, 1);
+    for (m = 0; m < gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.length; m++) {
+        if (gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand[m].id == id) {
+            //Add card to discard
+            gameVariables.gamePlayerArray[gameVariables.currentPlayer].discard.push(gameVariables.gamePlayerArray[0].hand[m]);
 
-                break;
-            }
+            //Remove card from hand
+            gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.splice(m, 1);
+
+            break;
         }
-
     }
 
 
@@ -1008,7 +1015,41 @@ function highlightTargets(cardDetails, boardSquareDetail, player) {
     var location = cardDetails.targetlocation;
     var type = cardDetails.targettype;
 
+    if (location == "all") {
+        //Select all
+        if (type == "creature" || type == "both") {
+            //Any squares with creatures
+            var gameBoardCreatureArray = gameVariables.gameBoard.filter(function (element) {
+                return element.creature != null;
+            });
+
+            gameBoardCreatureArray.forEach(function (gbc) {
+                targetArray.push({ x: gbc.creature.sprite.x, y: gbc.creature.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: gbc.creature.squareId, player: player, type: "creature", model: gbc.creature });
+            });
+        }
+
+
+        if (type == "player" || type == "both") {
+
+            gameVariables.gamePlayerArray.forEach(function (gp) {
+                targetArray.push({ x: gp.sprite.x, y: gp.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: gp.sprite.gameSquareId, player: player, type: "player", model: gp });
+            });
+
+        }
+    }
+
+    if (location == "self") {
+        //Just select current square as target to start
+        targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: boardSquareDetail, player: player });
+    }
+
+    if (location == "row") {
+        //TODO
+    }
+
+
     if (location == "square") {
+        //Just select current square as target to start
         targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: boardSquareDetail, player: player });
     }
 
@@ -1085,6 +1126,28 @@ function targetClicked(target) {
             return;
         }
 
+        //Check if all
+        if (targetArrayItem.card.targetlocation == "all") {
+
+            game.camera.flash(0xff0000, 500);
+
+            targetArray.forEach(function (target) {
+
+                var deets = gameVariables.gameBoard.find(function (item) {
+                    return item.id == target.targetSquare;
+                });
+
+                if (target.type == "player") {
+                    damagePlayerOnSquare(deets, target.card, target.player, target.model.class);
+                }
+                else {
+                    damageCreatureOnSquare(deets, target.card, target.player);
+                }
+            });
+
+            return;
+        }
+
         //Check for multiple targets
         var result = targetArray.filter(function (item) {
             return item.targetSquare == targetArrayItem.targetSquare
@@ -1102,7 +1165,6 @@ function targetClicked(target) {
                 }
             }
 
-
             multipleTargetsMenu = true;
         }
         else {
@@ -1119,24 +1181,6 @@ function targetClicked(target) {
                 damagePlayerOnSquare(boardSquareDetail, card, targetArrayItem.player, targetPlayer.class);
             }
         }
-
-
-        //if (card.targettype == "creature") {
-            
-        //}
-
-        //if (card.targettype == "player") {
-            
-        //}
-
-
-
-        //if (card.special == 0) {
-
-        //}
-        //else {
-        //    //Special effect with targets
-        //}
 
     }
 
@@ -1185,7 +1229,7 @@ function damageCreatureOnSquare(boardSquareDetail, cardDetails, player) {
     } else {
         //Defender takes damage but lives.
         var percent = (boardSquareDetail.creature.hitpoints / boardSquareDetail.creature.maxhitpoints);
-        var pixelWidth = Math.round(percent * 20);
+        var pixelWidth = 20 - Math.round(percent * 20);
 
         boardSquareDetail.creature.hitspritered.width = pixelWidth;
     }
@@ -1196,7 +1240,6 @@ function damagePlayerOnSquare(boardSquareDetail, cardDetails, player, playerClas
     for (i = 0; i < gameVariables.gamePlayerArray.length; i++) {
         if (gameVariables.gamePlayerArray[i].class == playerClass)
         {
-            console.log("found her");
             gameVariables.gamePlayerArray[i].hp = (gameVariables.gamePlayerArray[i].hp - Math.max((cardDetails.damage - gameVariables.gamePlayerArray[i].armor), 0));
         }
     }
@@ -1207,6 +1250,52 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
 
     //Check if square already has a creature
     if (boardSquareDetail.creature != null) {
+
+        //Check if creature is owned by current player. If so replace.
+        if (boardSquareDetail.creature.playerOwnedId == gameVariables.gamePlayerArray[gameVariables.currentPlayer].id) {
+
+            boardSquareDetail.creature.sprite.destroy();
+            boardSquareDetail.creature.hitspritegreen.destroy();
+            boardSquareDetail.creature.hitspritered.destroy();
+            boardSquareDetail.creature.creature = null;
+
+            boardSquareDetail.creature = new gameSquareCreature(cardDetails.id,
+                boardSquareDetail.id,
+                null,
+                cardDetails.defense,
+                cardDetails.defense,
+                cardDetails.armor,
+                cardDetails.attack,
+                cardDetails.defense,
+                gameVariables.gamePlayerArray[gameVariables.currentPlayer].id);
+            var creatureSprite =
+                game.add.sprite(boardSquareDetail.sprite.x, boardSquareDetail.sprite.y, cardDetails.image);
+            creatureSprite.width = 45;
+            creatureSprite.height = 45;
+            creatureSprite.anchor.x = 0.5;
+            creatureSprite.anchor.y = 0.5;
+            board_layer.add(creatureSprite);
+            boardSquareDetail.creature.sprite = creatureSprite;
+
+            var creatureHitpointsG =
+                game.add.sprite(boardSquareDetail.sprite.x - 10, boardSquareDetail.sprite.y + 17, 'gpix');
+            creatureHitpointsG.width = 20;
+            creatureHitpointsG.height = 3;
+            var creatureHitpointsR =
+                game.add.sprite(boardSquareDetail.sprite.x - 10, boardSquareDetail.sprite.y + 17, 'rpix');
+            creatureHitpointsR.width = 0;
+            creatureHitpointsR.height = 3;
+
+            board_layer.add(creatureHitpointsG);
+            board_layer.add(creatureHitpointsR);
+
+            boardSquareDetail.creature.hitspritegreen = creatureHitpointsG;
+            boardSquareDetail.creature.hitspritered = creatureHitpointsR;
+
+            captureSquare(boardSquareDetail.id);
+
+            return;
+        }
 
         boardCreature = boardSquareDetail.creature;
 
@@ -1230,7 +1319,7 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
                     null,
                     attackerHP,
                     cardDetails.defense,
-                    0,
+                    cardDetails.armor,
                     cardDetails.attack,
                     cardDetails.defense,
                     gameVariables.gamePlayerArray[gameVariables.currentPlayer].id);
@@ -1245,7 +1334,7 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
                 boardSquareDetail.creature.sprite = creatureSprite;
 
                 var percent = (attackerHP / cardDetails.defense);
-                var pixelWidth = Math.round(percent * 20);
+                var pixelWidth = 20 - Math.round(percent * 20);
 
                 var creatureHitpointsG = game.add.sprite(boardSquareDetail.sprite.x - 10,
                     boardSquareDetail.sprite.y + 17,
@@ -1258,8 +1347,12 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
                 creatureHitpointsR.width = pixelWidth;
                 creatureHitpointsR.height = 3;
 
+                board_layer.add(creatureHitpointsG);
+                board_layer.add(creatureSprite);
+
                 boardSquareDetail.creature.hitspritegreen = creatureHitpointsG;
                 boardSquareDetail.creature.hitspritered = creatureHitpointsR;
+
 
                 captureSquare(player.gameSquareId);
             }
@@ -1268,7 +1361,7 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
         } else {
             //Defender takes damage but lives. Attacker is discarded
             var percent = (defHp / boardCreature.maxhitpoints);
-            var pixelWidth = Math.round(percent * 20);
+            var pixelWidth = 20 - Math.round(percent * 20);
 
             boardSquareDetail.creature.hitspritered.width = pixelWidth;
 
@@ -1282,7 +1375,7 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
             null,
             cardDetails.defense,
             cardDetails.defense,
-            0,
+            cardDetails.armor,
             cardDetails.attack,
             cardDetails.defense,
             gameVariables.gamePlayerArray[gameVariables.currentPlayer].id);
@@ -1304,11 +1397,19 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
         creatureHitpointsR.width = 0;
         creatureHitpointsR.height = 3;
 
+        board_layer.add(creatureHitpointsG);
+        board_layer.add(creatureHitpointsR);
+
         boardSquareDetail.creature.hitspritegreen = creatureHitpointsG;
         boardSquareDetail.creature.hitspritered = creatureHitpointsR;
 
         captureSquare(boardSquareDetail.id);
     }
+
+}
+
+
+function processSpellOnTarget() {
 
 }
 
@@ -1390,6 +1491,7 @@ function menuStartClick(choice) {
             break;
         case "Card":
             drawCard();
+            drawCard();
             break;
         case "Health":
             gameVariables.gamePlayerArray[0].hp = gameVariables.gamePlayerArray[0].hp + 2;
@@ -1432,6 +1534,21 @@ function endPlayerTurn() {
 
 
 function endCurrentPlayerTurn() {
+
+    //If current player is on square with creature, take damage
+    var square = gameVariables.gameBoard.find(function (item) {
+        return item.id == gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite.gameSquareId;
+    });
+
+    if (square.creature != null) {
+        if (square.creature.playerOwnedId != gameVariables.gamePlayerArray[gameVariables.currentPlayer].id) {
+            //Take damage from creature in square
+            gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp = (gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp - Math.max((square.creature.attack - gameVariables.gamePlayerArray[gameVariables.currentPlayer].armor), 0));
+        }
+    }
+
+        
+
     gameVariables.currentPlayer++;
 
     if (gameVariables.currentPlayer > gameVariables.gamePlayerArray.length - 1) {
@@ -1439,9 +1556,6 @@ function endCurrentPlayerTurn() {
     }
 
     var tween = game.add.tween(turnArrow).to({ x: game.width - 280, y: (50 * gameVariables.currentPlayer) + 60 }, 500, Phaser.Easing.Linear.None, true);
-
-    //turnArrow.x = game.width - 280;
-    //turnArrow.y = (50 * gameVariables.currentPlayer) + 60;
 
     computerMoved = false;
     computerMoving = false;
