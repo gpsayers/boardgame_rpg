@@ -23,7 +23,7 @@
 
 }
 
-function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human, deck, maxhand) {
+function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human, deck, maxhand, armor) {
     this.id = id;
     this.square = square;
     this.name = name;
@@ -44,6 +44,7 @@ function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human,
     this.capturedSquares = 0;
     this.manasprite = {};
     this.gold = 100;
+    this.armor = armor;
 }
 
 function gameSquare(id, x, y, sprite) {

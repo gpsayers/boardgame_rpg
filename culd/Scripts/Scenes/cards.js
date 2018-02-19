@@ -6,7 +6,7 @@ masterCardList.push(new card(1, "Bolt", "Deal 3 damage.", 1, "common", 10, false
 masterCardList.push(new card(2, "Ogre Zombie", "Summon Ogre Zombie", 3, "common", 10, true, false, 3, 3, 0, "zombie", 0, 2, "", '', '', 0));
 masterCardList.push(new card(3, "Summon Abyssal", "Summon an abyssal to an ajacent square.", 1, "common", 10, true, true, 1, 1, 0, "summon", 0, 1, "adj", 'square', '1', 0));
 masterCardList.push(new card(4, "Sentry Centaur", "Summon a Centaur and deal 2 damage", 3, "common", 10, true, true, 2, 4, 2, "centaur", 0, 2, "square", 'creature', '1', 0));
-masterCardList.push(new card(5, "Rat", "Summon Rat", 1, "common", 10, true, false, 1, 1, 0, "rat", 0, 1, "", '', '', 0));
+masterCardList.push(new card(5, "Rat", "Summon Rat", 1, "common", 10, true, false, 1, 6, 0, "rat", 0, 1, "", '', '', 0));
 masterCardList.push(new card(6, "Turtle", "Summon Turtle", 1, "common", 10, true, false, 1, 1, 0, "turtle", 1, 1, "", '', '', 0));
 masterCardList.push(new card(7, "Bear", "Summon Bear", 2, "common", 10, true, false, 2, 2, 0, "bear", 0, 2, "", '', '', 0));
 masterCardList.push(new card(8, "Spider", "Summon Spider", 1, "common", 10, true, false, 3, 1, 0, "spider", 0, 1, "", '', '', 0));

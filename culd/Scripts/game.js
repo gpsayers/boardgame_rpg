@@ -274,7 +274,7 @@ gameMain.prototype = {
         back_layer.add(infoImage3);
         back_layer.add(infoImage4);
         back_layer.add(infoImage5);
-        makeInfoInvis(false);
+        makeInfoInvis(true);
 
         //Add cursors for movement and targeting
         cursor1 = game.add.sprite(1, 1, 'cursor');
@@ -574,8 +574,6 @@ gameMain.prototype = {
             qText.visible = true;
 
             for (var i = 0; i < multipleTargetsArray.length; i++) {
-
-                console.log(multipleTargetsArray.image);
 
                 var cur = game.add.sprite((game.width/2)+(i * 50), game.height/2, multipleTargetsArray[i].image);
                 cur.anchor.setTo(0.5);
@@ -1007,8 +1005,6 @@ function highlightTargets(cardDetails, boardSquareDetail, player) {
     playerSpellTargeting = true;
     targetArray.length = 0;
 
-    console.log(cardDetails);
-
     var location = cardDetails.targetlocation;
     var type = cardDetails.targettype;
 
@@ -1084,6 +1080,11 @@ function targetClicked(target) {
 
     if (card.spell == true) {
 
+        if (targetArray[target.targetArrayIndex].card.creature == true) {
+            playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
+            return;
+        }
+
         //Check for multiple targets
         var result = targetArray.filter(function (item) {
             return item.targetSquare == targetArrayItem.targetSquare
@@ -1092,22 +1093,31 @@ function targetClicked(target) {
         if (result.length > 1) {
             
             for (i = 0; i < result.length; i++) {
-                console.log(result[i].model.class);
+
                 if (result[i].type == "creature") {
-                    multipleTargetsArray.push({ sprite: {}, image: result[i].model.creature.sprite.key });
+                    multipleTargetsArray.push({ sprite: {}, image: result[i].model.sprite.key, card: result[i].card, originSquare: result[i].originSquare, targetSquare: result[i].targetSquare, player: result[i].player, type: "creature" });
                 }
                 else {
-                    multipleTargetsArray.push({ sprite: {}, image: result[i].model.class });
+                    multipleTargetsArray.push({ sprite: {}, image: result[i].model.class, card: result[i].card, originSquare: result[i].originSquare, targetSquare: result[i].targetSquare, player: result[i].player, type: "player" });
                 }
             }
 
-
-            console.log(multipleTargetsArray);
 
             multipleTargetsMenu = true;
         }
         else {
             //Act on the target
+            //Target types "creature", "player", "both", "square"
+            if (result[0].type == "creature") {
+                damageCreatureOnSquare(boardSquareDetail, card, targetArrayItem.player);
+            }
+            else {
+                var targetPlayer = gameVariables.gamePlayerArray.find(function (item) {
+                    return item.sprite.gameSquareId == targetArrayItem.targetSquare;
+                });
+
+                damagePlayerOnSquare(boardSquareDetail, card, targetArrayItem.player, targetPlayer.class);
+            }
         }
 
 
@@ -1131,15 +1141,36 @@ function targetClicked(target) {
     }
 
 
-    if (targetArray[target.targetArrayIndex].card.creature == true) {
-        playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
-    }
+
 
 }
+
 
 function targetMenuClicked(item) {
-    console.log(item);
+
+    var targetResult = multipleTargetsArray[item.targetArrayIndex];    
+
+
+    var boardResult = gameVariables.gameBoard.find(function (item) {
+        return item.id == targetResult.targetSquare
+    })
+
+    if (targetResult.type == "creature") {
+        damageCreatureOnSquare(boardResult, targetResult.card, targetResult.player);
+    }
+    else {
+        damagePlayerOnSquare(boardResult, targetResult.card, targetResult.player, targetResult.sprite.key);
+    }
+
+    multipleTargetsArray.forEach(function (item) {
+        item.sprite.destroy();
+    });
+
+    multipleTargetsArray.length = 0;
+    menu.visible = false;
+    qText.visible = false;
 }
+
 
 function damageCreatureOnSquare(boardSquareDetail, cardDetails, player) {
     boardSquareDetail.creature.hitpoints = (boardSquareDetail.creature.hitpoints -
@@ -1147,22 +1178,28 @@ function damageCreatureOnSquare(boardSquareDetail, cardDetails, player) {
 
     if (boardSquareDetail.creature.hitpoints < 1) {
         //defender dead
-        boardCreature.sprite.destroy();
-        boardCreature.hitspritegreen.destroy();
-        boardCreature.hitspritered.destroy();
+        boardSquareDetail.creature.sprite.destroy();
+        boardSquareDetail.creature.hitspritegreen.destroy();
+        boardSquareDetail.creature.hitspritered.destroy();
         boardSquareDetail.creature = null;
     } else {
         //Defender takes damage but lives.
-        var test = (boardSquareDetail.creature.hitpoints / boardSquareDetail.creature.maxhitpoints) * 100;
-        var newtest = Math.ceil(test / 20) * 20;
+        var percent = (boardSquareDetail.creature.hitpoints / boardSquareDetail.creature.maxhitpoints);
+        var pixelWidth = Math.round(percent * 20);
 
-        boardSquareDetail.creature.hitspritered.width = newtest * .1;
+        boardSquareDetail.creature.hitspritered.width = pixelWidth;
     }
 }
 
 
-function damagePlayerOnSquare(boardSquareDetail, cardDetails, player) {
-    
+function damagePlayerOnSquare(boardSquareDetail, cardDetails, player, playerClass) {
+    for (i = 0; i < gameVariables.gamePlayerArray.length; i++) {
+        if (gameVariables.gamePlayerArray[i].class == playerClass)
+        {
+            console.log("found her");
+            gameVariables.gamePlayerArray[i].hp = (gameVariables.gamePlayerArray[i].hp - Math.max((cardDetails.damage - gameVariables.gamePlayerArray[i].armor), 0));
+        }
+    }
 }
 
 
@@ -1207,8 +1244,8 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
                 board_layer.add(creatureSprite);
                 boardSquareDetail.creature.sprite = creatureSprite;
 
-                var test = (attackerHP / cardDetails.defense) * 100;
-                var newtest = Math.ceil(test / 20) * 20;
+                var percent = (attackerHP / cardDetails.defense);
+                var pixelWidth = Math.round(percent * 20);
 
                 var creatureHitpointsG = game.add.sprite(boardSquareDetail.sprite.x - 10,
                     boardSquareDetail.sprite.y + 17,
@@ -1218,7 +1255,7 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
                 var creatureHitpointsR = game.add.sprite(boardSquareDetail.sprite.x - 10,
                     boardSquareDetail.sprite.y + 17,
                     'rpix');
-                creatureHitpointsR.width = newtest * .1;
+                creatureHitpointsR.width = pixelWidth;
                 creatureHitpointsR.height = 3;
 
                 boardSquareDetail.creature.hitspritegreen = creatureHitpointsG;
@@ -1230,10 +1267,10 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
 
         } else {
             //Defender takes damage but lives. Attacker is discarded
-            var test = (defHp / boardCreature.maxhitpoints) * 100;
-            var newtest = Math.ceil(test / 20) * 20;
+            var percent = (defHp / boardCreature.maxhitpoints);
+            var pixelWidth = Math.round(percent * 20);
 
-            boardSquareDetail.creature.hitspritered.width = newtest * .1;
+            boardSquareDetail.creature.hitspritered.width = pixelWidth;
 
         }
 
@@ -1658,12 +1695,31 @@ function boardSquareClicked(item) {
         infoText3.setText(cardDetails.name + " HP: " + creature.hitpoints)
         infoText3.visible = true;
     }
-    else {
-        var find = gameVariables.gamePlayerArray.filter(function (player) {
+
+        var players = gameVariables.gamePlayerArray.filter(function (player) {
             return player.sprite.gameSquareId == item.gameSquareId;
         });
 
-    }
+        if (players.length > 0) {
+
+            for (i = 0; i < players.length; i++) {
+                if (i == 0) {
+                    infoImage4.loadTexture(players[i].class);
+                    infoImage4.visible = true;
+                    infoText9.setText(players[i].name + " HP: " + players[i].hp)
+                    infoText9.visible = true;
+                }
+                if (i == 1) {
+                    infoImage5.loadTexture(players[i].class);
+                    infoImage5.visible = true;
+                    infoText10.setText(players[i].name + " HP: " + players[i].hp)
+                    infoText10.visible = true;
+                }
+            }
+
+        }
+
+
 
 
 
