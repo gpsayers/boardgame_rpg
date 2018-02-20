@@ -229,9 +229,9 @@ gameMain.prototype = {
         gameVariables.gamePlayerArray[0].manasprite = game.add.sprite(game.width - 535, game.height - 208, 'mana');
         gameVariables.gamePlayerArray[0].manasprite.width = 20;
         gameVariables.gamePlayerArray[0].manasprite.height = 20;
-        goldText = game.add.text(game.width - 60, game.height - 250, gameVariables.playerGold, style);
-        goldText.anchor.setTo(1, 0);
-        goldIcon = game.add.sprite(game.width - 60 - goldText.width, game.height - 258, 'gold');
+        goldInfoText = game.add.text(game.width - 60, game.height - 250, gameVariables.playerGold, style);
+        goldInfoText.anchor.setTo(1, 0);
+        goldIcon = game.add.sprite(game.width - 60 - goldInfoText.width, game.height - 258, 'gold');
         goldIcon.anchor.setTo(1, 0);
         infoText1 = game.add.text(game.width - 550, 115, 'text1', style);
         infoText2 = game.add.text(game.width - 425, 115, 'text2', style);
@@ -451,7 +451,7 @@ gameMain.prototype = {
             }
             gameVariables.gamePlayerArray[0].manasprite.addChild(child);
         }
-
+        goldInfoText.setText(gameVariables.gamePlayerArray[0].gold);
 
 
 
@@ -1152,55 +1152,68 @@ function targetClicked(target) {
 
     var card = targetArrayItem.card;
 
-    if (card.spell == true) {
 
-        if (targetArray[target.targetArrayIndex].card.creature == true) {
-            playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
-            return;
-        }
+    //Check if all
+    if (targetArrayItem.card.targetlocation == "all") {
 
-        //Check if all
-        if (targetArrayItem.card.targetlocation == "all") {
+        game.camera.flash(0xff0000, 500);
 
-            game.camera.flash(0xff0000, 500);
+        targetArray.forEach(function (target) {
 
-            targetArray.forEach(function (target) {
-
-                var deets = gameVariables.gameBoard.find(function (item) {
-                    return item.id == target.targetSquare;
-                });
-
-                if (target.type == "player") {
-                    damagePlayerOnSquare(deets, target.card, target.player, target.model.class);
-                }
-                else {
-                    damageCreatureOnSquare(deets, target.card, target.player);
-                }
+            var deets = gameVariables.gameBoard.find(function (item) {
+                return item.id == target.targetSquare;
             });
 
-            return;
-        }
-
-        //Check for multiple targets
-        var result = targetArray.filter(function (item) {
-            return item.targetSquare == targetArrayItem.targetSquare
+            if (target.type == "player") {
+                damagePlayerOnSquare(deets, target.card, target.player, target.model.class);
+            }
+            else {
+                damageCreatureOnSquare(deets, target.card, target.player);
+            }
         });
 
-        if (result.length > 1) {
-            
-            for (i = 0; i < result.length; i++) {
+        if (targetArray[target.targetArrayIndex].card.creature == true) {
 
-                if (result[i].type == "creature") {
-                    multipleTargetsArray.push({ sprite: {}, image: result[i].model.sprite.key, card: result[i].card, originSquare: result[i].originSquare, targetSquare: result[i].targetSquare, player: result[i].player, type: "creature" });
-                }
-                else {
-                    multipleTargetsArray.push({ sprite: {}, image: result[i].model.class, card: result[i].card, originSquare: result[i].originSquare, targetSquare: result[i].targetSquare, player: result[i].player, type: "player" });
-                }
-            }
+            playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
 
-            multipleTargetsMenu = true;
         }
-        else {
+
+        return;
+    }
+
+    //Check if self
+    if (targetArrayItem.card.targetlocation == "self") {
+
+
+        if (targetArray[target.targetArrayIndex].card.creature == true) {
+
+            playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
+
+        }
+    }
+
+    //Check for multiple targets
+    var result = targetArray.filter(function (item) {
+        return item.targetSquare == targetArrayItem.targetSquare
+    });
+
+    if (result.length > 1) {
+
+        for (i = 0; i < result.length; i++) {
+
+            if (result[i].type == "creature") {
+                multipleTargetsArray.push({ sprite: {}, image: result[i].model.sprite.key, card: result[i].card, originSquare: result[i].originSquare, targetSquare: result[i].targetSquare, player: result[i].player, type: "creature" });
+            }
+            else {
+                multipleTargetsArray.push({ sprite: {}, image: result[i].model.class, card: result[i].card, originSquare: result[i].originSquare, targetSquare: result[i].targetSquare, player: result[i].player, type: "player" });
+            }
+        }
+
+        multipleTargetsMenu = true;
+    }
+    else {
+
+        if (card.special == 0) {
             game.camera.flash(0xff0000, 500);
             //Act on the target
             //Target types "creature", "player", "both", "square"
@@ -1215,10 +1228,18 @@ function targetClicked(target) {
                 damagePlayerOnSquare(boardSquareDetail, card, targetArrayItem.player, targetPlayer.class);
             }
         }
+        else {
+            processSpecialSpell(card, targetArrayItem.player, targetArrayItem.targetSquare, targetArrayItem.type, targetArrayItem.model);
+        }
 
+
+
+        if (targetArray[target.targetArrayIndex].card.creature == true) {
+
+            playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
+
+        }
     }
-
-
 
 
 }
@@ -1228,6 +1249,7 @@ function targetMenuClicked(item) {
 
     var targetResult = multipleTargetsArray[item.targetArrayIndex];    
 
+    console.log(targetResult);
 
     var boardResult = gameVariables.gameBoard.find(function (item) {
         return item.id == targetResult.targetSquare
@@ -1235,11 +1257,21 @@ function targetMenuClicked(item) {
 
     game.camera.flash(0xff0000, 500);
 
-    if (targetResult.type == "creature") {
-        damageCreatureOnSquare(boardResult, targetResult.card, targetResult.player);
+    if (targetResult.card.special == 0) {
+        if (targetResult.type == "creature") {
+            damageCreatureOnSquare(boardResult, targetResult.card, targetResult.player);
+        }
+        else {
+            damagePlayerOnSquare(boardResult, targetResult.card, targetResult.player, targetResult.sprite.key);
+        }
+
     }
     else {
-        damagePlayerOnSquare(boardResult, targetResult.card, targetResult.player, targetResult.sprite.key);
+        processSpecialSpell(targetResult.card, targetResult.player, boardResult, targetResult.type, targetResult.image);
+    }
+
+    if (targetResult.card.creature == true) {
+        playCreatureOnSquare(boardResult, targetResult.card, targetResult.player);
     }
 
     multipleTargetsArray.forEach(function (item) {
@@ -1446,8 +1478,44 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
 }
 
 
-function processSpellOnTarget() {
+function processSpecialSpell(card, player, targetSquare, targetType, targetImage) {
 
+    var currentPlayer = gameVariables.gamePlayerArray[gameVariables.currentPlayer];
+
+    if (card.special == 5) {
+        for (i = 0; i < card.damage; i++) {
+            drawCard();
+        }
+    }
+
+    if (card.special == 1) {
+        var result = gameVariables.gamePlayerArray.find(function (item) {
+            return item.class == targetImage;
+        });
+
+
+        if (result.gold >= card.damage) {
+            currentPlayer.gold = currentPlayer.gold + card.damage;
+        }
+
+        console.log(currentPlayer.gold);
+
+    }
+
+    if (card.special == 6) {
+        currentPlayer.gold = currentPlayer.gold + card.damage;
+    }
+
+    if (card.special == 4) {
+        playerMove(player, card.damage);
+    }
+
+    if (card.special == 8) {
+        targetSquare.creature.hitpoints = targetSquare.creature.hitpoints + card.defense;
+        targetSquare.creature.maxhitpoints = targetSquare.creature.maxhitpoints + card.defense;
+        targetSquare.creature.armor = targetSquare.creature.armor + card.armor;
+        targetSquare.creature.attack = targetSquare.creature.attack + card.attack;
+    }
 }
 
 
