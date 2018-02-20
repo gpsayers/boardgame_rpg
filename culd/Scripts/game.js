@@ -30,6 +30,9 @@ gameMain.prototype = {
         //Temp assign of player deck to static array
         gameVariables.playerDeck = testPlayerCardList;
 
+        //Temp turn count to 0
+        gameVariables.turnCount = 0;
+
         if (gameVariables.currentBoard == "board1") {
             gameVariables.boardInfo = board1;
         }
@@ -453,6 +456,14 @@ gameMain.prototype = {
         }
         goldInfoText.setText(gameVariables.gamePlayerArray[0].gold);
 
+        //Display card info on hover
+        for (c = 0; c < gameVariables.gamePlayerArray[0].handTracker.length; c++) {
+
+            if (gameVariables.gamePlayerArray[0].handTracker[c].spritefront.input.pointerOver()) {
+                console.log(gameVariables.gamePlayerArray[0].handTracker[c]);
+
+            }
+        }
 
 
 
@@ -1481,13 +1492,7 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
 function processSpecialSpell(card, player, targetSquare, targetType, targetImage) {
 
     var currentPlayer = gameVariables.gamePlayerArray[gameVariables.currentPlayer];
-
-    if (card.special == 5) {
-        for (i = 0; i < card.damage; i++) {
-            drawCard();
-        }
-    }
-
+    
     if (card.special == 1) {
         var result = gameVariables.gamePlayerArray.find(function (item) {
             return item.class == targetImage;
@@ -1498,16 +1503,36 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
             currentPlayer.gold = currentPlayer.gold + card.damage;
         }
 
-        console.log(currentPlayer.gold);
+    }
 
+    if (card.special == 2) {
+        //Slow movement
+
+    }
+
+    if (card.special == 3) {
+        //Heal 
+        if (targetType == "creature") {
+
+        } else {
+            
+        }
+
+    }
+    
+    if (card.special == 4) {
+        //Move forward
+        playerMove(player, card.damage);
+    }
+
+    if (card.special == 5) {
+        for (i = 0; i < card.damage; i++) {
+            drawCard();
+        }
     }
 
     if (card.special == 6) {
         currentPlayer.gold = currentPlayer.gold + card.damage;
-    }
-
-    if (card.special == 4) {
-        playerMove(player, card.damage);
     }
 
     if (card.special == 8) {

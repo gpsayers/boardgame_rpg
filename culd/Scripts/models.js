@@ -19,7 +19,8 @@
     gameTurnOrder: [],
     gameBoard: [],
     boardInfo: {},
-    currentPlayer: 0
+    currentPlayer: 0,
+    turnCount: 0
 
 }
 
