@@ -564,7 +564,11 @@ gameMain.prototype = {
                         }
                     }
 
-                    castSpell(ai_card_to_cast.id, gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite);
+                    if (ai_card_to_cast != null) {
+                        castSpell(ai_card_to_cast.id, gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite);
+                    }
+
+
 
                     endCurrentPlayerTurn();
                 }
@@ -1084,7 +1088,7 @@ function highlightTargets(cardDetails, boardSquareDetail, player) {
 
     if (location == "self") {
         //Just select current square as target to start
-        targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: boardSquareDetail, player: player });
+        targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: boardSquareDetail.id, player: player });
     }
 
     if (location == "row") {
@@ -1094,7 +1098,7 @@ function highlightTargets(cardDetails, boardSquareDetail, player) {
 
     if (location == "square") {
         //Just select current square as target to start
-        targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: boardSquareDetail, player: player });
+        targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: boardSquareDetail.id, player: player });
     }
 
     if (location == "adj") {
@@ -1203,6 +1207,39 @@ function targetClicked(target) {
         }
     }
 
+    //Check if square
+    if (targetArrayItem.card.targetlocation == "square") {
+        targetArray.length = 0;
+
+        if (targetArrayItem.card.targettype == "creature" || targetArrayItem.card.targettype == "both") {
+            if (boardSquareDetail.creature != null) {
+                targetArray.push({ x: boardSquareDetail.creature.sprite.x, y: boardSquareDetail.creature.sprite.y, sprite: {}, card: targetArrayItem.card, originSquare: boardSquareDetail, targetSquare: boardSquareDetail.creature.squareId, player: targetArrayItem.player, type: "creature", model: boardSquareDetail.creature });
+
+            }
+            
+        }
+        if (targetArrayItem.card.targettype == "player" || targetArrayItem.card.targettype == "both") {
+
+
+            gameVariables.gamePlayerArray.forEach(function (gp) {
+                if (gp.sprite.gameSquareId == targetArrayItem.targetSquare) {
+                    targetArray.push({ x: gp.sprite.x, y: gp.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: gp.sprite.gameSquareId, player: targetArrayItem.player, type: "player", model: gp });
+                }
+
+            });
+        }
+
+        if (targetArray.length == 0) {
+            //No targets
+            if (targetArrayItem.card.creature == true) {
+
+                playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
+
+            }
+            return;
+        }
+    }
+
     //Check for multiple targets
     var result = targetArray.filter(function (item) {
         return item.targetSquare == targetArrayItem.targetSquare
@@ -1233,7 +1270,7 @@ function targetClicked(target) {
             }
             else {
                 var targetPlayer = gameVariables.gamePlayerArray.find(function (item) {
-                    return item.sprite.gameSquareId == targetArrayItem.targetSquare;
+                    return item.sprite.gameSquareId == targetArrayItem.targetSquare.id;
                 });
 
                 damagePlayerOnSquare(boardSquareDetail, card, targetArrayItem.player, targetPlayer.class);

@@ -48,6 +48,8 @@ function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human,
     this.armor = armor;
 }
 
+//location: sprite.gameSquareId
+
 function gameSquare(id, x, y, sprite) {
     this.id = id;
     this.x = x;
@@ -55,6 +57,8 @@ function gameSquare(id, x, y, sprite) {
     this.sprite = sprite;
     this.creature = null;
 }
+
+//location: creature.squareId
 
 function gameSquareCreature(cardId, squareId, sprite, hitpoints, maxhitpoints, armor, attack, def, player) {
     this.cardId = cardId;
