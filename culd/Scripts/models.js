@@ -129,9 +129,9 @@ function shuffle(array) {
 
 function compareHandThreat(a, b) {
     if (a.threat < b.threat)
-        return 1;
-    if (a.threat > b.threat)
         return -1;
+    if (a.threat > b.threat)
+        return 1;
     return 0;
 }
 

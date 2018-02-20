@@ -103,6 +103,8 @@ gameMain.prototype = {
         game.load.image('disengage', 'Assets/Cards/ledas_liquefaction.png');
         game.load.image('blizzard', 'Assets/Cards/ice_storm_new.png');
         game.load.image('steal', 'Assets/Cards/apportation_new.png');
+        game.load.image('mushroom', 'Assets/Cards/wandering_mushroom_new.png');
+        game.load.image('dummy', 'Assets/Cards/training_dummy_new.png');
 
 
         //GUI and buttons
@@ -210,21 +212,8 @@ gameMain.prototype = {
             else {
                 player_layer[i.toString()].add(gameVariables.gamePlayerArray[i].sprite);
             }
-
-            //Add turn tracker
+    
             gameVariables.gamePlayerArray[i].turnSprite = game.add.sprite(game.width - 250, (50 * i) + 50, 'turnSprite');
-            var child = game.add.sprite(10, 10, gameVariables.gamePlayerArray[i].color);
-            child.height = 30;
-            child.width = 30;
-            gameVariables.gamePlayerArray[i].turnSprite.addChild(child);
-            var child = game.add.sprite(10, 10, gameVariables.gamePlayerArray[i].class);
-            child.height = 28;
-            child.width = 28;
-            gameVariables.gamePlayerArray[i].turnSprite.addChild(child);
-            var txt = game.add.text(45, 15, gameVariables.gamePlayerArray[i].name, style);
-            gameVariables.gamePlayerArray[i].turnSprite.addChild(txt);
-            back_layer.add(gameVariables.gamePlayerArray[i].turnSprite);         
-
         }
 
         //Game info text and GUI
@@ -234,7 +223,7 @@ gameMain.prototype = {
         for (i = 0; i < gameVariables.gamePlayerArray.length; i++) {
             playerSquareCount[i] = game.add.text(game.width - 60, (50 * i) + 65, "25%", style);
             playerSquareCount[i].anchor.setTo(1, 0);
-            back_layer.add(playerSquareCount[i]);
+            pop_layer.add(playerSquareCount[i]);
            
         }
         gameVariables.gamePlayerArray[0].manasprite = game.add.sprite(game.width - 535, game.height - 208, 'mana');
@@ -274,7 +263,7 @@ gameMain.prototype = {
         back_layer.add(infoImage3);
         back_layer.add(infoImage4);
         back_layer.add(infoImage5);
-        makeInfoInvis(true);
+        makeInfoInvis(false);
 
         //Add cursors for movement and targeting
         cursor1 = game.add.sprite(1, 1, 'cursor');
@@ -396,15 +385,58 @@ gameMain.prototype = {
 
     },
     update: function () {
-
+        var style = { font: 'bold 15pt Arial', wordWrap: true, wordWrapWidth: 150, align: "center" };
         //Update player square capture percentage
+        //Update game player mana and health in turn display
         for (i = 0; i < gameVariables.gamePlayerArray.length; i++) {
+
+            gameVariables.gamePlayerArray[i].turnSprite.destroy();
+
+            //Add turn tracker
+            gameVariables.gamePlayerArray[i].turnSprite = game.add.sprite(game.width - 250, (50 * i) + 50, 'turnSprite');
+            var child = game.add.sprite(10, 10, gameVariables.gamePlayerArray[i].color);
+            child.height = 30;
+            child.width = 30;
+            gameVariables.gamePlayerArray[i].turnSprite.addChild(child);
+            var child = game.add.sprite(10, 10, gameVariables.gamePlayerArray[i].class);
+            child.height = 28;
+            child.width = 28;
+            gameVariables.gamePlayerArray[i].turnSprite.addChild(child);
+            var txt = game.add.text(45, 8, gameVariables.gamePlayerArray[i].name, style);
+            gameVariables.gamePlayerArray[i].turnSprite.addChild(txt);
+
+
+            var health = game.add.sprite(45, 29, 'rpix')
+            health.width = 100;
+            health.height = 2;
+            gameVariables.gamePlayerArray[i].turnSprite.addChild(health);
+
+            var hp = (gameVariables.gamePlayerArray[i].hp / gameVariables.gamePlayerArray[i].maxhp) * 100;
+            var health = game.add.sprite(45, 29, 'gpix')
+            health.width = hp;
+            health.height = 2;
+            gameVariables.gamePlayerArray[i].turnSprite.addChild(health);
+
+            var mana = game.add.sprite(45, 32, 'mana');
+            mana.width = 9;
+            mana.height = 9;
+            gameVariables.gamePlayerArray[i].turnSprite.addChild(mana);
+
+            for (x = 1; x < gameVariables.gamePlayerArray[i].maxmana; x++) {
+                
+                var mana = game.add.sprite(45 + (10 * x), 32, 'mana');
+                mana.width = 9;
+                mana.height = 9;
+                gameVariables.gamePlayerArray[i].turnSprite.addChild(mana);
+            }
+
+            back_layer.add(gameVariables.gamePlayerArray[i].turnSprite);    
+
             var calc = Math.round((gameVariables.gamePlayerArray[i].capturedSquares / gameVariables.boardInfo.boardTotal) * 100);
             playerSquareCount[i].setText(calc + '%');
-            
         }
         
-        //UPdate player mana nodes
+        //Update player info
         gameVariables.gamePlayerArray[0].manasprite.destroy();
         gameVariables.gamePlayerArray[0].manasprite = game.add.sprite(game.width - 535, game.height - 208, 'mana');
         gameVariables.gamePlayerArray[0].manasprite.width = 20;
@@ -419,6 +451,9 @@ gameMain.prototype = {
             }
             gameVariables.gamePlayerArray[0].manasprite.addChild(child);
         }
+
+
+
 
 
         //Determine player turn
@@ -500,6 +535,8 @@ gameMain.prototype = {
 
                     //Draw Card
                     computerDrawCard(gameVariables.currentPlayer);
+
+                    console.log(gameVariables.gamePlayerArray[gameVariables.currentPlayer]);
 
                     //Play a random spell
                     //var randCard = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.splice(Math.floor(Math.random() * gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.length), 1);
@@ -595,7 +632,6 @@ gameMain.prototype = {
                 multipleTargetsArray[i].sprite = cur;
 
             }
-
             
 
         }
@@ -1165,6 +1201,7 @@ function targetClicked(target) {
             multipleTargetsMenu = true;
         }
         else {
+            game.camera.flash(0xff0000, 500);
             //Act on the target
             //Target types "creature", "player", "both", "square"
             if (result[0].type == "creature") {
@@ -1195,6 +1232,8 @@ function targetMenuClicked(item) {
     var boardResult = gameVariables.gameBoard.find(function (item) {
         return item.id == targetResult.targetSquare
     })
+
+    game.camera.flash(0xff0000, 500);
 
     if (targetResult.type == "creature") {
         damageCreatureOnSquare(boardResult, targetResult.card, targetResult.player);
@@ -1356,6 +1395,7 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
 
 
         } else {
+            boardCreature.hitpoints = defHp;
             //Defender takes damage but lives. Attacker is discarded
             var percent = (defHp / boardCreature.maxhitpoints);
             var pixelWidth = 20 - Math.round(percent * 20);
@@ -1673,10 +1713,16 @@ function playerMove(playerSprite, roll) {
         }
 
         if (nextPathIdArray.length > 1) {
-            //If player has multiple choices start player choice menu and return.
-            playerDirChoiceMenu = true;
-            activePlayerSquare = playerSprite.gameSquareId;
-            return;
+
+            if (gameVariables.currentPlayer == 0) {
+                //If player has multiple choices start player choice menu and return.
+                playerDirChoiceMenu = true;
+                activePlayerSquare = playerSprite.gameSquareId;
+                return;
+            }
+
+            var AIchoice = nextPathIdArray[Math.floor(Math.random() * nextPathIdArray.length)];
+            nextPathIdArray[0] = AIchoice;
         }
      
         var gameBoardDestResult = gameVariables.gameBoard.find(function (element) {
@@ -1768,7 +1814,8 @@ function calculateDestinations(currentSquareId, roll) {
 function computerDrawCard(currentPlayer) {
     //Draw Card
     if (gameVariables.gamePlayerArray[currentPlayer].deck.length < 1) {
-        gameVariables.gamePlayerArray[currentPlayer].deck = shuffle(gameVariables.gamePlayerArray[currentPlayer].discard);
+        gameVariables.gamePlayerArray[currentPlayer].deck = gameVariables.gamePlayerArray[currentPlayer].discard.slice();
+        gameVariables.gamePlayerArray[currentPlayer].deck = shuffle(gameVariables.gamePlayerArray[currentPlayer].deck);
         gameVariables.gamePlayerArray[currentPlayer].discard.length = 0;
     }
 

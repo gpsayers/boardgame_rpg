@@ -2,7 +2,7 @@
     playerTurnArray: [],
     playerName: "Merlin",
     playerGold: 100,
-    playerMana: 3,
+    playerStartingMana: 1,
     playerHealth: 10,
     playerMaxHealth: 10,
     playerArmor: 0,
@@ -23,7 +23,7 @@
 
 }
 
-function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human, deck, maxhand) {
+function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human, deck, maxhand, armor) {
     this.id = id;
     this.square = square;
     this.name = name;
@@ -32,6 +32,7 @@ function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human,
     this.hp = hp;
     this.maxhp = hp;
     this.mana = mana;
+    this.maxmana = mana;
     this.human = human;
     this.deck = deck;
     this.hand = [];
@@ -41,6 +42,9 @@ function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human,
     this.turnSprite = {};
     this.maxhand = maxhand;
     this.capturedSquares = 0;
+    this.manasprite = {};
+    this.gold = 100;
+    this.armor = armor;
 }
 
 function gameSquare(id, x, y, sprite) {
@@ -51,7 +55,7 @@ function gameSquare(id, x, y, sprite) {
     this.creature = null;
 }
 
-function gameSquareCreature(cardId, squareId, sprite, hitpoints, maxhitpoints, armor, attack, def) {
+function gameSquareCreature(cardId, squareId, sprite, hitpoints, maxhitpoints, armor, attack, def, player) {
     this.cardId = cardId;
     this.squareId = squareId;
     this.sprite = sprite;
@@ -62,10 +66,10 @@ function gameSquareCreature(cardId, squareId, sprite, hitpoints, maxhitpoints, a
     this.def = def;
     this.hitspritegreen = {};
     this.hitspritered = {};
-
+    this.playerOwnedId = player;
 }
 
-function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense, damage, image, armor) {
+function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense, damage, image, armor, threat, tarlocation, tartype, tarcount, special) {
     this.id = id;
     this.name = name;
     this.desc = desc;
@@ -79,7 +83,13 @@ function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense
     this.damage = damage;
     this.image = image;
     this.armor = armor;
+    this.threat = threat;
+    this.targetlocation = tarlocation;
+    this.targettype = tartype;
+    this.targetcount = tarcount;
+    this.special = special;
 }
+
 
 function playerHandTracker(id, cardInfo, positionx, positiony) {
     this.id = id;
@@ -90,6 +100,7 @@ function playerHandTracker(id, cardInfo, positionx, positiony) {
     this.spriteborder = {};
     this.spriteimage = {};
     this.spriteInfoButton = {};
+    this.group = {};
     this.text1 = {};
     this.text2 = {};
     this.text3 = {};
@@ -113,4 +124,21 @@ function shuffle(array) {
     }
 
     return array;
+}
+
+
+function compareHandThreat(a, b) {
+    if (a.threat < b.threat)
+        return -1;
+    if (a.threat > b.threat)
+        return 1;
+    return 0;
+}
+
+function compareHandCost(a, b) {
+    if (a.cost < b.cost)
+        return -1;
+    if (a.cost > b.cost)
+        return 1;
+    return 0;
 }
