@@ -266,7 +266,7 @@ gameMain.prototype = {
         back_layer.add(infoImage3);
         back_layer.add(infoImage4);
         back_layer.add(infoImage5);
-        makeInfoInvis(false);
+        makeInfoInvis(true);
 
         //Add cursors for movement and targeting
         cursor1 = game.add.sprite(1, 1, 'cursor');
@@ -460,7 +460,15 @@ gameMain.prototype = {
         for (c = 0; c < gameVariables.gamePlayerArray[0].handTracker.length; c++) {
 
             if (gameVariables.gamePlayerArray[0].handTracker[c].spritefront.input.pointerOver()) {
-                console.log(gameVariables.gamePlayerArray[0].handTracker[c]);
+
+                makeInfoInvis(false);
+
+                infoImage1.loadTexture(gameVariables.gamePlayerArray[0].handTracker[c].spriteimage.key);
+                infoImage1.visible = true;
+                infoText1.setText(gameVariables.gamePlayerArray[0].handTracker[c].cardInfo.name);
+                infoText1.visible = true;
+                infoText3.setText(gameVariables.gamePlayerArray[0].handTracker[c].cardInfo.desc);
+                infoText3.visible = true;
 
             }
         }
@@ -546,8 +554,6 @@ gameMain.prototype = {
 
                     //Draw Card
                     computerDrawCard(gameVariables.currentPlayer);
-
-                    console.log(gameVariables.gamePlayerArray[gameVariables.currentPlayer]);
 
                     //Play a random spell
                     //var randCard = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.splice(Math.floor(Math.random() * gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.length), 1);
@@ -1151,9 +1157,7 @@ function highlightTargets(cardDetails, boardSquareDetail, player) {
 
 function targetClicked(target) {
 
-
     var targetArrayItem = targetArray[target.targetArrayIndex];
-
 
     for (var i = 0; i < targetArray.length; i++) {
 
@@ -1198,7 +1202,6 @@ function targetClicked(target) {
 
     //Check if self
     if (targetArrayItem.card.targetlocation == "self") {
-
 
         if (targetArray[target.targetArrayIndex].card.creature == true) {
 
@@ -1260,11 +1263,10 @@ function targetClicked(target) {
         multipleTargetsMenu = true;
     }
     else {
+        game.camera.flash(0xff0000, 500);
 
         if (card.special == 0) {
-            game.camera.flash(0xff0000, 500);
-            //Act on the target
-            //Target types "creature", "player", "both", "square"
+
             if (result[0].type == "creature") {
                 damageCreatureOnSquare(boardSquareDetail, card, targetArrayItem.player);
             }
@@ -1277,9 +1279,18 @@ function targetClicked(target) {
             }
         }
         else {
-            processSpecialSpell(card, targetArrayItem.player, targetArrayItem.targetSquare, targetArrayItem.type, targetArrayItem.model);
-        }
+            if (result[0].type == "creature") {
+                processSpecialSpell(card, result[0].player, result[0].targetSquare, result[0].type, result[0].model);
+            }
+            else {
+                var targetPlayer = gameVariables.gamePlayerArray.find(function (item) {
+                    return item.sprite.gameSquareId == result[0].targetSquare;
+                });
 
+                processSpecialSpell(card, result[0].player, result[0].targetSquare, result[0].type, targetPlayer.class);
+            }
+            
+        }
 
 
         if (targetArray[target.targetArrayIndex].card.creature == true) {
@@ -1295,9 +1306,7 @@ function targetClicked(target) {
 
 function targetMenuClicked(item) {
 
-    var targetResult = multipleTargetsArray[item.targetArrayIndex];    
-
-    console.log(targetResult);
+    var targetResult = multipleTargetsArray[item.targetArrayIndex];
 
     var boardResult = gameVariables.gameBoard.find(function (item) {
         return item.id == targetResult.targetSquare
@@ -1529,6 +1538,10 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
 function processSpecialSpell(card, player, targetSquare, targetType, targetImage) {
 
     var currentPlayer = gameVariables.gamePlayerArray[gameVariables.currentPlayer];
+
+    var boardSquareDetail = gameVariables.gameBoard.find(function (item) {
+        return item.id == targetSquare;
+    });
     
     if (card.special == 1) {
         var result = gameVariables.gamePlayerArray.find(function (item) {
@@ -1550,9 +1563,21 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
     if (card.special == 3) {
         //Heal 
         if (targetType == "creature") {
+            boardSquareDetail.creature.hitpoints = boardSquareDetail.creature.hitpoints + card.damage;
 
+            if (boardSquareDetail.creature.hitpoints > boardSquareDetail.creature.maxhitpoints) {
+                boardSquareDetail.creature.hitpoints = boardSquareDetail.creature.maxhitpoints;
+            }
+            var percent = (boardSquareDetail.creature.hitpoints / boardSquareDetail.creature.maxhitpoints);
+            var pixelWidth = 20 - Math.round(percent * 20);
+
+            boardSquareDetail.creature.hitspritered.width = pixelWidth;
         } else {
-            
+            player.hp = player.hp + card.damage;
+            if (player.hp > player.maxhp) {
+                player.hp = player.maxhp;
+            }
+
         }
 
     }

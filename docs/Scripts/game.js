@@ -30,6 +30,9 @@ gameMain.prototype = {
         //Temp assign of player deck to static array
         gameVariables.playerDeck = testPlayerCardList;
 
+        //Temp turn count to 0
+        gameVariables.turnCount = 0;
+
         if (gameVariables.currentBoard == "board1") {
             gameVariables.boardInfo = board1;
         }
@@ -229,9 +232,9 @@ gameMain.prototype = {
         gameVariables.gamePlayerArray[0].manasprite = game.add.sprite(game.width - 535, game.height - 208, 'mana');
         gameVariables.gamePlayerArray[0].manasprite.width = 20;
         gameVariables.gamePlayerArray[0].manasprite.height = 20;
-        goldText = game.add.text(game.width - 60, game.height - 250, gameVariables.playerGold, style);
-        goldText.anchor.setTo(1, 0);
-        goldIcon = game.add.sprite(game.width - 60 - goldText.width, game.height - 258, 'gold');
+        goldInfoText = game.add.text(game.width - 60, game.height - 250, gameVariables.playerGold, style);
+        goldInfoText.anchor.setTo(1, 0);
+        goldIcon = game.add.sprite(game.width - 60 - goldInfoText.width, game.height - 258, 'gold');
         goldIcon.anchor.setTo(1, 0);
         infoText1 = game.add.text(game.width - 550, 115, 'text1', style);
         infoText2 = game.add.text(game.width - 425, 115, 'text2', style);
@@ -263,7 +266,7 @@ gameMain.prototype = {
         back_layer.add(infoImage3);
         back_layer.add(infoImage4);
         back_layer.add(infoImage5);
-        makeInfoInvis(false);
+        makeInfoInvis(true);
 
         //Add cursors for movement and targeting
         cursor1 = game.add.sprite(1, 1, 'cursor');
@@ -451,8 +454,24 @@ gameMain.prototype = {
             }
             gameVariables.gamePlayerArray[0].manasprite.addChild(child);
         }
+        goldInfoText.setText(gameVariables.gamePlayerArray[0].gold);
 
+        //Display card info on hover
+        for (c = 0; c < gameVariables.gamePlayerArray[0].handTracker.length; c++) {
 
+            if (gameVariables.gamePlayerArray[0].handTracker[c].spritefront.input.pointerOver()) {
+
+                makeInfoInvis(false);
+
+                infoImage1.loadTexture(gameVariables.gamePlayerArray[0].handTracker[c].spriteimage.key);
+                infoImage1.visible = true;
+                infoText1.setText(gameVariables.gamePlayerArray[0].handTracker[c].cardInfo.name);
+                infoText1.visible = true;
+                infoText3.setText(gameVariables.gamePlayerArray[0].handTracker[c].cardInfo.desc);
+                infoText3.visible = true;
+
+            }
+        }
 
 
 
@@ -536,8 +555,6 @@ gameMain.prototype = {
                     //Draw Card
                     computerDrawCard(gameVariables.currentPlayer);
 
-                    console.log(gameVariables.gamePlayerArray[gameVariables.currentPlayer]);
-
                     //Play a random spell
                     //var randCard = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.splice(Math.floor(Math.random() * gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.length), 1);
 
@@ -553,7 +570,11 @@ gameMain.prototype = {
                         }
                     }
 
-                    castSpell(ai_card_to_cast.id, gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite);
+                    if (ai_card_to_cast != null) {
+                        castSpell(ai_card_to_cast.id, gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite);
+                    }
+
+
 
                     endCurrentPlayerTurn();
                 }
@@ -1073,7 +1094,7 @@ function highlightTargets(cardDetails, boardSquareDetail, player) {
 
     if (location == "self") {
         //Just select current square as target to start
-        targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: boardSquareDetail, player: player });
+        targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: boardSquareDetail.id, player: player });
     }
 
     if (location == "row") {
@@ -1083,7 +1104,7 @@ function highlightTargets(cardDetails, boardSquareDetail, player) {
 
     if (location == "square") {
         //Just select current square as target to start
-        targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: boardSquareDetail, player: player });
+        targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: boardSquareDetail.id, player: player });
     }
 
     if (location == "adj") {
@@ -1136,9 +1157,7 @@ function highlightTargets(cardDetails, boardSquareDetail, player) {
 
 function targetClicked(target) {
 
-
     var targetArrayItem = targetArray[target.targetArrayIndex];
-
 
     for (var i = 0; i < targetArray.length; i++) {
 
@@ -1152,73 +1171,134 @@ function targetClicked(target) {
 
     var card = targetArrayItem.card;
 
-    if (card.spell == true) {
 
-        if (targetArray[target.targetArrayIndex].card.creature == true) {
-            playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
-            return;
-        }
+    //Check if all
+    if (targetArrayItem.card.targetlocation == "all") {
 
-        //Check if all
-        if (targetArrayItem.card.targetlocation == "all") {
+        game.camera.flash(0xff0000, 500);
 
-            game.camera.flash(0xff0000, 500);
+        targetArray.forEach(function (target) {
 
-            targetArray.forEach(function (target) {
-
-                var deets = gameVariables.gameBoard.find(function (item) {
-                    return item.id == target.targetSquare;
-                });
-
-                if (target.type == "player") {
-                    damagePlayerOnSquare(deets, target.card, target.player, target.model.class);
-                }
-                else {
-                    damageCreatureOnSquare(deets, target.card, target.player);
-                }
+            var deets = gameVariables.gameBoard.find(function (item) {
+                return item.id == target.targetSquare;
             });
 
-            return;
-        }
-
-        //Check for multiple targets
-        var result = targetArray.filter(function (item) {
-            return item.targetSquare == targetArrayItem.targetSquare
+            if (target.type == "player") {
+                damagePlayerOnSquare(deets, target.card, target.player, target.model.class);
+            }
+            else {
+                damageCreatureOnSquare(deets, target.card, target.player);
+            }
         });
 
-        if (result.length > 1) {
-            
-            for (i = 0; i < result.length; i++) {
+        if (targetArray[target.targetArrayIndex].card.creature == true) {
 
-                if (result[i].type == "creature") {
-                    multipleTargetsArray.push({ sprite: {}, image: result[i].model.sprite.key, card: result[i].card, originSquare: result[i].originSquare, targetSquare: result[i].targetSquare, player: result[i].player, type: "creature" });
-                }
-                else {
-                    multipleTargetsArray.push({ sprite: {}, image: result[i].model.class, card: result[i].card, originSquare: result[i].originSquare, targetSquare: result[i].targetSquare, player: result[i].player, type: "player" });
-                }
-            }
+            playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
 
-            multipleTargetsMenu = true;
         }
-        else {
-            game.camera.flash(0xff0000, 500);
-            //Act on the target
-            //Target types "creature", "player", "both", "square"
+
+        return;
+    }
+
+    //Check if self
+    if (targetArrayItem.card.targetlocation == "self") {
+
+        if (targetArray[target.targetArrayIndex].card.creature == true) {
+
+            playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
+
+        }
+    }
+
+    //Check if square
+    if (targetArrayItem.card.targetlocation == "square") {
+        targetArray.length = 0;
+
+        if (targetArrayItem.card.targettype == "creature" || targetArrayItem.card.targettype == "both") {
+            if (boardSquareDetail.creature != null) {
+                targetArray.push({ x: boardSquareDetail.creature.sprite.x, y: boardSquareDetail.creature.sprite.y, sprite: {}, card: targetArrayItem.card, originSquare: boardSquareDetail, targetSquare: boardSquareDetail.creature.squareId, player: targetArrayItem.player, type: "creature", model: boardSquareDetail.creature });
+
+            }
+            
+        }
+        if (targetArrayItem.card.targettype == "player" || targetArrayItem.card.targettype == "both") {
+
+
+            gameVariables.gamePlayerArray.forEach(function (gp) {
+                if (gp.sprite.gameSquareId == targetArrayItem.targetSquare) {
+                    targetArray.push({ x: gp.sprite.x, y: gp.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: gp.sprite.gameSquareId, player: targetArrayItem.player, type: "player", model: gp });
+                }
+
+            });
+        }
+
+        if (targetArray.length == 0) {
+            //No targets
+            if (targetArrayItem.card.creature == true) {
+
+                playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
+
+            }
+            return;
+        }
+    }
+
+    //Check for multiple targets
+    var result = targetArray.filter(function (item) {
+        return item.targetSquare == targetArrayItem.targetSquare
+    });
+
+    if (result.length > 1) {
+
+        for (i = 0; i < result.length; i++) {
+
+            if (result[i].type == "creature") {
+                multipleTargetsArray.push({ sprite: {}, image: result[i].model.sprite.key, card: result[i].card, originSquare: result[i].originSquare, targetSquare: result[i].targetSquare, player: result[i].player, type: "creature" });
+            }
+            else {
+                multipleTargetsArray.push({ sprite: {}, image: result[i].model.class, card: result[i].card, originSquare: result[i].originSquare, targetSquare: result[i].targetSquare, player: result[i].player, type: "player" });
+            }
+        }
+
+        multipleTargetsMenu = true;
+    }
+    else {
+        game.camera.flash(0xff0000, 500);
+
+        if (card.special == 0) {
+
             if (result[0].type == "creature") {
                 damageCreatureOnSquare(boardSquareDetail, card, targetArrayItem.player);
             }
             else {
                 var targetPlayer = gameVariables.gamePlayerArray.find(function (item) {
-                    return item.sprite.gameSquareId == targetArrayItem.targetSquare;
+                    return item.sprite.gameSquareId == targetArrayItem.targetSquare.id;
                 });
 
                 damagePlayerOnSquare(boardSquareDetail, card, targetArrayItem.player, targetPlayer.class);
             }
         }
+        else {
+            if (result[0].type == "creature") {
+                processSpecialSpell(card, result[0].player, result[0].targetSquare, result[0].type, result[0].model);
+            }
+            else {
+                var targetPlayer = gameVariables.gamePlayerArray.find(function (item) {
+                    return item.sprite.gameSquareId == result[0].targetSquare;
+                });
 
+                processSpecialSpell(card, result[0].player, result[0].targetSquare, result[0].type, targetPlayer.class);
+            }
+            
+        }
+
+
+        if (targetArray[target.targetArrayIndex].card.creature == true) {
+
+            playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
+
+        }
     }
-
-
 
 
 }
@@ -1226,8 +1306,7 @@ function targetClicked(target) {
 
 function targetMenuClicked(item) {
 
-    var targetResult = multipleTargetsArray[item.targetArrayIndex];    
-
+    var targetResult = multipleTargetsArray[item.targetArrayIndex];
 
     var boardResult = gameVariables.gameBoard.find(function (item) {
         return item.id == targetResult.targetSquare
@@ -1235,11 +1314,21 @@ function targetMenuClicked(item) {
 
     game.camera.flash(0xff0000, 500);
 
-    if (targetResult.type == "creature") {
-        damageCreatureOnSquare(boardResult, targetResult.card, targetResult.player);
+    if (targetResult.card.special == 0) {
+        if (targetResult.type == "creature") {
+            damageCreatureOnSquare(boardResult, targetResult.card, targetResult.player);
+        }
+        else {
+            damagePlayerOnSquare(boardResult, targetResult.card, targetResult.player, targetResult.sprite.key);
+        }
+
     }
     else {
-        damagePlayerOnSquare(boardResult, targetResult.card, targetResult.player, targetResult.sprite.key);
+        processSpecialSpell(targetResult.card, targetResult.player, boardResult, targetResult.type, targetResult.image);
+    }
+
+    if (targetResult.card.creature == true) {
+        playCreatureOnSquare(boardResult, targetResult.card, targetResult.player);
     }
 
     multipleTargetsArray.forEach(function (item) {
@@ -1446,8 +1535,74 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
 }
 
 
-function processSpellOnTarget() {
+function processSpecialSpell(card, player, targetSquare, targetType, targetImage) {
 
+    var currentPlayer = gameVariables.gamePlayerArray[gameVariables.currentPlayer];
+
+    var boardSquareDetail = gameVariables.gameBoard.find(function (item) {
+        return item.id == targetSquare;
+    });
+    
+    if (card.special == 1) {
+        var result = gameVariables.gamePlayerArray.find(function (item) {
+            return item.class == targetImage;
+        });
+
+
+        if (result.gold >= card.damage) {
+            currentPlayer.gold = currentPlayer.gold + card.damage;
+        }
+
+    }
+
+    if (card.special == 2) {
+        //Slow movement
+
+    }
+
+    if (card.special == 3) {
+        //Heal 
+        if (targetType == "creature") {
+            boardSquareDetail.creature.hitpoints = boardSquareDetail.creature.hitpoints + card.damage;
+
+            if (boardSquareDetail.creature.hitpoints > boardSquareDetail.creature.maxhitpoints) {
+                boardSquareDetail.creature.hitpoints = boardSquareDetail.creature.maxhitpoints;
+            }
+            var percent = (boardSquareDetail.creature.hitpoints / boardSquareDetail.creature.maxhitpoints);
+            var pixelWidth = 20 - Math.round(percent * 20);
+
+            boardSquareDetail.creature.hitspritered.width = pixelWidth;
+        } else {
+            player.hp = player.hp + card.damage;
+            if (player.hp > player.maxhp) {
+                player.hp = player.maxhp;
+            }
+
+        }
+
+    }
+    
+    if (card.special == 4) {
+        //Move forward
+        playerMove(player, card.damage);
+    }
+
+    if (card.special == 5) {
+        for (i = 0; i < card.damage; i++) {
+            drawCard();
+        }
+    }
+
+    if (card.special == 6) {
+        currentPlayer.gold = currentPlayer.gold + card.damage;
+    }
+
+    if (card.special == 8) {
+        targetSquare.creature.hitpoints = targetSquare.creature.hitpoints + card.defense;
+        targetSquare.creature.maxhitpoints = targetSquare.creature.maxhitpoints + card.defense;
+        targetSquare.creature.armor = targetSquare.creature.armor + card.armor;
+        targetSquare.creature.attack = targetSquare.creature.attack + card.attack;
+    }
 }
 
 

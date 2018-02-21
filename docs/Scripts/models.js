@@ -19,7 +19,8 @@
     gameTurnOrder: [],
     gameBoard: [],
     boardInfo: {},
-    currentPlayer: 0
+    currentPlayer: 0,
+    turnCount: 0
 
 }
 
@@ -47,6 +48,8 @@ function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human,
     this.armor = armor;
 }
 
+//location: sprite.gameSquareId
+
 function gameSquare(id, x, y, sprite) {
     this.id = id;
     this.x = x;
@@ -54,6 +57,8 @@ function gameSquare(id, x, y, sprite) {
     this.sprite = sprite;
     this.creature = null;
 }
+
+//location: creature.squareId
 
 function gameSquareCreature(cardId, squareId, sprite, hitpoints, maxhitpoints, armor, attack, def, player) {
     this.cardId = cardId;
@@ -90,6 +95,18 @@ function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense
     this.special = special;
 }
 
+//Target locations: Entire board (all), adjacent (adj), current square (square), row (row), self (self), any (any)
+//Target types "creature", "player", "both"
+//Target count (1-"all")
+//Special
+//1.Steal gold from player
+//2.Slow movement
+//3.Heal
+//4.Move Forward
+//5.Draw
+//6.Gain Gold
+//7.Move Back
+//8.Buff creature
 
 function playerHandTracker(id, cardInfo, positionx, positiony) {
     this.id = id;
