@@ -5,7 +5,7 @@ var masterCardList = [];
 masterCardList.push(new card(1, "Bolt", "Deal 2 damage.", 1, "common", 10, false, true, 0, 0, 2, "bolt", 0, 2,"any",'both','1', 0));
 masterCardList.push(new card(2, "Ogre Zombie", "Summon Ogre Zombie", 3, "common", 10, true, false, 3, 3, 0, "zombie", 0, 3, "", '', '', 0));
 masterCardList.push(new card(3, "Summon Abyssal", "Summon an abyssal to an ajacent square.", 1, "common", 10, true, true, 1, 1, 0, "summon", 0, 1, "adj", 'square', '1', 0));
-masterCardList.push(new card(4, "Sentry Centaur", "Summon a Centaur and deal 2 damage", 1, "common", 10, true, true, 2, 4, 2, "centaur", 0, 2, "square", 'creature', '1', 0));
+masterCardList.push(new card(4, "Sentry Centaur", "Summon a Centaur and deal 2 damage", 1, "common", 10, true, true, 2, 4, 2, "centaur", 0, 2, "square", 'both', '1', 0));
 masterCardList.push(new card(5, "Rat", "Summon Rat", 1, "common", 10, true, false, 1, 1, 0, "rat", 0, 0, "", '', '', 0));
 masterCardList.push(new card(6, "Turtle", "Summon Turtle", 1, "common", 10, true, false, 1, 1, 0, "turtle", 1, 0, "", '', '', 0));
 masterCardList.push(new card(7, "Bear", "Summon Bear", 2, "common", 10, true, false, 2, 2, 0, "bear", 0, 2, "", '', '', 0));
@@ -18,7 +18,8 @@ masterCardList.push(new card(10, "Disengage", "Move 1 square forward", 1, "uncom
 masterCardList.push(new card(11, "Death Curse", "Kill target creature", 2, "uncommon", 50, false, true, 0, 0, 100, "death", 0, 3, "any", 'creature', '1', 0));
 masterCardList.push(new card(12, "Blizzard", "Deal 1 damage to the entire board", 4, "uncommon", 50, false, true, 0, 0, 1, "blizzard", 0, 4, "all", 'both', 'all', 2));
 masterCardList.push(new card(13, "Pickpocket", "Steal 50 gold from a player.", 1, "uncommon", 50, false, true, 0, 0, 50, "steal", 0, 1, "any", 'player', '1', 1));
-masterCardList.push(new card(14, "Healing Touch", "Heal a creature for 3 HP.", 1, "common", 10, false, true, 0, 0,3, "heal", 0, 1, "any", 'creature', '1', 3));
+masterCardList.push(new card(14, "Healing Touch", "Heal a creature for 3 HP.", 1, "common", 10, false, true, 0, 0, 3, "heal", 0, 1, "any", 'creature', '1', 3));
+masterCardList.push(new card(17,"Research","Draw 1 card.",1,"uncommon",50,false,true,0,0,1,"research",0,0,"self","player","1",5))
 
 
 //Target locations: Entire board (all), adjacent (adj), current square (square), row (row), self (self), any (any)
@@ -54,7 +55,7 @@ var redWizard1List = populateCardArray([2,2,7,7,5,5,8,8,9,9,5,15,16,16]);
 
 var blackSorceress1List = populateCardArray([2,2,7,7,5,5,9,9,8,8,5,15,16,16]);
 
-var testPlayerCardList = populateCardArray([2, 14, 7, 10,13,4,4]);
+var testPlayerCardList = populateCardArray([2, 14, 7, 10,13,17,4,3]);
 
 function populateCardArray(array) {
     var result = [];

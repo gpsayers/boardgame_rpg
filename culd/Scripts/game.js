@@ -108,6 +108,7 @@ gameMain.prototype = {
         game.load.image('steal', 'Assets/Cards/apportation_new.png');
         game.load.image('mushroom', 'Assets/Cards/wandering_mushroom_new.png');
         game.load.image('dummy', 'Assets/Cards/training_dummy_new.png');
+        game.load.image('research', 'Assets/Cards/magic_mapping.png');
 
 
         //GUI and buttons
@@ -644,7 +645,7 @@ gameMain.prototype = {
 
             for (var i = 0; i < multipleTargetsArray.length; i++) {
 
-                var cur = game.add.sprite((game.width/2)+(i * 50), game.height/2, multipleTargetsArray[i].image);
+                var cur = game.add.sprite((game.width/2)+(i * 50)-50, game.height/2, multipleTargetsArray[i].image);
                 cur.anchor.setTo(0.5);
                 cur.targetArrayIndex = i;
                 cur.inputEnabled = true;
@@ -1203,6 +1204,8 @@ function targetClicked(target) {
     //Check if self
     if (targetArrayItem.card.targetlocation == "self") {
 
+        processSpecialSpell(card, targetArrayItem.player, boardSquareDetail, "player", targetArrayItem.player.key);
+
         if (targetArray[target.targetArrayIndex].card.creature == true) {
 
             playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
@@ -1223,10 +1226,12 @@ function targetClicked(target) {
         }
         if (targetArrayItem.card.targettype == "player" || targetArrayItem.card.targettype == "both") {
 
-
             gameVariables.gamePlayerArray.forEach(function (gp) {
                 if (gp.sprite.gameSquareId == targetArrayItem.targetSquare) {
-                    targetArray.push({ x: gp.sprite.x, y: gp.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: gp.sprite.gameSquareId, player: targetArrayItem.player, type: "player", model: gp });
+                    if (targetArrayItem.player.id != 99) {
+
+                    }
+                    
                 }
 
             });
@@ -1263,6 +1268,16 @@ function targetClicked(target) {
         multipleTargetsMenu = true;
     }
     else {
+
+        if (result.length == 0) {
+            if (targetArray[target.targetArrayIndex].card.creature == true) {
+
+                playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
+
+            }
+            return;
+        }
+
         game.camera.flash(0xff0000, 500);
 
         if (card.special == 0) {
@@ -1272,7 +1287,7 @@ function targetClicked(target) {
             }
             else {
                 var targetPlayer = gameVariables.gamePlayerArray.find(function (item) {
-                    return item.sprite.gameSquareId == targetArrayItem.targetSquare.id;
+                    return item.sprite.gameSquareId == targetArrayItem.targetSquare;
                 });
 
                 damagePlayerOnSquare(boardSquareDetail, card, targetArrayItem.player, targetPlayer.class);
@@ -1588,9 +1603,10 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
     }
 
     if (card.special == 5) {
-        for (i = 0; i < card.damage; i++) {
-            drawCard();
-        }
+        drawCard();
+        //for (i = 0; i < card.damage; i++) {
+        //    drawCard();
+        //}
     }
 
     if (card.special == 6) {
