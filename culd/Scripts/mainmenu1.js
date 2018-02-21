@@ -9,7 +9,7 @@ mainMenu.prototype = {
     },
 
     init: function () {
-        this.titleText = game.add.text(game.world.centerX, 50, "Culd RPG", {
+        this.titleText = game.add.text(game.world.centerX, 50, "Champions of the Source", {
             font: 'bold 60pt TheMinion',
             fill: '#FDFFB5',
             align: 'center'

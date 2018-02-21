@@ -107,6 +107,7 @@ function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense
 //6.Gain Gold
 //7.Move Back
 //8.Buff creature
+//9.Self damage
 
 function playerHandTracker(id, cardInfo, positionx, positiony) {
     this.id = id;

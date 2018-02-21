@@ -19,11 +19,18 @@ masterCardList.push(new card(11, "Death Curse", "Kill target creature", 2, "unco
 masterCardList.push(new card(12, "Blizzard", "Deal 1 damage to the entire board", 4, "uncommon", 50, false, true, 0, 0, 1, "blizzard", 0, 4, "all", 'both', 'all', 2));
 masterCardList.push(new card(13, "Pickpocket", "Steal 50 gold from a player.", 1, "uncommon", 50, false, true, 0, 0, 50, "steal", 0, 1, "any", 'player', '1', 1));
 masterCardList.push(new card(14, "Healing Touch", "Heal a creature for 3 HP.", 1, "common", 10, false, true, 0, 0, 3, "heal", 0, 1, "any", 'creature', '1', 3));
-masterCardList.push(new card(17,"Research","Draw 1 card.",1,"uncommon",50,false,true,0,0,1,"research",0,0,"self","player","1",5))
+masterCardList.push(new card(17, "Research", "Draw 1 card.", 1, "uncommon", 50, false, true, 0, 0, 1, "research", 0, 0, "self", "player", "1", 5));
+masterCardList.push(new card(18, "Healing Word", "Heal a player for 3 HP.", 1, "uncommon", 50, false, true, 0, 0, 3, "heal", 0, 1, "any", 'player', '1', 3));
+masterCardList.push(new card(19, "Healing Ray", "Heal a creature or player for 2 HP.", 1, "rare", 200, false, true, 0, 0, 2, "heal", 0, 1, "any", 'both', '1', 3));
+masterCardList.push(new card(20, "Healing Sign", "Heal all creatures or players on target square for 2 HP.", 1, "rare", 200, false, true, 0, 0, 2, "heal", 0, 1, "any", 'ground', 'all', 3));
+
+masterCardList.push(new card(21, "Ghoul", "Summon Ghoul and take 3 damage.", 2, "common", 10, true, true, 4, 4, 3, "zombie", 0, 4, "self", "player", "1", 0));
+masterCardList.push(new card(22, "Throw Axe", "Deal 4 damage to a creature in an adjacent square.", 2, "common", 10, false, true, 0, 0, 4, "axe", 0, 2, "adj", 'creature', '1', 0));
+masterCardList.push(new card(23, "Poison Bolt", "Deal 4 damage to a player in an adjacent square.", 3, "common", 10, false, true, 0, 0, 4, "poison", 0, 3, "adj", 'player', '1', 0));
 
 
 //Target locations: Entire board (all), adjacent (adj), current square (square), row (row), self (self), any (any)
-//Target types "creature", "player", "both"
+//Target types "creature", "player", "both", "ground"
 //Target count (1-"all")
 //Special
 //1.Steal gold from player

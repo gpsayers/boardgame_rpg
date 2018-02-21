@@ -109,6 +109,7 @@ gameMain.prototype = {
         game.load.image('mushroom', 'Assets/Cards/wandering_mushroom_new.png');
         game.load.image('dummy', 'Assets/Cards/training_dummy_new.png');
         game.load.image('research', 'Assets/Cards/magic_mapping.png');
+        game.load.image('poison', 'Assets/Cards/poison_arrow_6.png');
 
 
         //GUI and buttons
