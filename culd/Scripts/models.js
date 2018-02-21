@@ -96,7 +96,7 @@ function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense
 }
 
 //Target locations: Entire board (all), adjacent (adj), current square (square), row (row), self (self), any (any)
-//Target types "creature", "player", "both"
+//Target types "creature", "player", "both", "ground"
 //Target count (1-"all")
 //Special
 //1.Steal gold from player

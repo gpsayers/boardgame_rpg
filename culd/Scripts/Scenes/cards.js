@@ -4,7 +4,7 @@ var masterCardList = [];
 
 masterCardList.push(new card(1, "Bolt", "Deal 2 damage.", 1, "common", 10, false, true, 0, 0, 2, "bolt", 0, 2,"any",'both','1', 0));
 masterCardList.push(new card(2, "Ogre Zombie", "Summon Ogre Zombie", 3, "common", 10, true, false, 3, 3, 0, "zombie", 0, 3, "", '', '', 0));
-masterCardList.push(new card(3, "Summon Abyssal", "Summon an abyssal to an ajacent square.", 1, "common", 10, true, true, 1, 1, 0, "summon", 0, 1, "adj", 'square', '1', 0));
+masterCardList.push(new card(3, "Summon Abyssal", "Summon an abyssal to an ajacent square.", 1, "common", 10, true, true, 1, 1, 0, "summon", 0, 1, "adj", 'ground', '1', 0));
 masterCardList.push(new card(4, "Sentry Centaur", "Summon a Centaur and deal 2 damage", 1, "common", 10, true, true, 2, 4, 2, "centaur", 0, 2, "square", 'both', '1', 0));
 masterCardList.push(new card(5, "Rat", "Summon Rat", 1, "common", 10, true, false, 1, 1, 0, "rat", 0, 0, "", '', '', 0));
 masterCardList.push(new card(6, "Turtle", "Summon Turtle", 1, "common", 10, true, false, 1, 1, 0, "turtle", 1, 0, "", '', '', 0));

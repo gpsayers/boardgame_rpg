@@ -1095,7 +1095,7 @@ function highlightTargets(cardDetails, boardSquareDetail, player) {
 
     if (location == "self") {
         //Just select current square as target to start
-        targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: boardSquareDetail.id, player: player });
+        targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: boardSquareDetail.id, player: player, type: type });
     }
 
     if (location == "row") {
@@ -1105,7 +1105,7 @@ function highlightTargets(cardDetails, boardSquareDetail, player) {
 
     if (location == "square") {
         //Just select current square as target to start
-        targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: boardSquareDetail.id, player: player });
+        targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: boardSquareDetail.id, player: player, type: type });
     }
 
     if (location == "adj") {
@@ -1123,7 +1123,7 @@ function highlightTargets(cardDetails, boardSquareDetail, player) {
             });
 
             if (typeof gbr !== 'undefined') {
-                targetArray.push({ x: gbr.x, y: gbr.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: neighborSquare, player: player });
+                targetArray.push({ x: gbr.x, y: gbr.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: neighborSquare, player: player, type: type });
             }
 
         });
@@ -1211,6 +1211,8 @@ function targetClicked(target) {
             playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
 
         }
+
+        return;
     }
 
     //Check if square
@@ -1282,7 +1284,27 @@ function targetClicked(target) {
 
         if (card.special == 0) {
 
-            if (result[0].type == "creature") {
+            console.log(result[0].type)
+
+            if (result[0].type == "ground") {
+
+                if (boardSquareDetail.creature != null) {
+                    damageCreatureOnSquare(boardSquareDetail, card, targetArrayItem.player);
+                }
+
+                var targetPlayer = gameVariables.gamePlayerArray.filter(function (item) {
+                    return item.sprite.gameSquareId == targetArrayItem.targetSquare;
+                });
+
+                if (targetPlayer.length > 0) {
+                    targetPlayer.forEach(function (tp) {
+                        damagePlayerOnSquare(boardSquareDetail, card, targetArrayItem.player, tp.class);
+                    });
+
+                }
+
+            }
+            else if (result[0].type == "creature") {
                 damageCreatureOnSquare(boardSquareDetail, card, targetArrayItem.player);
             }
             else {
@@ -1603,10 +1625,10 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
     }
 
     if (card.special == 5) {
-        drawCard();
-        //for (i = 0; i < card.damage; i++) {
-        //    drawCard();
-        //}
+        for (i = 0; i < card.damage; i++) {
+            console.log("draw");
+            drawCard();
+        }
     }
 
     if (card.special == 6) {
