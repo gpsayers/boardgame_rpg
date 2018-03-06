@@ -36,6 +36,9 @@ gameMain.prototype = {
         if (gameVariables.currentBoard == "board1") {
             gameVariables.boardInfo = board1;
         }
+        else if (gameVariables.currentBoard == "board2") {
+            gameVariables.boardInfo = board2;
+        }
         
         gameVariables.gamePlayerArray.push(new gamePlayer(99,
             gameVariables.boardInfo.boardStart,
@@ -73,11 +76,17 @@ gameMain.prototype = {
 
         //board elements
         game.load.image('chest', 'Assets/BoardElements/chest_2_closed.png');
+        game.load.image('chestopen', 'Assets/BoardElements/chest_2_open.png');
         game.load.image('bluefountain', 'Assets/BoardElements/blue_fountain.png');
+        game.load.image('redfountain', 'Assets/BoardElements/blood_fountain.png');
+        game.load.image('dryfountain', 'Assets/BoardElements/dry_fountain.png');
+        game.load.image('cardpicker', 'Assets/BoardElements/nemelex_1.png');
         game.load.image('trap', 'Assets/BoardElements/trap_blade.png');
-        game.load.image('start', 'Assets/BoardElements/trap_magical.png');
+        game.load.image('magictrap', 'Assets/BoardElements/trap_magical.png');
+        game.load.image('pressure', 'Assets/BoardElements/pressure_plate.png');
         game.load.image('gpix', 'Assets/GUI/greenPixel.png');
         game.load.image('rpix', 'Assets/GUI/redPixel.png');
+        game.load.image('start', 'Assets/BoardElements/stone_stairs_up.png');
 
         //dice images
         game.load.image('1', 'Assets/front&side-1.png');

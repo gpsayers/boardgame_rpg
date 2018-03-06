@@ -27,15 +27,19 @@ mainState.prototype = {
         game.load.script('mainMenu', 'Scripts/mainmenu1.js');
         game.load.script('game', 'Scripts/game.js');
         game.load.script('credits', 'Scripts/Scenes/credits.js');
+        //game.load.script('new', 'Scripts/Scenes/new_game.js');
         
-
-        game.load.script('board1', 'Scripts/Scenes/board1.js');
+        //Load the boards
+        game.load.script('board1', 'Scripts/Boards/board1.js');
+        game.load.script('board2', 'Scripts/Boards/board2.js');
 
         //Load player images
         game.load.image('cavalier', 'Assets/Players/cavalier.png');
         game.load.image('wizard', 'Assets/Players/wizard.png');
         game.load.image('sorceress', 'Assets/Players/sorceress.png');
-        game.load.image('thief', 'Assets/Players/thief.png');
+        game.load.image('trickster', 'Assets/Players/trickster.png');
+        game.load.image('convoker', 'Assets/Players/convoker.png');
+        game.load.image('blademaster', 'Assets/Players/blademaster.png');
     },
     create: function () {
         game.state.add('mainMenu', mainMenu);

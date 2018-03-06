@@ -2,12 +2,12 @@
 
 new_character.prototype = {
     menuConfig: {
-        startY: 100,
-        startX: game.world.centerX
+        startY: 50,
+        startX: game.camera.width / 2
     },
 
     init: function() {
-        this.titleText = game.add.text(game.world.centerX, 50, "Create New Character", {
+        titleText = game.add.text(menuConfig.startX, menuConfig.startY, "Create New Character", {
             font: 'bold 40pt TheMinion',
             fill: '#FDFFB5',
             align: 'center'
