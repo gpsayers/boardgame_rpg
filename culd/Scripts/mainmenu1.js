@@ -25,7 +25,7 @@ mainMenu.prototype = {
             this.newGame();
 
             //game.state.start("game");
-            game.state.start("credits");
+            game.state.start("new");
 
         });
 

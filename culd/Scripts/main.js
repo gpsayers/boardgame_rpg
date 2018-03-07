@@ -20,6 +20,9 @@ mainState.prototype = {
         //this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
         //If the player clicks outside the game, it continues running - anti-cheating
         this.stage.disableVisibiltyChange = true;
+
+        game.add.plugin(PhaserInput.Plugin);
+        //game.add.plugin(Fabrique.Plugins.InputField);
     },
     preload: function () {
         game.load.script('models', 'Scripts/models.js');
@@ -27,7 +30,7 @@ mainState.prototype = {
         game.load.script('mainMenu', 'Scripts/mainmenu1.js');
         game.load.script('game', 'Scripts/game.js');
         game.load.script('credits', 'Scripts/Scenes/credits.js');
-        //game.load.script('new', 'Scripts/Scenes/new_game.js');
+        game.load.script('new', 'Scripts/Scenes/new_game.js');
         
         //Load the boards
         game.load.script('board1', 'Scripts/Boards/board1.js');
@@ -45,6 +48,7 @@ mainState.prototype = {
         game.state.add('mainMenu', mainMenu);
         game.state.add('game', gameMain);
         game.state.add('credits', credits);
+        game.state.add('new', new_character);
 
         game.state.start('mainMenu');
 

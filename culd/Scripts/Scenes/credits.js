@@ -18,6 +18,9 @@ credits.prototype = {
         //
         //
 
+        //library source
+        //https://github.com/orange-games/phaser-input
+
         txt.anchor.setTo(0.5);
 
         txt2.anchor.setTo(0.5);

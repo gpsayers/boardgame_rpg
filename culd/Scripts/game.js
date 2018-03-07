@@ -322,14 +322,14 @@ gameMain.prototype = {
         }
 
         //Confirmation menu
-        var style = { font: "bold 15px Arial", fill: "#000000", align: "center" };
+        var style = { font: "bold 15px Arial", fill: "#000000", align: "center", wordWrap: true, wordWrapWidth: 160 };
         menu = game.add.sprite(game.width / 2, game.height / 2, 'menu2');
         menu.anchor.x = 0.5;
         menu.anchor.y = 0.5;
         menu.visible = false;
         menu.inputEnabled = true;
         menu.events.onInputUp.add(menuClick, this);
-        qText = game.add.text((game.width / 2), (game.height / 2) - 20, "Would you like to cast this spell?", style);
+        qText = game.add.text((game.width / 2), (game.height / 2) - 40, "Would you like to cast this spell?", style);
         qText.anchor.x = 0.5;
         qText.anchor.y = 0.5;
         qText.visible = false;
@@ -375,7 +375,7 @@ gameMain.prototype = {
         leftButt.height = 40;
         leftButt.direction = "left";
         leftButt.visible = false;
-        upButt = game.add.button((game.width / 2 - 21), (game.height / 2) + 10, 'upButton', dirButtonClick, this, 1, 1, 2, 1);
+        upButt = game.add.button((game.width / 2 - 21), (game.height / 2) - 32 , 'upButton', dirButtonClick, this, 1, 1, 2, 1);
         upButt.width = 40;
         upButt.height = 40;
         upButt.direction = "up";
@@ -385,7 +385,7 @@ gameMain.prototype = {
         rightButt.height = 40;
         rightButt.direction = "right";
         rightButt.visible = false;
-        downButt = game.add.button((game.width / 2 + 25), (game.height / 2) + 10, 'downButton', dirButtonClick, this, 1, 1, 2, 1);
+        downButt = game.add.button((game.width / 2 - 21), (game.height / 2) + 10, 'downButton', dirButtonClick, this, 1, 1, 2, 1);
         downButt.width = 40;
         downButt.height = 40;
         downButt.direction = "down";
@@ -699,7 +699,7 @@ gameMain.prototype = {
             });
 
             menu.visible = true;
-            qText.setText("Please choose direction.");
+            qText.setText("Choose a direction.");
             qText.visible = true;
 
             if (result.left > 0) {
