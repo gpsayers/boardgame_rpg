@@ -385,6 +385,11 @@ gameMain.prototype = {
         rightButt.height = 40;
         rightButt.direction = "right";
         rightButt.visible = false;
+        downButt = game.add.button((game.width / 2 + 25), (game.height / 2) + 10, 'downButton', dirButtonClick, this, 1, 1, 2, 1);
+        downButt.width = 40;
+        downButt.height = 40;
+        downButt.direction = "down";
+        downButt.visible = false;
         pop_layer.add(menu);
         pop_layer.add(yesText);
         pop_layer.add(noText);
@@ -392,6 +397,7 @@ gameMain.prototype = {
         pop_layer.add(leftButt);
         pop_layer.add(upButt);
         pop_layer.add(rightButt);
+        pop_layer.add(downButt);
         pop_layer.add(manaText);
         pop_layer.add(cardText);
         pop_layer.add(healthText);
@@ -707,6 +713,10 @@ gameMain.prototype = {
             if (result.right > 0) {
                 rightButt.visible = true;
                 rightButt.choice = result.right;
+            }
+            if (result.down > 0 ) {
+                downButt.visible = true;
+                downButt.choice = result.down;
             }
         }
 
@@ -1856,6 +1866,7 @@ function dirButtonClick(item) {
     leftButt.visible = false;
     upButt.visible = false;
     rightButt.visible = false;
+    downButt.visible = false;
 
     var gameBoardResult = gameVariables.gameBoard.find(function (element) {
         return element.sprite.gameSquareId == item.choice;

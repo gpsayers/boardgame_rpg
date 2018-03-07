@@ -12,7 +12,7 @@
     playerCardPool: [],
     playerEquipment: [],
     playerImg: "wizard",
-    currentBoard: "board1",
+    currentBoard: "board2",
     playerColor: "blue",
     playerClass: "wizard",
     gamePlayerArray: [],
