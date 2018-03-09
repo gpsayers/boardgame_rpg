@@ -137,7 +137,6 @@ new_character.prototype = {
         school5.inputEnabled = true;
 
         var onOverSchool = function (target) {
-            var test = target.key.charAt(0).toUpperCase() + target.key.slice(1);
             border_layer.x = target.x - 2;
             border_layer.y = target.y - 2;
             border_layer.visible = true;
@@ -169,6 +168,16 @@ new_character.prototype = {
         school5.events.onInputOver.add(onOverSchool, this);
         school5.events.onInputOut.add(onOutSchool, this);
 
+        var ready = game.add.text(titleText.x - (titleText.width / 2), this.menuConfig.startY + 480, "Ready!", {
+            font: 'bold 40pt TheMinion',
+            fill: '#FDFFB5',
+            align: 'center'
+        });
+
+        ready.inputEnabled = true;
+        ready.events.onInputUp.add(function() {
+            console.log(input.value);
+        }, this);
     },
 
     create: function() {
