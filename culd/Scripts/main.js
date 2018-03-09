@@ -35,6 +35,8 @@ mainState.prototype = {
         //Load the boards
         game.load.script('board1', 'Scripts/Boards/board1.js');
         game.load.script('board2', 'Scripts/Boards/board2.js');
+        game.load.image('bpix', 'Assets/GUI/blackPixel.png');
+        game.load.image('wpix', 'Assets/GUI/whitePixel.png');
 
         //Load player images
         game.load.image('cavalier', 'Assets/Players/cavalier.png');
@@ -43,6 +45,14 @@ mainState.prototype = {
         game.load.image('trickster', 'Assets/Players/trickster.png');
         game.load.image('convoker', 'Assets/Players/convoker.png');
         game.load.image('blademaster', 'Assets/Players/blademaster.png');
+
+        //board squares
+        game.load.image('Fire', 'Assets/fire.png');
+        game.load.image('Water', 'Assets/ice.png');
+        game.load.image('neutral', 'Assets/summoning.png');
+        game.load.image('Life', 'Assets/divination.png');
+        game.load.image('Death', 'Assets/necromancy.png');
+        game.load.image('Earth', 'Assets/poison.png');
     },
     create: function () {
         game.state.add('mainMenu', mainMenu);

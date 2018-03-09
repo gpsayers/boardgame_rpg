@@ -39,9 +39,6 @@ mainMenu.prototype = {
 
         });
 
-        //this.addMenuOption('Save', function () {
-        //   saveGame();
-        //});
 
         this.addMenuOption('Test', function () {
             game.state.start('game');

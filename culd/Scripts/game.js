@@ -66,14 +66,6 @@ gameMain.prototype = {
         //background image
         game.load.image('dirt', 'Assets/dirt4.png');
 
-        //board squares
-        game.load.image('red', 'Assets/fire.png');
-        game.load.image('blue', 'Assets/ice.png');
-        game.load.image('neutral', 'Assets/summoning.png');
-        game.load.image('yellow', 'Assets/divination.png');
-        game.load.image('purple', 'Assets/necromancy.png');
-        game.load.image('green', 'Assets/green.png');
-
         //board elements
         game.load.image('chest', 'Assets/BoardElements/chest_2_closed.png');
         game.load.image('chestopen', 'Assets/BoardElements/chest_2_open.png');

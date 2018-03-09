@@ -13,7 +13,7 @@
     playerEquipment: [],
     playerImg: "wizard",
     currentBoard: "board2",
-    playerColor: "blue",
+    playerColor: "Water",
     playerClass: "wizard",
     gamePlayerArray: [],
     gameTurnOrder: [],
