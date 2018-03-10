@@ -53,6 +53,11 @@ mainState.prototype = {
         game.load.image('Life', 'Assets/divination.png');
         game.load.image('Death', 'Assets/necromancy.png');
         game.load.image('Earth', 'Assets/poison.png');
+
+        //load gui elements
+        game.load.spritesheet('confirmButton', 'Assets/GUI/confirmButtonSpritesheet.png', 221, 229);
+        game.load.spritesheet('cancelButton', 'Assets/GUI/cancelButtonSpritesheet.png', 221, 229);
+
     },
     create: function () {
         game.state.add('mainMenu', mainMenu);

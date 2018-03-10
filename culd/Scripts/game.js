@@ -118,11 +118,13 @@ gameMain.prototype = {
         game.load.image('menu2', 'Assets/GUI/Menu_2.png');
         game.load.image('cursor', 'Assets/GUI/cursor.png');
         game.load.image('target', 'Assets/GUI/silenced.png');
-        game.load.spritesheet('diceButton', 'Assets/GUI/diceButtonsSpritesheet.png', 404, 177);
+        game.load.spritesheet('diceButton', 'Assets/GUI/diceButtonsSpritesheet.png', 410, 183);
+        game.load.spritesheet('endButton', 'Assets/GUI/endturnButtonSpritesheet.png', 400, 173);
         game.load.spritesheet('leftButton', 'Assets/GUI/leftButtonSpritesheet.png', 221, 229);
         game.load.spritesheet('upButton', 'Assets/GUI/upButtonSpritesheet.png', 221, 229);
         game.load.spritesheet('rightButton', 'Assets/GUI/rightButtonSpritesheet.png', 221, 229);
         game.load.spritesheet('downButton', 'Assets/GUI/downButtonSpritesheet.png', 221, 229);
+        game.load.spritesheet('settingsButton', 'Assets/GUI/settingsButtonSpritesheet.png', 221, 229);
         game.load.image('turnArrow', 'Assets/GUI/arrow.png');
         game.load.image('turnSprite', 'Assets/GUI/paper-button-off.png');
         game.load.image('dialog', 'Assets/GUI/paper-dialog.png');
@@ -178,10 +180,15 @@ gameMain.prototype = {
         back_layer.add(pbs);
         back_layer.add(pb);
         var ptxt = game.add.text(game.width - 495, game.height - 255, gameVariables.playerName, style);
-        var drawtext = game.add.text(game.width - 535, game.height - 90, "End Turn", style);
-        drawtext.inputEnabled = true;
-        drawtext.events.onInputUp.add(endPlayerTurn, this);
-        drawtext.visible = true;
+        //var drawtext = game.add.text(game.width - 535, game.height - 90, "End Turn", style);
+        //drawtext.inputEnabled = true;
+        //drawtext.events.onInputUp.add(endPlayerTurn, this);
+        //drawtext.visible = true;
+
+        endbutton = game.add.button(game.width - 535, game.height - 110, 'endButton', endPlayerTurn, this, 1, 1, 0);
+        endbutton.width = 100;
+        endbutton.height = 44;
+
         turnArrow = game.add.sprite(10, 10, 'turnArrow');
         turnArrow.x = game.width - 280;
         turnArrow.y = (50 * gameVariables.currentPlayer) + 60;
@@ -292,7 +299,7 @@ gameMain.prototype = {
         dice = game.add.sprite(game.width - 125, game.height - 150, '1');
         dice.width = 40;
         dice.height = 40;
-        button = game.add.button(game.width - 170, game.height - 110, 'diceButton', diceRollButtonClick, this, null, null, 4, 2);
+        button = game.add.button(game.width - 170, game.height - 108, 'diceButton', diceRollButtonClick, this, 1, 1, 0);
         button.frame = 1;
         button.width = 100;
         button.height = 44;
