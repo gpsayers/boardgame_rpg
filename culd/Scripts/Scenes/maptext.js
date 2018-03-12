@@ -1,7 +1,7 @@
-﻿var mainMenu = function () { };
+﻿var maptext = function () { };
 
 
-mainMenu.prototype = {
+maptext.prototype = {
 
     menuConfig: {
         startY: 100,
@@ -9,7 +9,7 @@ mainMenu.prototype = {
     },
 
     init: function () {
-        this.titleText = game.add.text(game.world.centerX, 50, "Champions of the Source", {
+        this.titleText = game.add.text(game.world.centerX, 50, "Choose your destination", {
             font: 'bold 60pt TheMinion',
             fill: '#FDFFB5',
             align: 'center'
@@ -21,42 +21,37 @@ mainMenu.prototype = {
 
     create: function () {
 
-        this.addMenuOption('Start New', function () {
-            this.newGame();
+        this.addMenuOption('Shop', function () {
 
-            game.state.start("new");
-
-        });
-
-        this.addMenuOption('Continue', function () {
-            
+            game.state.start("shop");
 
         });
 
-        this.addMenuOption('Credits', function () {
-            game.state.start("credits");
+        this.addMenuOption('Castle', function () {
+            gameVariables.gameBoard = "board2";
+            game.state.start("game");
+
+        });
+
+        this.addMenuOption('Swamp', function () {
+            gameVariables.gameBoard = "board1";
+            game.state.start("game");
 
         });
 
 
-        this.addMenuOption('Test', function() {
+        this.addMenuOption('Cards', function () {
+            game.state.start("cardmanagement");
 
-            //Temp assign of player deck to static array
-            gameVariables.playerDeck = testPlayerCardList;
-
-            gameVariables.playerName = "Gorath";
-            gameVariables.playerGold = 100;
-            gameVariables.playerStartingMana = 1;
-            gameVariables.playerImg = "wizard";
-            gameVariables.currentBoard = "board2";
-            gameVariables.playerColor = "Water";
-            gameVariables.playerClass = "wizard";
-            gameVariables.playerMaxHealth = 10;
-            gameVariables.playerHealth = 10;
-            gameVariables.playerMaxHand = 4;
-
-            game.state.start('game');
         });
+
+        this.addMenuOption('Menu', function () {
+            game.state.start('mainMenu');
+
+        });
+
+
+
 
 
     },
@@ -99,8 +94,5 @@ mainMenu.prototype = {
 
     },
 
-    newGame: function () {
-        //localStorage.removeItem('gameVariables');
-    }
 
 };

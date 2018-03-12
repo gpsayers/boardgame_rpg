@@ -32,6 +32,10 @@ mainState.prototype = {
         game.load.script('credits', 'Scripts/Scenes/credits.js');
         game.load.script('new', 'Scripts/Scenes/new_game.js');
         game.load.script('map', 'Scripts/Scenes/campaign_map.js');
+        game.load.script('cardmanage', 'Scripts/Scenes/cardmanagement.js');
+        game.load.script('cutscene', 'Scripts/Scenes/cutscene.js');
+        game.load.script('maptext', 'Scripts/Scenes/maptext.js');
+        game.load.script('shop', 'Scripts/Scenes/shop.js');
         
         //Load the boards
         game.load.script('board1', 'Scripts/Boards/board1.js');
@@ -66,6 +70,10 @@ mainState.prototype = {
         game.state.add('credits', credits);
         game.state.add('new', new_character);
         game.state.add('map', campaign);
+        game.state.add('maptext', maptext);
+        game.state.add('cardmanager', cardmanager);
+        game.state.add('cutscene', cutscene);
+        game.state.add('shop', shop);
 
         game.state.start('mainMenu');
 

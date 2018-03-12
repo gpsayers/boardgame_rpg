@@ -15,21 +15,21 @@ new_character.prototype = {
         titleText.anchor.set(0.5);
 
         var choseNameTxt = game.add.text(titleText.x - (titleText.width/2), this.menuConfig.startY + 80, "Name:", {
-            font: 'bold 40pt TheMinion',
+            font: 'bold 30pt TheMinion',
             fill: '#FDFFB5',
             align: 'center'
         });
         //choseNameTxt.anchor.set(0.5);
 
         var input = game.add.inputField(choseNameTxt.x + choseNameTxt.width + 10, this.menuConfig.startY + 85, {
-            font: '45px TheMinion',
+            font: '40px TheMinion',
             fontWeight: 'bold',
             backgroundColor: '#000',
             fill: '#FDFFB5'
         });
 
         var chooseClass = game.add.text(titleText.x - (titleText.width / 2), this.menuConfig.startY + 160, "Class:", {
-            font: 'bold 40pt TheMinion',
+            font: 'bold 30pt TheMinion',
             fill: '#FDFFB5',
             align: 'center'
         });
@@ -108,7 +108,7 @@ new_character.prototype = {
         class6.events.onInputOut.add(onOut, this);
 
         var chooseSchool = game.add.text(titleText.x - (titleText.width / 2), this.menuConfig.startY + 320, "School of Magic:", {
-            font: 'bold 40pt TheMinion',
+            font: 'bold 30pt TheMinion',
             fill: '#FDFFB5',
             align: 'center'
         });
@@ -169,8 +169,8 @@ new_character.prototype = {
         school5.events.onInputOut.add(onOutSchool, this);
 
         var callbackConfirm = function (target) {
-            console.log(input.value);
-            game.state.start('map');
+            gameVariables.playerName = input.value;
+            game.state.start('maptext');
         };
 
         var callbackCancel = function (target) {

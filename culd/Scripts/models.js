@@ -1,9 +1,10 @@
 ﻿var gameVariables = {
     playerTurnArray: [],
     playerName: "",
-    playerGold: 100,
+    playerGold: 0,
     playerStartingMana: 1,
-    playerMaxHealth: 10,
+    playerHealth: 0,
+    playerMaxHealth: 0,
     playerArmor: 0,
     playerInitiative: 3,
     playerMaxHand: 4,

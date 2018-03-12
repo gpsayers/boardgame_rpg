@@ -45,7 +45,7 @@ gameMain.prototype = {
                 gameVariables.playerName,
                 gameVariables.playerClass,
                 gameVariables.playerColor,
-                gameVariables.playerMaxHealth,
+                gameVariables.playerHealth,
                 gameVariables.playerStartingMana,
                 true,
                 shuffle(gameVariables.playerDeck),
