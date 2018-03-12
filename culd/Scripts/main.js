@@ -31,6 +31,7 @@ mainState.prototype = {
         game.load.script('game', 'Scripts/game.js');
         game.load.script('credits', 'Scripts/Scenes/credits.js');
         game.load.script('new', 'Scripts/Scenes/new_game.js');
+        game.load.script('map', 'Scripts/Scenes/campaign_map.js');
         
         //Load the boards
         game.load.script('board1', 'Scripts/Boards/board1.js');
@@ -55,8 +56,8 @@ mainState.prototype = {
         game.load.image('Earth', 'Assets/poison.png');
 
         //load gui elements
-        game.load.spritesheet('confirmButton', 'Assets/GUI/confirmButtonSpritesheet.png', 221, 229);
-        game.load.spritesheet('cancelButton', 'Assets/GUI/cancelButtonSpritesheet.png', 221, 229);
+        game.load.spritesheet('confirmButton', 'Assets/GUI/confirmButtonSpritesheet.png', 215, 229);
+        game.load.spritesheet('cancelButton', 'Assets/GUI/cancelButtonSpritesheet.png', 215, 229);
 
     },
     create: function () {
@@ -64,6 +65,7 @@ mainState.prototype = {
         game.state.add('game', gameMain);
         game.state.add('credits', credits);
         game.state.add('new', new_character);
+        game.state.add('map', campaign);
 
         game.state.start('mainMenu');
 

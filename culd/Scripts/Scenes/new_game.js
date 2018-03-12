@@ -168,16 +168,23 @@ new_character.prototype = {
         school5.events.onInputOver.add(onOverSchool, this);
         school5.events.onInputOut.add(onOutSchool, this);
 
-        var ready = game.add.text(titleText.x - (titleText.width / 2), this.menuConfig.startY + 480, "Ready!", {
-            font: 'bold 40pt TheMinion',
-            fill: '#FDFFB5',
-            align: 'center'
-        });
-
-        ready.inputEnabled = true;
-        ready.events.onInputUp.add(function() {
+        var callbackConfirm = function (target) {
             console.log(input.value);
-        }, this);
+            game.state.start('map');
+        };
+
+        var callbackCancel = function (target) {
+            game.state.start('mainMenu');
+        };
+
+        confirmbutton = game.add.button(titleText.x - (titleText.width / 2), this.menuConfig.startY + 490, 'confirmButton', callbackConfirm, this, 1, 1, 0);
+        confirmbutton.height = 50;
+        confirmbutton.width = 50;
+        cancelbutton = game.add.button(titleText.x - (titleText.width / 2) + 60, this.menuConfig.startY + 490, 'cancelButton', callbackCancel, this, 1, 1, 0);
+        cancelbutton.height = 50;
+        cancelbutton.width = 50;
+
+
     },
 
     create: function() {
