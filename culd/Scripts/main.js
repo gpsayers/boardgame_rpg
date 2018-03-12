@@ -26,7 +26,7 @@ mainState.prototype = {
     },
     preload: function () {
         game.load.script('models', 'Scripts/models.js');
-        game.load.script('cards', 'Scripts/Scenes/cards.js');
+        game.load.script('cards', 'Scripts/cards.js');
         game.load.script('mainMenu', 'Scripts/mainmenu1.js');
         game.load.script('game', 'Scripts/game.js');
         game.load.script('credits', 'Scripts/Scenes/credits.js');

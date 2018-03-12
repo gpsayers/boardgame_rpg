@@ -1,6 +1,54 @@
 ﻿
+function loadCardList() {
+    var xmlhttp = new XMLHttpRequest();
+
+    xmlhttp.onreadystatechange = function () {
+        if (xmlhttp.readyState == XMLHttpRequest.DONE) {   // XMLHttpRequest.DONE == 4
+            if (xmlhttp.status == 200) {
+                //console.log(xmlhttp.responseText);
+                processData(xmlhttp.responseText);
+            }
+            else if (xmlhttp.status == 400) {
+                
+            }
+            else {
+                
+            }
+        }
+    };
+
+    xmlhttp.open("GET", "Assets/CardData/data.csv", true);
+    xmlhttp.send();
+
+}
+
+function processData(allText) {
+    var allTextLines = allText.split(/\r\n|\n/);
+    var headers = allTextLines[0].split(',');
+    var lines = [];
+
+    for (var i = 1; i < allTextLines.length; i++) {
+        var data = allTextLines[i].split(',');
+        if (data.length == headers.length) {
+
+            var tarr = [];
+            for (var j = 0; j < headers.length; j++) {
+                tarr.push(headers[j] + ":" + data[j]);
+            }
+            lines.push(tarr);
+            masterCardList.push(new card(data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15], data[16], data[17], data[18]))
+        }
+    }
+    // alert(lines);
+}
+
+
 
 var masterCardList = [];
+
+//loadCardList();
+
+console.log(masterCardList);
 
 masterCardList.push(new card(1, "Bolt", "Deal 2 damage.", 1, "common", 10, false, true, 0, 0, 2, "bolt", 0, 2,"any",'both','1', 0));
 masterCardList.push(new card(2, "Ogre Zombie", "Summon Ogre Zombie", 3, "common", 10, true, false, 3, 3, 0, "zombie", 0, 3, "", '', '', 0));

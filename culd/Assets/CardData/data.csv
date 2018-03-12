@@ -1,0 +1,15 @@
+ID,Name,Description,Mana Cost,Rarity,Gold Cost,Creature ,Spell,Attack,Defense,Damage,Image,Armor,Threat,Target Location,Target Type,Target Count,Special,School
+1,Fire Bolt,Deal 2 damage to any creature or player,1,common,10,FALSE,TRUE,0,0,2,bolt,0,2,any,both,1,0,Fire
+2,Rat,Summon Rat,1,common,10,TRUE,FALSE,1,1,0,rat,0,1,,,,0,Any
+3,Fire Bolt,Deal 2 damage to any creature or player,1,common,10,FALSE,TRUE,0,0,2,bolt,0,2,any,both,1,0,Fire
+4,Fire Bolt,Deal 2 damage to any creature or player,1,common,10,FALSE,TRUE,0,0,2,bolt,0,2,any,both,1,0,Fire
+5,Rat,Summon Rat,1,common,10,TRUE,FALSE,1,1,0,rat,0,1,,,,0,Any
+7,Rat,Summon Rat,1,common,10,TRUE,FALSE,1,1,0,rat,0,1,,,,0,Any
+8,Rat,Summon Rat,1,common,10,TRUE,FALSE,1,1,0,rat,0,1,,,,0,Any
+9,Rat,Summon Rat,1,common,10,TRUE,FALSE,1,1,0,rat,0,1,,,,0,Any
+10,Fire Bolt,Deal 2 damage to any creature or player,1,common,10,FALSE,TRUE,0,0,2,bolt,0,2,any,both,1,0,Fire
+13,Fire Bolt,Deal 2 damage to any creature or player,1,common,10,FALSE,TRUE,0,0,2,bolt,0,2,any,both,1,0,Fire
+14,Fire Bolt,Deal 2 damage to any creature or player,1,common,10,FALSE,TRUE,0,0,2,bolt,0,2,any,both,1,0,Fire
+15,Rat,Summon Rat,1,common,10,TRUE,FALSE,1,1,0,rat,0,1,,,,0,Any
+16,Rat,Summon Rat,1,common,10,TRUE,FALSE,1,1,0,rat,0,1,,,,0,Any
+17,Fire Bolt,Deal 2 damage to any creature or player,1,common,10,FALSE,TRUE,0,0,2,bolt,0,2,any,both,1,0,Fire
