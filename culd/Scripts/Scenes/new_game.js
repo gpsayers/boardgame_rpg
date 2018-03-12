@@ -195,3 +195,39 @@ new_character.prototype = {
         
     }
 };
+
+//Cavalier
+//handsize - 3
+//armor++ 2
+
+//Wizard
+//handsize + 5
+//hitpoints - 8
+//starting spells+ 4
+
+//sorceress
+//handsize + 5
+//starting spells- 2
+//bonus cards+ (2 packs)
+
+//trickster
+//gold + 300
+//hitpoints - 8
+//starting spells+ 4
+
+//convoker
+//hitpoints + 12
+//armor + 1
+//handsize - 3
+
+//blademaster
+//hitpoints + 12
+//starting spells- 2
+//gold + 300
+
+//armor 0
+//hitpoints 10
+//mana 1
+//handsize 4
+//gold 200
+//starting spells 3

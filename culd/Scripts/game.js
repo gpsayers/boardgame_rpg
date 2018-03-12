@@ -27,40 +27,50 @@ var playerDestinations = [],
 gameMain.prototype = {
     preload: function () {
 
-        //Temp assign of player deck to static array
-        gameVariables.playerDeck = testPlayerCardList;
+        if (gameVariables.gameContinue == false) {
 
-        //Temp turn count to 0
-        gameVariables.turnCount = 0;
+            gameVariables.turnCount = 0;
 
-        if (gameVariables.currentBoard == "board1") {
-            gameVariables.boardInfo = board1;
+            if (gameVariables.currentBoard == "board1") {
+                gameVariables.boardInfo = board1;
+            }
+            else if (gameVariables.currentBoard == "board2") {
+                gameVariables.boardInfo = board2;
+            }
+
+            gameVariables.gamePlayerArray.length = 0;
+
+            gameVariables.gamePlayerArray.push(new gamePlayer(99,
+                gameVariables.boardInfo.boardStart,
+                gameVariables.playerName,
+                gameVariables.playerClass,
+                gameVariables.playerColor,
+                gameVariables.playerMaxHealth,
+                gameVariables.playerStartingMana,
+                true,
+                shuffle(gameVariables.playerDeck),
+                gameVariables.playerMaxHand,
+                gameVariables.playerGold,
+                gameVariables.playerArmor));
+
+            gameVariables.currentPlayer = 0;
+
+            //Find AI players that don't match human players class or color
+            var aiPlayers = gameVariables.boardInfo.computerPlayers.filter(function(gp) {
+                return gp.class != gameVariables.playerClass && gp.color != gameVariables.playerColor;
+            });
+
+            aiPlayers.forEach(function(item) {
+                gameVariables.gamePlayerArray.push(item);
+            });
+
         }
-        else if (gameVariables.currentBoard == "board2") {
-            gameVariables.boardInfo = board2;
+        else {
+            //Continue game
+
         }
-        
-        gameVariables.gamePlayerArray.push(new gamePlayer(99,
-            gameVariables.boardInfo.boardStart,
-            gameVariables.playerName,
-            gameVariables.playerClass,
-            gameVariables.playerColor,
-            gameVariables.playerHealth,
-            gameVariables.playerStartingMana,
-            true,
-            shuffle(gameVariables.playerDeck),
-            gameVariables.playerMaxHand, 0));
 
-        gameVariables.currentPlayer = 0;
 
-        //Find AI players that don't match human players class or color
-        var aiPlayers = gameVariables.boardInfo.computerPlayers.filter(function(gp) {
-            return gp.class != gameVariables.playerClass && gp.color != gameVariables.playerColor;
-        });
-
-        aiPlayers.forEach(function(item) {
-            gameVariables.gamePlayerArray.push(item);
-        });
         
 
         //background image

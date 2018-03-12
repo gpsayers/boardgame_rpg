@@ -40,7 +40,21 @@ mainMenu.prototype = {
         });
 
 
-        this.addMenuOption('Test', function () {
+        this.addMenuOption('Test', function() {
+
+            //Temp assign of player deck to static array
+            gameVariables.playerDeck = testPlayerCardList;
+
+            gameVariables.playerName = "Gorath";
+            gameVariables.playerGold = 100;
+            gameVariables.playerStartingMana = 1;
+            gameVariables.playerImg = "wizard";
+            gameVariables.currentBoard = "board2";
+            gameVariables.playerColor = "Water";
+            gameVariables.playerClass = "wizard";
+            gameVariables.playerMaxHealth = 10;
+            gameVariables.playerMaxHand = 4;
+
             game.state.start('game');
         });
 

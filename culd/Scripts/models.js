@@ -1,9 +1,8 @@
 ﻿var gameVariables = {
     playerTurnArray: [],
-    playerName: "Merlin",
+    playerName: "",
     playerGold: 100,
     playerStartingMana: 1,
-    playerHealth: 10,
     playerMaxHealth: 10,
     playerArmor: 0,
     playerInitiative: 3,
@@ -11,20 +10,21 @@
     playerDeck: [],
     playerCardPool: [],
     playerEquipment: [],
-    playerImg: "wizard",
-    currentBoard: "board2",
-    playerColor: "Water",
-    playerClass: "wizard",
+    playerImg: "",
+    currentBoard: "",
+    playerColor: "",
+    playerClass: "",
     gamePlayerArray: [],
     gameTurnOrder: [],
     gameBoard: [],
     boardInfo: {},
     currentPlayer: 0,
-    turnCount: 0
+    turnCount: 0,
+    gameContinue: false
 
 }
 
-function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human, deck, maxhand, armor) {
+function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human, deck, maxhand, gold, armor) {
     this.id = id;
     this.square = square;
     this.name = name;
@@ -44,7 +44,7 @@ function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human,
     this.maxhand = maxhand;
     this.capturedSquares = 0;
     this.manasprite = {};
-    this.gold = 100;
+    this.gold = gold;
     this.armor = armor;
 }
 
