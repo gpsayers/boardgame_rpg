@@ -314,6 +314,7 @@ gameMain.prototype = {
         button.width = 100;
         button.height = 44;
 
+
         //Add cards to the players hands
         for (i = 0; i < gameVariables.playerMaxHand; i++) {
             var card = gameVariables.gamePlayerArray[0].deck.pop();
@@ -1313,8 +1314,6 @@ function targetClicked(target) {
 
         if (card.special == 0) {
 
-            console.log(result[0].type)
-
             if (result[0].type == "ground") {
 
                 if (boardSquareDetail.creature != null) {
@@ -1655,7 +1654,6 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
 
     if (card.special == 5) {
         for (i = 0; i < card.damage; i++) {
-            console.log("draw");
             drawCard();
         }
     }

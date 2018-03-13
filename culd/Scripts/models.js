@@ -75,7 +75,7 @@ function gameSquareCreature(cardId, squareId, sprite, hitpoints, maxhitpoints, a
     this.playerOwnedId = player;
 }
 
-function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense, damage, image, armor, threat, tarlocation, tartype, tarcount, special) {
+function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense, damage, image, armor, threat, tarlocation, tartype, tarcount, special, school) {
     this.id = id;
     this.name = name;
     this.desc = desc;
@@ -94,6 +94,7 @@ function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense
     this.targettype = tartype;
     this.targetcount = tarcount;
     this.special = special;
+    this.school = school;
 }
 
 //Target locations: Entire board (all), adjacent (adj), current square (square), row (row), self (self), any (any)

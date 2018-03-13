@@ -54,6 +54,7 @@ mainMenu.prototype = {
             gameVariables.playerMaxHealth = 10;
             gameVariables.playerHealth = 10;
             gameVariables.playerMaxHand = 4;
+            gameVariables.gameContinue = false;
 
             game.state.start('game');
         });
