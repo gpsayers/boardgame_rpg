@@ -8,7 +8,7 @@ ID,Name,Description,Mana Cost,Rarity,Gold Cost,Creature,Spell,Attack,Defense,Dam
 7,Bear,Summon Bear,2,common,10,TRUE,FALSE,2,2,0,bear,0,2,,,,0,Any
 8,Spider,Summon Spider,2,common,10,TRUE,FALSE,2,1,0,spider,0,1,,,,0,Any
 9,Wasp,Summon Wasp,1,common,10,TRUE,FALSE,1,2,0,yellow_wasp,0,1,,,,0,Any
-10,Disengage,Move 1 square forward,1,uncommon,50,FALSE,TRUE,0,0,0,disengage,0,1,self,player,1,4,Any
+10,Disengage,Move 1 square backward,1,uncommon,50,FALSE,TRUE,0,0,-1,disengage,0,1,self,player,1,4,Any
 11,Death Curse,Destroy target creature,2,uncommon,50,FALSE,TRUE,0,0,100,death,0,3,any,creature,1,0,Death
 12,Blizzard,Deal 1 damage to all creatures and players,4,rare,300,FALSE,TRUE,0,0,1,blizzard,0,4,all,both,all,2,Water
 13,Pickpocket,Steal 50 gold from a player,1,uncommon,50,FALSE,TRUE,0,0,50,steal,0,2,any,player,1,1,Any
@@ -16,3 +16,4 @@ ID,Name,Description,Mana Cost,Rarity,Gold Cost,Creature,Spell,Attack,Defense,Dam
 15,Fun-guy,Summon Fungus,2,uncommon,50,TRUE,FALSE,1,3,0,mushroom,0,2,,,,0,Earth
 17,Research,Draw 1 card,1,uncommon,50,FALSE,TRUE,0,0,1,research,0,1,self,player,1,5,Fire
 21,Hungry Ghoul,Summon a Ghoul and take 3 damage,2,rare,300,TRUE,TRUE,4,4,3,zombie,0,4,self,player,1,0,Death
+24,Defensive Stance,Give target creature +0/+2,1,uncommon,50,FALSE,TRUE,0,2,0,defense,0,2,any,creature,1,8,Any

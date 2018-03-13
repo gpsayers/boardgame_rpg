@@ -121,6 +121,7 @@ gameMain.prototype = {
         game.load.image('dummy', 'Assets/Cards/training_dummy_new.png');
         game.load.image('research', 'Assets/Cards/magic_mapping.png');
         game.load.image('poison', 'Assets/Cards/poison_arrow_6.png');
+        game.load.image('defense', 'Assets/Cards/condensation_shield_new.png');
 
 
         //GUI and buttons
@@ -1663,10 +1664,10 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
     }
 
     if (card.special == 8) {
-        targetSquare.creature.hitpoints = targetSquare.creature.hitpoints + card.defense;
-        targetSquare.creature.maxhitpoints = targetSquare.creature.maxhitpoints + card.defense;
-        targetSquare.creature.armor = targetSquare.creature.armor + card.armor;
-        targetSquare.creature.attack = targetSquare.creature.attack + card.attack;
+        boardSquareDetail.creature.hitpoints = boardSquareDetail.creature.hitpoints + card.defense;
+        boardSquareDetail.creature.maxhitpoints = boardSquareDetail.creature.maxhitpoints + card.defense;
+        boardSquareDetail.creature.armor = boardSquareDetail.creature.armor + card.armor;
+        boardSquareDetail.creature.attack = boardSquareDetail.creature.attack + card.attack;
     }
 }
 
@@ -1964,6 +1965,71 @@ function playerMove(playerSprite, roll) {
             playerMove(gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite, roll - 1);
         }, this);
 
+    }
+    else if (roll < 0)
+    {
+        //Move player backwards
+        var gameBoardResult = gameVariables.gameBoard.find(function (element) {
+            return element.sprite.gameSquareId == playerSprite.gameSquareId
+        });
+
+        var neighbors = Array2D.orthogonals(gameVariables.boardInfo.squares, gameBoardResult.sprite.gridY, gameBoardResult.sprite.gridX);
+
+        //Special cases if at end of board or beginning
+        if (playerSprite.gameSquareId == gameVariables.boardInfo.boardStart) {
+
+            var boardPathId = neighbors.find(function (element) {
+                return element == gameVariables.boardInfo.boardEnd;
+            });
+
+            nextPathIdArray.push(boardPathId);
+
+        } else if (playerSprite.gameSquareId == gameVariables.boardInfo.boardEnd) {
+
+            var boardPathId = neighbors.filter(function (element) {
+                return element < playerSprite.gameSquareId && element != gameVariables.boardInfo.boardStart
+            });
+
+            nextPathIdArray = boardPathId;
+
+        } else {
+            var boardPathId = neighbors.filter(function (element) {
+
+                return element < playerSprite.gameSquareId
+            });
+
+            nextPathIdArray = boardPathId;
+        }
+
+        if (nextPathIdArray.length > 1) {
+
+            if (gameVariables.currentPlayer == 0) {
+                //If player has multiple choices start player choice menu and return.
+                playerDirChoiceMenu = true;
+                activePlayerSquare = playerSprite.gameSquareId;
+                return;
+            }
+
+            var AIchoice = nextPathIdArray[Math.floor(Math.random() * nextPathIdArray.length)];
+            nextPathIdArray[0] = AIchoice;
+        }
+
+        var gameBoardDestResult = gameVariables.gameBoard.find(function (element) {
+            return element.sprite.gameSquareId == nextPathIdArray[0];
+        });
+
+        if (nextPathIdArray[0] == gameVariables.boardInfo.boardStart) {
+            playerCrossStart = true;
+        }
+
+
+        var tween = game.add.tween(playerSprite).to({ x: gameBoardDestResult.sprite.x, y: gameBoardDestResult.sprite.y }, 500, Phaser.Easing.Linear.None, true);
+
+        //Callback to complete the rest of the roll
+        tween.onComplete.add(function () {
+            playerSprite.gameSquareId = nextPathIdArray[0];
+            playerMove(gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite, roll + 1);
+        }, this);
     }
     else {
         //Player movement done.

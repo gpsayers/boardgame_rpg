@@ -69,7 +69,7 @@ function processData(allText) {
 
     blackSorceress1List = populateCardArray([2, 2, 7, 7, 5, 5, 9, 9, 8, 8, 5, 15, 16, 16]);
 
-    testPlayerCardList = populateCardArray([2, 14, 7, 10, 13, 17, 4, 3]);
+    testPlayerCardList = populateCardArray([2, 14, 7, 10, 13, 17, 4, 3, 24, 24, 24]);
 
 }
 
