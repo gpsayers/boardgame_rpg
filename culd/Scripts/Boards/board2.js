@@ -14,6 +14,7 @@
     boardTotal: 35,
     specialSquares: [],
     choiceSquares: [],
+    backwardChoiceSquares: [],
     computerPlayers: []
 };
 
@@ -23,6 +24,10 @@ board2.choiceSquares.push({ id: 20, left: 25, up: 21, right: 0, down: 0 });
 board2.choiceSquares.push({ id: 32, left: 36, up: 0, right: 0, down: 33 });
 board2.choiceSquares.push({ id: 42, left: 0, up: 0, right: 43, down: 46 });
 
+board2.backwardChoiceSquares.push({ id: 50, left: 48, up: 45, right: 0, down: 0 });
+board2.backwardChoiceSquares.push({ id: 40, left: 0, up: 40, right: 35, down: 0 });
+board2.backwardChoiceSquares.push({ id: 30, left: 0, up: 0, right: 23, down: 27 });
+board2.backwardChoiceSquares.push({ id: 15, left: 13, up: 11, right: 0, down: 08 });
 
 board2.specialSquares.push({ squareId: 22, type: "pressure", looted: 0 });
 board2.specialSquares.push({ squareId: 26, type: "magictrap", looted: 0 });

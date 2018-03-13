@@ -19,7 +19,8 @@ var playerDestinations = [],
     playerDiscardWaiting = false,
     playerManaNotificationMenu = false,
     playerSpellTargeting = false,
-    multipleTargetsMenu  = false,
+    multipleTargetsMenu = false,
+    forwardMovement = true,
     targetArray = [],
     multipleTargetsArray = [];
 
@@ -705,29 +706,39 @@ gameMain.prototype = {
         //Display player direction choice menu
         if (playerDirChoiceMenu == true) {
 
-            var result = gameVariables.boardInfo.choiceSquares.find(function (element) {
-                return element.id == activePlayerSquare;
-            });
+            var choiceresult = {};
+
+            if (forwardMovement == true) {
+                choiceresult = gameVariables.boardInfo.choiceSquares.find(function (element) {
+                    return element.id == activePlayerSquare;
+                });
+            }
+            else {
+                choiceresult = gameVariables.boardInfo.backwardChoiceSquares.find(function (element) {
+                    return element.id == activePlayerSquare;
+                });
+            }
+
 
             menu.visible = true;
             qText.setText("Choose a direction.");
             qText.visible = true;
 
-            if (result.left > 0) {
+            if (choiceresult.left > 0) {
                 leftButt.visible = true;
-                leftButt.choice = result.left;
+                leftButt.choice = choiceresult.left;
             }
-            if (result.up > 0) {
+            if (choiceresult.up > 0) {
                 upButt.visible = true;
-                upButt.choice = result.up;
+                upButt.choice = choiceresult.up;
             }
-            if (result.right > 0) {
+            if (choiceresult.right > 0) {
                 rightButt.visible = true;
-                rightButt.choice = result.right;
+                rightButt.choice = choiceresult.right;
             }
-            if (result.down > 0 ) {
+            if (choiceresult.down > 0 ) {
                 downButt.visible = true;
-                downButt.choice = result.down;
+                downButt.choice = choiceresult.down;
             }
         }
 
@@ -1649,7 +1660,8 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
     }
     
     if (card.special == 4) {
-        //Move forward
+        //Move player
+        calculateDestinations(player.gameSquareId, card.damage);
         playerMove(player, card.damage);
     }
 
@@ -1668,6 +1680,12 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
         boardSquareDetail.creature.maxhitpoints = boardSquareDetail.creature.maxhitpoints + card.defense;
         boardSquareDetail.creature.armor = boardSquareDetail.creature.armor + card.armor;
         boardSquareDetail.creature.attack = boardSquareDetail.creature.attack + card.attack;
+
+        //redraw defender health bar.
+        var percent = (boardSquareDetail.creature.hitpoints / boardSquareDetail.creature.maxhitpoints);
+        var pixelWidth = 20 - Math.round(percent * 20);
+
+        boardSquareDetail.creature.hitspritered.width = pixelWidth;
     }
 }
 
@@ -1882,12 +1900,24 @@ function dirButtonClick(item) {
 
     var tween = game.add.tween(gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite).to({ x: gameBoardResult.sprite.x, y: gameBoardResult.sprite.y }, 500, Phaser.Easing.Linear.None, true);
 
-    //Callback to complete the rest of the roll
-    tween.onComplete.add(function () {
-        gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite.gameSquareId = item.choice;
-        playerDestinations.length = 0;
-        playerMove(gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite, playerRoll - 1);
-    }, this);
+    if (forwardMovement == true) {
+        //Callback to complete the rest of the roll
+        tween.onComplete.add(function () {
+            gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite.gameSquareId = item.choice;
+            playerDestinations.length = 0;
+            playerMove(gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite, playerRoll - 1);
+        }, this);
+    }
+    else {
+        //Callback to complete the rest of the roll
+        tween.onComplete.add(function () {
+            gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite.gameSquareId = item.choice;
+            playerDestinations.length = 0;
+            playerMove(gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite, playerRoll + 1);
+        }, this);
+    }
+
+
 
 }
 
@@ -1902,8 +1932,10 @@ function playerMove(playerSprite, roll) {
     var nextPathIdArray = [];
 
     if (roll > 0) {
+        forwardMovement = true;
+
         var gameBoardResult = gameVariables.gameBoard.find(function (element) {
-            return element.sprite.gameSquareId == playerSprite.gameSquareId
+            return element.sprite.gameSquareId == playerSprite.gameSquareId;
         });
         
         var neighbors = Array2D.orthogonals(gameVariables.boardInfo.squares, gameBoardResult.sprite.gridY, gameBoardResult.sprite.gridX);
@@ -1928,7 +1960,7 @@ function playerMove(playerSprite, roll) {
         } else {
             var boardPathId = neighbors.filter(function (element) {
 
-                return element > playerSprite.gameSquareId
+                return element > playerSprite.gameSquareId;
             });
 
             nextPathIdArray = boardPathId;
@@ -1966,11 +1998,11 @@ function playerMove(playerSprite, roll) {
         }, this);
 
     }
-    else if (roll < 0)
-    {
+    else if (roll < 0) {
+        forwardMovement = false;
         //Move player backwards
         var gameBoardResult = gameVariables.gameBoard.find(function (element) {
-            return element.sprite.gameSquareId == playerSprite.gameSquareId
+            return element.sprite.gameSquareId == playerSprite.gameSquareId;
         });
 
         var neighbors = Array2D.orthogonals(gameVariables.boardInfo.squares, gameBoardResult.sprite.gridY, gameBoardResult.sprite.gridX);
@@ -1987,7 +2019,7 @@ function playerMove(playerSprite, roll) {
         } else if (playerSprite.gameSquareId == gameVariables.boardInfo.boardEnd) {
 
             var boardPathId = neighbors.filter(function (element) {
-                return element < playerSprite.gameSquareId && element != gameVariables.boardInfo.boardStart
+                return element < playerSprite.gameSquareId && element != gameVariables.boardInfo.boardStart && element != 0;
             });
 
             nextPathIdArray = boardPathId;
@@ -1995,7 +2027,7 @@ function playerMove(playerSprite, roll) {
         } else {
             var boardPathId = neighbors.filter(function (element) {
 
-                return element < playerSprite.gameSquareId
+                return element < playerSprite.gameSquareId && element != 0;
             });
 
             nextPathIdArray = boardPathId;
@@ -2021,7 +2053,7 @@ function playerMove(playerSprite, roll) {
         if (nextPathIdArray[0] == gameVariables.boardInfo.boardStart) {
             playerCrossStart = true;
         }
-
+        
 
         var tween = game.add.tween(playerSprite).to({ x: gameBoardDestResult.sprite.x, y: gameBoardDestResult.sprite.y }, 500, Phaser.Easing.Linear.None, true);
 

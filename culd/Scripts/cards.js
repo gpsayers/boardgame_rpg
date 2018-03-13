@@ -9,6 +9,10 @@ wizardCardList = [];
 
 sorceressCardList = [];
 
+convokerCardList = [];
+
+blademasterCardList = [];
+
 fireCardList = [];
 
 deathCardList = [];
