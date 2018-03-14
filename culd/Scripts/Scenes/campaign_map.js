@@ -16,7 +16,8 @@ campaign.prototype = {
         //background image
         game.load.image('cmap', 'Assets/campaignmap.png');
 
-
+        //GUI
+        game.load.image('x', 'Assets/GUI/x.png');
     },
 
     create: function () {
@@ -28,9 +29,19 @@ campaign.prototype = {
         map.width = game.width;
 
         back_layer.add(map);
+
+        var exit = game.add.sprite(5, 5, 'x');
+        exit.inputEnabled = true;
+        exit.events.onInputDown.add(exitCallback, this);
+
+        name_layer.add(exit);
     },
 
     update: function () {
 
     }
 };
+
+function exitCallback(button) {
+    game.state.start('game');
+}

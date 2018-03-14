@@ -124,6 +124,8 @@ function playerHandTracker(id, cardInfo, positionx, positiony) {
     this.text1 = {};
     this.text2 = {};
     this.text3 = {};
+    this.armor = {};
+    this.armortext = {};
 }
 
 

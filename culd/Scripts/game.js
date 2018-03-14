@@ -20,7 +20,9 @@ var playerDestinations = [],
     playerManaNotificationMenu = false,
     playerSpellTargeting = false,
     multipleTargetsMenu = false,
+    playerRollDice = false,
     forwardMovement = true,
+    playerTurnMaintenanceComplete = false,
     targetArray = [],
     multipleTargetsArray = [];
 
@@ -30,6 +32,7 @@ gameMain.prototype = {
 
         if (gameVariables.gameContinue == false) {
 
+            //Start a new game
             gameVariables.turnCount = 0;
 
             if (gameVariables.currentBoard == "board1") {
@@ -70,9 +73,7 @@ gameMain.prototype = {
             //Continue game
 
         }
-
-
-        
+       
 
         //background image
         game.load.image('dirt', 'Assets/dirt4.png');
@@ -144,7 +145,14 @@ gameMain.prototype = {
         game.load.image('dialogblue', 'Assets/GUI/dialog-box.png');
         game.load.image('mana', 'Assets/GUI/mana_orb.png');
         game.load.image('mana_empty', 'Assets/GUI/mana_orb_empty.png');
-        game.load.image('gold', 'Assets/GUI/gold_pile.png');
+        game.load.image('shield', 'Assets/GUI/shield_of_reflection.png');
+        game.load.image('book', 'Assets/GUI/tome.png');
+        game.load.image('tools', 'Assets/GUI/tools.png');
+        game.load.image('x', 'Assets/GUI/x.png');
+        game.load.image('map', 'Assets/GUI/map.png');
+        game.load.image('heart', 'Assets/GUI/heart.png');
+        game.load.image('bag', 'Assets/GUI/backpack.png');
+        game.load.image('coin', 'Assets/GUI/coin.png');
 
     },
     create: function () {
@@ -172,34 +180,12 @@ gameMain.prototype = {
         playerArea.anchor.x = 1;
         playerArea.anchor.y = 1;
         back_layer.add(playerArea);
-        //var turnArea = game.add.sprite(game.width - 50, game.height - 278, 'dialog');
-        //turnArea.width = 250;
-        //turnArea.height = game.height-318;
-        //turnArea.anchor.x = 1;
-        //turnArea.anchor.y = 1;
-        //back_layer.add(turnArea);
         var infoArea = game.add.sprite(game.width - 310, game.height - 278, 'dialog');
         infoArea.width = 250;
         infoArea.height = game.height - 318;
         infoArea.anchor.x = 1;
         infoArea.anchor.y = 1;
         back_layer.add(infoArea);
-
-        var pbs = game.add.sprite(game.width - 535, game.height - 258, gameVariables.playerColor);
-        var pb = game.add.sprite(game.width - 535, game.height - 258, gameVariables.playerImg);
-        pbs.width = 35;
-        pbs.height = 35;
-        back_layer.add(pbs);
-        back_layer.add(pb);
-        var ptxt = game.add.text(game.width - 495, game.height - 255, gameVariables.playerName, style);
-        //var drawtext = game.add.text(game.width - 535, game.height - 90, "End Turn", style);
-        //drawtext.inputEnabled = true;
-        //drawtext.events.onInputUp.add(endPlayerTurn, this);
-        //drawtext.visible = true;
-
-        endbutton = game.add.button(game.width - 535, game.height - 110, 'endButton', endPlayerTurn, this, 1, 1, 0);
-        endbutton.width = 100;
-        endbutton.height = 44;
 
         turnArrow = game.add.sprite(10, 10, 'turnArrow');
         turnArrow.x = game.width - 280;
@@ -241,7 +227,42 @@ gameMain.prototype = {
             gameVariables.gamePlayerArray[i].turnSprite = game.add.sprite(game.width - 250, (50 * i) + 50, 'turnSprite');
         }
 
-        //Game info text and GUI
+        //Build the GUI
+        var pbs = game.add.sprite(game.width - 530, game.height - 255, gameVariables.playerColor);
+        var pb = game.add.sprite(game.width - 530, game.height - 255, gameVariables.playerImg);
+        pbs.width = 35;
+        pbs.height = 35;
+        back_layer.add(pbs);
+        back_layer.add(pb);
+        var ptxt = game.add.text(game.width - 495, game.height - 255, gameVariables.playerName, style);
+
+        var endbutton = game.add.button(game.width - 530, game.height - 110, 'endButton', endPlayerTurn, this, 1, 1, 0);
+        endbutton.width = 100;
+        endbutton.height = 44;
+        gameVariables.gamePlayerArray[0].manasprite = game.add.sprite(game.width - 535, game.height - 208, 'mana');
+        gameVariables.gamePlayerArray[0].manasprite.width = 20;
+        gameVariables.gamePlayerArray[0].manasprite.height = 20;
+        goldInfoText = game.add.text(game.width - 161, game.height - 250, gameVariables.playerGold, style);
+        goldInfoText.anchor.setTo(1, 0);
+        //goldIcon = game.add.sprite(game.width - 75 - goldInfoText.width, game.height - 258, 'gold');
+        //goldIcon.anchor.setTo(1, 0);
+        handtext = game.add.text(game.width - 490, game.height - 160, "4/5", style);
+        spellbook = game.add.sprite(game.width - 545, game.height - 183, 'book');
+        bag = game.add.sprite(game.width - 461, game.height - 183, 'bag');
+        map = game.add.sprite(game.width - 410, game.height - 183, 'map');
+        map.inputEnabled = true;
+        map.events.onInputDown.add(function (event) {
+            gameVariables.gameContinue = true;
+            game.state.start('map');
+        }, this);
+        tools = game.add.sprite(game.width - 110, game.height - 260, 'tools');
+        tools.height = 50;
+        tools.width = 50;
+        heart = game.add.sprite(game.width - 350, game.height - 270, 'heart');
+        hearttext = game.add.text(game.width - 295, game.height - 250, "20/20", style);
+        coin = game.add.sprite(game.width - 250, game.height - 270, 'coin');
+
+        //Game info text
         var infoText = game.add.text(game.width - 450, 60, "Info", style);
         back_layer.add(infoText);
         playerSquareCount = {};
@@ -251,13 +272,6 @@ gameMain.prototype = {
             pop_layer.add(playerSquareCount[i]);
            
         }
-        gameVariables.gamePlayerArray[0].manasprite = game.add.sprite(game.width - 535, game.height - 208, 'mana');
-        gameVariables.gamePlayerArray[0].manasprite.width = 20;
-        gameVariables.gamePlayerArray[0].manasprite.height = 20;
-        goldInfoText = game.add.text(game.width - 60, game.height - 250, gameVariables.playerGold, style);
-        goldInfoText.anchor.setTo(1, 0);
-        goldIcon = game.add.sprite(game.width - 60 - goldInfoText.width, game.height - 258, 'gold');
-        goldIcon.anchor.setTo(1, 0);
         infoText1 = game.add.text(game.width - 550, 115, 'text1', style);
         infoText2 = game.add.text(game.width - 425, 115, 'text2', style);
         infoText3 = game.add.text(game.width - 550, 175, 'text3', style);
@@ -437,6 +451,15 @@ gameMain.prototype = {
             var txt = game.add.text(45, 8, gameVariables.gamePlayerArray[i].name, style);
             gameVariables.gamePlayerArray[i].turnSprite.addChild(txt);
 
+            if (gameVariables.gamePlayerArray[i].armor > 0) {
+                var shieldpic = game.add.sprite(130, 10, 'shield');
+                shieldpic.width = 17;
+                shieldpic.height = 17;
+                var armortext = game.add.text(135, 10, gameVariables.gamePlayerArray[i].armor, { font: "bold 10pt Arial" })
+                gameVariables.gamePlayerArray[i].turnSprite.addChild(shieldpic);
+                gameVariables.gamePlayerArray[i].turnSprite.addChild(armortext);
+            }
+            
 
             var health = game.add.sprite(45, 29, 'rpix')
             health.width = 100;
@@ -470,7 +493,7 @@ gameMain.prototype = {
         
         //Update player info
         gameVariables.gamePlayerArray[0].manasprite.destroy();
-        gameVariables.gamePlayerArray[0].manasprite = game.add.sprite(game.width - 535, game.height - 208, 'mana');
+        gameVariables.gamePlayerArray[0].manasprite = game.add.sprite(game.width - 530, game.height - 208, 'mana');
         gameVariables.gamePlayerArray[0].manasprite.width = 20;
         gameVariables.gamePlayerArray[0].manasprite.height = 20;
         if (gameVariables.gamePlayerArray[0].mana == 0) {
@@ -506,6 +529,22 @@ gameMain.prototype = {
 
         //Determine player turn
         if (gameVariables.currentPlayer == 0) {
+
+            if (playerTurnMaintenanceComplete == false) {
+                //Do player turn maintenance
+                playerTurnMaintenanceComplete = true;
+
+                playerRollDice = false;
+
+                //Check for game over conditions
+
+
+                //Check for persistent effects
+
+            }
+
+
+
             //Human player turn
             if (playerNotified == false) {
                 //Display player turn notification
@@ -823,7 +862,7 @@ function createPlayerHand() {
 
 
 function addCardToHand(i) {
-    
+
     //Add card front
     gameVariables.gamePlayerArray[0].handTracker[i].spritefront = game.add.sprite(110 * i + 50, game.height - 50, 'cardFront');
     gameVariables.gamePlayerArray[0].handTracker[i].spritefront.width = 100;
@@ -852,7 +891,7 @@ function addCardToHand(i) {
     var style = { font: "bold 10px Arial", fill: "#000000", wordWrap: true, wordWrapWidth: gameVariables.gamePlayerArray[0].handTracker[i].spritefront.width, align: "center" };
     gameVariables.gamePlayerArray[0].handTracker[i].text1 = game.add.text(110 * i + 105, game.height - 170, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.name, style);
     gameVariables.gamePlayerArray[0].handTracker[i].text1.anchor.set(0.5);
-    gameVariables.gamePlayerArray[0].handTracker[i].text2 = game.add.text(110 * i + 115, game.height - 75, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.attack + "/" + gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.defense, { font: "bold 15px Arial" });
+    gameVariables.gamePlayerArray[0].handTracker[i].text2 = game.add.text(110 * i + 115, game.height - 77, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.attack + "/" + gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.defense, { font: "bold 15px Arial" });
 
 
     //Add card mana
@@ -863,6 +902,15 @@ function addCardToHand(i) {
         gameVariables.gamePlayerArray[0].handTracker[i].spritefront.addChild(manacost);
     }
 
+    //Add card armor
+    gameVariables.gamePlayerArray[0].handTracker[i].armor = game.add.sprite(110 * i + 60, game.height - 75, 'shield');
+    gameVariables.gamePlayerArray[0].handTracker[i].armor.width = 17;
+    gameVariables.gamePlayerArray[0].handTracker[i].armor.height = 17;
+    gameVariables.gamePlayerArray[0].handTracker[i].armortext = game.add.text(110 * i + 65, game.height - 76, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.armor, { font: "bold 13px Arial" })
+    if (gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.armor == 0) {
+        gameVariables.gamePlayerArray[0].handTracker[i].armor.visible = false;
+        gameVariables.gamePlayerArray[0].handTracker[i].armortext.visible = false;
+    }
 
     gameVariables.gamePlayerArray[0].handTracker[i].group = game.add.group();
 
@@ -871,8 +919,9 @@ function addCardToHand(i) {
     gameVariables.gamePlayerArray[0].handTracker[i].group.add(gameVariables.gamePlayerArray[0].handTracker[i].spriteimage);
     gameVariables.gamePlayerArray[0].handTracker[i].group.add(gameVariables.gamePlayerArray[0].handTracker[i].text1);
     gameVariables.gamePlayerArray[0].handTracker[i].group.add(gameVariables.gamePlayerArray[0].handTracker[i].text2);
+    gameVariables.gamePlayerArray[0].handTracker[i].group.add(gameVariables.gamePlayerArray[0].handTracker[i].armor);
+    gameVariables.gamePlayerArray[0].handTracker[i].group.add(gameVariables.gamePlayerArray[0].handTracker[i].armortext);
 
-       
 
 }
 
@@ -916,6 +965,8 @@ function removeCardFromHandTracker(handTrackerIndex) {
     gameVariables.gamePlayerArray[0].handTracker[handTrackerIndex].spriteimage.destroy();
     gameVariables.gamePlayerArray[0].handTracker[handTrackerIndex].text1.destroy();
     gameVariables.gamePlayerArray[0].handTracker[handTrackerIndex].text2.destroy();
+    gameVariables.gamePlayerArray[0].handTracker[handTrackerIndex].armor.destroy();
+    gameVariables.gamePlayerArray[0].handTracker[handTrackerIndex].armortext.destroy();
 
     //Remove card from hand tracker
     gameVariables.gamePlayerArray[0].handTracker.splice(handTrackerIndex, 1);
@@ -1791,6 +1842,11 @@ function menuStartClick(choice) {
 
 function endPlayerTurn() {
 
+    if (playerRollDice == false) {
+        //Player must roll before end of turn
+        return;
+    }
+
     if (playerDiscardWaiting == true) {
         playerDiscardMenu = true;
         return;
@@ -1800,6 +1856,7 @@ function endPlayerTurn() {
         playerDiscardMenu = true;
     }
     else {
+        playerTurnMaintenanceComplete = false;
         playerNotified = false;
         endCurrentPlayerTurn();
     }
@@ -1877,7 +1934,7 @@ function diceRoll(item) {
 
 
 function diceRollButtonClick() {
-    
+    playerRollDice = true;
     button.inputEnabled = false;
     diceRoll(dice);
 
@@ -2049,11 +2106,7 @@ function playerMove(playerSprite, roll) {
         var gameBoardDestResult = gameVariables.gameBoard.find(function (element) {
             return element.sprite.gameSquareId == nextPathIdArray[0];
         });
-
-        if (nextPathIdArray[0] == gameVariables.boardInfo.boardStart) {
-            playerCrossStart = true;
-        }
-        
+       
 
         var tween = game.add.tween(playerSprite).to({ x: gameBoardDestResult.sprite.x, y: gameBoardDestResult.sprite.y }, 500, Phaser.Easing.Linear.None, true);
 
