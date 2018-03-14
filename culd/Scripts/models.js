@@ -57,6 +57,7 @@ function gameSquare(id, x, y, sprite) {
     this.y = y;
     this.sprite = sprite;
     this.creature = null;
+    this.special = {};
 }
 
 //location: creature.squareId
@@ -110,6 +111,8 @@ function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense
 //7.Move Back
 //8.Buff creature
 //9.Self damage
+//10.Boost mana
+//11.Boost maximum mana
 
 function playerHandTracker(id, cardInfo, positionx, positiony) {
     this.id = id;

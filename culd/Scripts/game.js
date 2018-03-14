@@ -24,6 +24,7 @@ var playerDestinations = [],
     forwardMovement = true,
     playerTurnMaintenanceComplete = false,
     capturedLootRewardNotice = false,
+    capturedLootRewardNoticeText = "",
     targetArray = [],
     multipleTargetsArray = [];
 
@@ -531,7 +532,7 @@ gameMain.prototype = {
         }
 
 
-
+        //PLAYER TURNS
         //Determine player turn
         if (gameVariables.currentPlayer == 0) {
 
@@ -541,10 +542,11 @@ gameMain.prototype = {
 
                 playerRollDice = false;
 
-                //Check for game over conditions
+
+                //TODO: Check for game over conditions
 
 
-                //Check for persistent effects
+                //TODO: Check for persistent effects
 
 
                 gameVariables.gamePlayerArray[gameVariables.currentPlayer].mana = gameVariables.gamePlayerArray[gameVariables.currentPlayer].maxmana;
@@ -1034,15 +1036,17 @@ function addGameSquare(type, x, y, squareId, gridX, gridY) {
 
     var gs = new gameSquare(squareId, x, y, sprite);
 
+
+    //Add special square items to board
     for (i = 0; i < gameVariables.boardInfo.specialSquares.length; i++) {    
 
         if (gameVariables.boardInfo.specialSquares[i].squareId == squareId) {
 
-            gs.special = gameVariables.boardInfo.specialSquares[i];
+            //gs.special = gameVariables.boardInfo.specialSquares[i];
             var special = game.add.sprite(x, y, gameVariables.boardInfo.specialSquares[i].type);
             special.anchor.x = 0.5;
             special.anchor.y = 0.5;
-            gs.special.specialSprite = special;
+            gs.special = special;
             board_layer.add(special);
         }
 
@@ -1756,20 +1760,43 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
 
         boardSquareDetail.creature.hitspritered.width = pixelWidth;
     }
+
+    if (card.special == 10) {
+        currentPlayer.mana = currentPlayer.mana + card.damage;
+    }
+
+    if (card.special == 11) {
+        currentPlayer.maxmana = currentPlayer.maxmana + card.damage;
+    }
 }
 
 
-function processSpecialLoot(type, looted, result) {
+function processSpecialLoot(type, looted, result, boardSquareDetail) {
     console.log(type);
     switch (type) {
+        case "key":
+            //TODO: add key loot
+            break;
         case "pressure":
             if (looted == 0) {
+                game.camera.flash(0xff0000, 500);
+
                 capturedLootRewardNotice = true;
                 capturedLootRewardNoticeText = "The pit trap deals " + result + " damage!";
                 gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp - Math.max((result - gameVariables.gamePlayerArray[gameVariables.currentPlayer].armor), 0);
+
+                //Change pressure plate to open trap
+                boardSquareDetail.special.destroy();
+                var special = game.add.sprite(boardSquareDetail.x, boardSquareDetail.y, "trap");
+                special.anchor.x = 0.5;
+                special.anchor.y = 0.5;
+                boardSquareDetail.special = special;
+                board_layer.add(special);
             }
             break;
         case "magictrap":
+            game.camera.flash(0xff0000, 500);
+
             capturedLootRewardNotice = true;
             capturedLootRewardNoticeText = "The magical trap deals " + result + " damage!";
             gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp - result;
@@ -1778,17 +1805,24 @@ function processSpecialLoot(type, looted, result) {
             if (looted == 0) {
                 capturedLootRewardNotice = true;
                 if (result == "rand") {
-                    //TODO:Add random rewards table
+                    //TODO: Add random rewards table
                     capturedLootRewardNoticeText = "Found " + 110 + " gold in the chest!";
                     gameVariables.gamePlayerArray[gameVariables.currentPlayer].gold = gameVariables.gamePlayerArray[gameVariables.currentPlayer].gold + result;
                 }
                 else if (result == "relic") {
-                    //TODO:Add relic loot
+                    //TODO: Add relic loot
                 } else {
                     capturedLootRewardNoticeText = "Found " + result + " gold in the chest!";
                     gameVariables.gamePlayerArray[gameVariables.currentPlayer].gold = gameVariables.gamePlayerArray[gameVariables.currentPlayer].gold + result;
                 }
 
+                //Change chest to open chest
+                boardSquareDetail.special.destroy();
+                var special = game.add.sprite(boardSquareDetail.x, boardSquareDetail.y, "chestopen");
+                special.anchor.x = 0.5;
+                special.anchor.y = 0.5;
+                boardSquareDetail.special = special;
+                board_layer.add(special);
             }
             break;
         case "start":
@@ -1941,7 +1975,7 @@ function endCurrentPlayerTurn() {
     
     if (typeof boardSquareLoot != 'undefined') {
         //found loot
-        processSpecialLoot(boardSquareLoot.type, boardSquareLoot.looted, boardSquareLoot.result);
+        processSpecialLoot(boardSquareLoot.type, boardSquareLoot.looted, boardSquareLoot.result, square);
         boardSquareLoot.looted++;
     }
 
