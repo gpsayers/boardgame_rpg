@@ -23,6 +23,7 @@ var playerDestinations = [],
     playerRollDice = false,
     forwardMovement = true,
     playerTurnMaintenanceComplete = false,
+    capturedLootRewardNotice = false,
     targetArray = [],
     multipleTargetsArray = [];
 
@@ -431,7 +432,9 @@ gameMain.prototype = {
 
     },
     update: function () {
+
         var style = { font: 'bold 15pt Arial', wordWrap: true, wordWrapWidth: 150, align: "center" };
+
         //Update player square capture percentage
         //Update game player mana and health in turn display
         for (i = 0; i < gameVariables.gamePlayerArray.length; i++) {
@@ -507,6 +510,8 @@ gameMain.prototype = {
             gameVariables.gamePlayerArray[0].manasprite.addChild(child);
         }
         goldInfoText.setText(gameVariables.gamePlayerArray[0].gold);
+        handtext.setText(gameVariables.gamePlayerArray[0].hand.length + "/" + gameVariables.playerMaxHand);
+        hearttext.setText(gameVariables.gamePlayerArray[0].hp + "/" + gameVariables.gamePlayerArray[0].maxhp);
 
         //Display card info on hover
         for (c = 0; c < gameVariables.gamePlayerArray[0].handTracker.length; c++) {
@@ -541,8 +546,12 @@ gameMain.prototype = {
 
                 //Check for persistent effects
 
-            }
 
+                gameVariables.gamePlayerArray[gameVariables.currentPlayer].mana = gameVariables.gamePlayerArray[gameVariables.currentPlayer].maxmana;
+
+                //TEsting square by moving player to it
+                //playerMove(gameVariables.gamePlayerArray[0].sprite, 9);
+            }
 
 
             //Human player turn
@@ -555,8 +564,7 @@ gameMain.prototype = {
                 qText.visible = true;
 
                 game.world.bringToTop(player_layer);
-
-                gameVariables.gamePlayerArray[gameVariables.currentPlayer].mana = gameVariables.gamePlayerArray[gameVariables.currentPlayer].maxmana;
+                
 
             }
 
@@ -809,6 +817,16 @@ gameMain.prototype = {
 
             playerDiscardMenu = false;
             playerDiscardWaiting = true;
+        }
+
+        //Captured loot notification
+        if (capturedLootRewardNotice == true) {
+
+            capturedLootRewardNotice = false;
+            menu.visible = true;
+            qText.setText(capturedLootRewardNoticeText);
+            qText.visible = true;
+
         }
 
         //Tween the cards back to starting position if moved if hand changes
@@ -1452,7 +1470,7 @@ function targetMenuClicked(item) {
 
     }
     else {
-        processSpecialSpell(targetResult.card, targetResult.player, boardResult, targetResult.type, targetResult.image);
+        processSpecialSpell(targetResult.card, targetResult.player, targetResult.targetSquare, targetResult.type, targetResult.image);
     }
 
     if (targetResult.card.creature == true) {
@@ -1741,11 +1759,46 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
 }
 
 
-function captureSquare(id) {
-    //Check for loot on the square
+function processSpecialLoot(type, looted, result) {
+    console.log(type);
+    switch (type) {
+        case "pressure":
+            if (looted == 0) {
+                capturedLootRewardNotice = true;
+                capturedLootRewardNoticeText = "The pit trap deals " + result + " damage!";
+                gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp - Math.max((result - gameVariables.gamePlayerArray[gameVariables.currentPlayer].armor), 0);
+            }
+            break;
+        case "magictrap":
+            capturedLootRewardNotice = true;
+            capturedLootRewardNoticeText = "The magical trap deals " + result + " damage!";
+            gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp - result;
+            break;
+        case "chest":
+            if (looted == 0) {
+                capturedLootRewardNotice = true;
+                if (result == "rand") {
+                    //TODO:Add random rewards table
+                    capturedLootRewardNoticeText = "Found " + 110 + " gold in the chest!";
+                    gameVariables.gamePlayerArray[gameVariables.currentPlayer].gold = gameVariables.gamePlayerArray[gameVariables.currentPlayer].gold + result;
+                }
+                else if (result == "relic") {
+                    //TODO:Add relic loot
+                } else {
+                    capturedLootRewardNoticeText = "Found " + result + " gold in the chest!";
+                    gameVariables.gamePlayerArray[gameVariables.currentPlayer].gold = gameVariables.gamePlayerArray[gameVariables.currentPlayer].gold + result;
+                }
+
+            }
+            break;
+        case "start":
+            //Do nothing for now?
+            break;
+    }
+}
 
 
-
+function captureSquare(id) {   
 
     //Claim the square color
     var boardSquareDetail = gameVariables.gameBoard.find(function (item) {
@@ -1880,14 +1933,27 @@ function endCurrentPlayerTurn() {
         }
     }
 
-        
+    //Check for loot on the square
+    var boardSquareLoot = gameVariables.boardInfo.specialSquares.find(function (element) {
+        return element.squareId == gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite.gameSquareId;
+    });
 
+    
+    if (typeof boardSquareLoot != 'undefined') {
+        //found loot
+        processSpecialLoot(boardSquareLoot.type, boardSquareLoot.looted, boardSquareLoot.result);
+        boardSquareLoot.looted++;
+    }
+
+        
+    //Change game to next player
     gameVariables.currentPlayer++;
 
     if (gameVariables.currentPlayer > gameVariables.gamePlayerArray.length - 1) {
         gameVariables.currentPlayer = 0;
     }
 
+    //Move turn tracker
     var tween = game.add.tween(turnArrow).to({ x: game.width - 280, y: (50 * gameVariables.currentPlayer) + 60 }, 500, Phaser.Easing.Linear.None, true);
 
     computerMoved = false;
