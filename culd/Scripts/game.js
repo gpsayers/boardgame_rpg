@@ -20,7 +20,6 @@ var playerDestinations = [],
     playerManaNotificationMenu = false,
     playerSpellTargeting = false,
     multipleTargetsMenu = false,
-    playerRollDice = false,
     forwardMovement = true,
     playerTurnMaintenanceComplete = false,
     capturedLootRewardNotice = false,
@@ -73,7 +72,7 @@ gameMain.prototype = {
         }
         else {
             //Continue game
-
+            //Game player array should already be set.
         }
        
 
@@ -173,6 +172,7 @@ gameMain.prototype = {
         target_layer = game.add.group();
         pop_layer = game.add.group();
 
+
         //Build the background
         var tile = game.add.tileSprite(0, 0, game.width, game.height, 'dirt');
         back_layer.add(tile);
@@ -206,11 +206,17 @@ gameMain.prototype = {
         }
 
         //Add the game players to the board
-        var gameBoardResult = gameVariables.gameBoard.find(function (element) {
-            return element.sprite.gameSquareId == gameVariables.boardInfo.boardStart;
-        });
-
         for (i = 0; i < gameVariables.gamePlayerArray.length; i++) {
+
+            if (gameVariables.gameContinue == false) {
+                gameVariables.gamePlayerArray[i].square = gameVariables.boardInfo.boardStart;
+
+            }
+            
+            var gameBoardResult = gameVariables.gameBoard.find(function (element) {
+                return element.sprite.gameSquareId == gameVariables.gamePlayerArray[i].square;
+            });
+
             gameVariables.gamePlayerArray[i].sprite = game.add.sprite(0, 0, gameVariables.gamePlayerArray[i].class);
             gameVariables.gamePlayerArray[i].sprite.width = 45;
             gameVariables.gamePlayerArray[i].sprite.height = 45;
@@ -229,6 +235,29 @@ gameMain.prototype = {
             gameVariables.gamePlayerArray[i].turnSprite = game.add.sprite(game.width - 250, (50 * i) + 50, 'turnSprite');
         }
 
+
+        //Add cards to the players hands
+        if (gameVariables.gameContinue == false) {
+
+            for (i = 0; i < gameVariables.playerMaxHand; i++) {
+                var card = gameVariables.gamePlayerArray[0].deck.pop();
+                gameVariables.gamePlayerArray[0].handTracker.push(new playerHandTracker(card.id, card, 0, 0));
+                gameVariables.gamePlayerArray[0].hand.push(card);
+            }
+
+            for (i = 1; i < gameVariables.gamePlayerArray.length; i++) {
+                gameVariables.gamePlayerArray[i].deck = shuffle(gameVariables.gamePlayerArray[i].deck);
+                for (x = 0; x < 4; x++) {
+                    var card = gameVariables.gamePlayerArray[i].deck.pop();
+                    gameVariables.gamePlayerArray[i].hand.push(card);
+                }
+
+            }
+
+        }
+        createPlayerHand();
+
+
         //Build the GUI
         var pbs = game.add.sprite(game.width - 530, game.height - 255, gameVariables.playerColor);
         var pb = game.add.sprite(game.width - 530, game.height - 255, gameVariables.playerImg);
@@ -246,8 +275,6 @@ gameMain.prototype = {
         gameVariables.gamePlayerArray[0].manasprite.height = 20;
         goldInfoText = game.add.text(game.width - 161, game.height - 250, gameVariables.playerGold, style);
         goldInfoText.anchor.setTo(1, 0);
-        //goldIcon = game.add.sprite(game.width - 75 - goldInfoText.width, game.height - 258, 'gold');
-        //goldIcon.anchor.setTo(1, 0);
         handtext = game.add.text(game.width - 490, game.height - 160, "4/5", style);
         spellbook = game.add.sprite(game.width - 545, game.height - 183, 'book');
         bag = game.add.sprite(game.width - 461, game.height - 183, 'bag');
@@ -331,22 +358,9 @@ gameMain.prototype = {
         button.frame = 1;
         button.width = 100;
         button.height = 44;
-
-
-        //Add cards to the players hands
-        for (i = 0; i < gameVariables.playerMaxHand; i++) {
-            var card = gameVariables.gamePlayerArray[0].deck.pop();
-            gameVariables.gamePlayerArray[0].handTracker.push(new playerHandTracker(card.id, card, 0, 0));
-            gameVariables.gamePlayerArray[0].hand.push(card);
-        }
-        createPlayerHand();
-        for (i = 1; i < gameVariables.gamePlayerArray.length; i++) {
-            gameVariables.gamePlayerArray[i].deck = shuffle(gameVariables.gamePlayerArray[i].deck);
-            for (x = 0; x < 4; x++) {
-                var card = gameVariables.gamePlayerArray[i].deck.pop();
-                gameVariables.gamePlayerArray[i].hand.push(card);
-            }
-            
+        if (gameVariables.gamePlayerArray[0].playerRollDice == true) {
+            //Change roll button to "locked" frame
+            button.frame = 2;
         }
 
         //Confirmation menu
@@ -540,7 +554,8 @@ gameMain.prototype = {
                 //Do player turn maintenance
                 playerTurnMaintenanceComplete = true;
 
-                playerRollDice = false;
+
+                gameVariables.gamePlayerArray[gameVariables.currentPlayer].playerRollDice = false;
 
 
                 //TODO: Check for game over conditions
@@ -1041,13 +1056,17 @@ function addGameSquare(type, x, y, squareId, gridX, gridY) {
     for (i = 0; i < gameVariables.boardInfo.specialSquares.length; i++) {    
 
         if (gameVariables.boardInfo.specialSquares[i].squareId == squareId) {
+            if (gameVariables.boardInfo.specialSquares[i].looted > 0) {
+                gs.special = game.add.sprite(x, y, gameVariables.boardInfo.specialSquares[i].alt);
+            }
+            else {
+                gs.special = game.add.sprite(x, y, gameVariables.boardInfo.specialSquares[i].type);
+            }
+           
+            gs.special.anchor.x = 0.5;
+            gs.special.anchor.y = 0.5;
 
-            //gs.special = gameVariables.boardInfo.specialSquares[i];
-            var special = game.add.sprite(x, y, gameVariables.boardInfo.specialSquares[i].type);
-            special.anchor.x = 0.5;
-            special.anchor.y = 0.5;
-            gs.special = special;
-            board_layer.add(special);
+            board_layer.add(gs.special);
         }
 
     }
@@ -1929,7 +1948,7 @@ function menuStartClick(choice) {
 
 function endPlayerTurn() {
 
-    if (playerRollDice == false) {
+    if (gameVariables.gamePlayerArray[gameVariables.currentPlayer].playerRollDice == false) {
         //Player must roll before end of turn
         return;
     }
@@ -2034,7 +2053,11 @@ function diceRoll(item) {
 
 
 function diceRollButtonClick() {
-    playerRollDice = true;
+    if (gameVariables.gamePlayerArray[gameVariables.currentPlayer].playerRollDice == true) {
+        return;
+    }
+
+    gameVariables.gamePlayerArray[gameVariables.currentPlayer].playerRollDice = true;
     button.inputEnabled = false;
     diceRoll(dice);
 
@@ -2218,6 +2241,8 @@ function playerMove(playerSprite, roll) {
     }
     else {
         //Player movement done.
+        gameVariables.gamePlayerArray[gameVariables.currentPlayer].square =
+            gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite.gameSquareId;
         computerMoving = false;
         if (playerCrossStart == true) {
             playerCrossStartMenu = true;

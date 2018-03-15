@@ -47,6 +47,7 @@ function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human,
     this.manasprite = {};
     this.gold = gold;
     this.armor = armor;
+    this.playerRollDice = false;
 }
 
 //location: sprite.gameSquareId

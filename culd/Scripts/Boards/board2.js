@@ -29,11 +29,11 @@ board2.backwardChoiceSquares.push({ id: 40, left: 0, up: 40, right: 35, down: 0 
 board2.backwardChoiceSquares.push({ id: 30, left: 0, up: 0, right: 23, down: 27 });
 board2.backwardChoiceSquares.push({ id: 15, left: 13, up: 11, right: 0, down: 08 });
 
-board2.specialSquares.push({ squareId: 22, type: "pressure", looted: 0, result: 3 });
-board2.specialSquares.push({ squareId: 26, type: "magictrap", looted: 0, result: 2 });
-board2.specialSquares.push({ squareId: 37, type: "chest", looted: 0, result: 100 });
-board2.specialSquares.push({ squareId: 34, type: "chest", looted: 0, result: "rand" });
-board2.specialSquares.push({ squareId: 1, type: "start", looted: 0 });
+board2.specialSquares.push({ squareId: 22, type: "pressure", looted: 0, result: 3, alt: "trap" });
+board2.specialSquares.push({ squareId: 26, type: "magictrap", looted: 0, result: 2, alt: "magictrap" });
+board2.specialSquares.push({ squareId: 37, type: "chest", looted: 0, result: 100, alt: "chestopen" });
+board2.specialSquares.push({ squareId: 34, type: "chest", looted: 0, result: "rand", alt: "chestopen" });
+board2.specialSquares.push({ squareId: 1, type: "start", looted: 0, result: 0, alt: "start" });
 
 board2.computerPlayers.push(new gamePlayer(1, board1.boardStart, "Fancis", "wizard", "Fire", 8, 1, false, redWizard1List, 3, 100, 0));
 board2.computerPlayers.push(new gamePlayer(2, board1.boardStart, "Ginny", "sorceress", "Death", 10, 1, false, blackSorceress1List, 3, 100, 0));
