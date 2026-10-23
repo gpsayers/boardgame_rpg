@@ -209,6 +209,45 @@
             color: #b9c0ce;
             text-align: center;
         }
+        .battle-test-panel {
+            width: min(680px, 100%);
+        }
+        .battle-test-arena {
+            display: flex;
+            min-height: 180px;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(12px, 5vw, 42px);
+            padding: 20px;
+            border: 1px solid rgba(227, 190, 102, 0.45);
+            border-radius: 14px;
+            background:
+                linear-gradient(rgba(10, 12, 19, 0.45), rgba(10, 12, 19, 0.45)),
+                repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(227, 190, 102, 0.1) 40px),
+                repeating-linear-gradient(90deg, #283229, #283229 39px, rgba(227, 190, 102, 0.1) 40px);
+        }
+        .battle-test-combatant {
+            display: grid;
+            width: clamp(90px, 22vw, 150px);
+            aspect-ratio: 1;
+            place-items: center;
+            border: 1px solid rgba(227, 190, 102, 0.65);
+            border-radius: 14px;
+            color: #fff1bd;
+            background: rgba(31, 37, 50, 0.92);
+            font-size: clamp(1rem, 3vw, 1.4rem);
+            font-weight: 700;
+        }
+        .battle-test-versus {
+            color: #e3be66;
+            font-size: 1.1rem;
+            font-weight: 800;
+        }
+        .battle-test-status {
+            margin: 18px 0 0;
+            color: #b9c0ce;
+            text-align: center;
+        }
         .game-menu-header {
             margin-bottom: 20px;
             text-align: center;

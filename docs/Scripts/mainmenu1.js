@@ -28,6 +28,11 @@ mainMenu.prototype = {
                         '<span class="game-menu-button-copy"><strong>Quick play</strong><small>Jump straight into a sample match</small></span>' +
                         '<span class="game-menu-arrow" aria-hidden="true">›</span>' +
                     '</button>' +
+                    '<button class="game-menu-button" type="button" data-action="battle-test">' +
+                        '<span class="game-menu-button-icon" aria-hidden="true">⚔</span>' +
+                        '<span class="game-menu-button-copy"><strong>Battle Test</strong><small>Open the battle development scene</small></span>' +
+                        '<span class="game-menu-arrow" aria-hidden="true">›</span>' +
+                    '</button>' +
                     '<button class="game-menu-button game-menu-secondary" type="button" data-action="credits">' +
                         '<span class="game-menu-button-copy"><strong>Credits</strong><small>Meet the people behind the game</small></span>' +
                         '<span class="game-menu-arrow" aria-hidden="true">›</span>' +
@@ -46,6 +51,10 @@ mainMenu.prototype = {
 
         root.querySelector('[data-action="credits"]').addEventListener("click", function () {
             game.state.start("credits");
+        });
+
+        root.querySelector('[data-action="battle-test"]').addEventListener("click", function () {
+            game.state.start("battle");
         });
 
         root.querySelector('[data-action="quick-play"]').addEventListener("click", function () {

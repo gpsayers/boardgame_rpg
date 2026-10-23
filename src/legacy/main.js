@@ -43,6 +43,7 @@ mainState.prototype = {
     create: function () {
         game.state.add('mainMenu', mainMenu);
         game.state.add('game', gameMain);
+        game.state.add('battle', battle);
         game.state.add('credits', credits);
         game.state.add('new', new_character);
         game.state.add('map', campaign);

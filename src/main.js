@@ -8,6 +8,7 @@ const legacyScriptFiles = [
     "boards/board1.js",
     "boards/board2.js",
     "game.js",
+    "scenes/battle.js",
     "scenes/credits.js",
     "scenes/new_game.js",
     "scenes/campaign_map.js",
