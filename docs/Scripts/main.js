@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Created by Garth on 2/3/2018.
  */
 
@@ -14,33 +14,42 @@ var mainState = function (game) { };
 
 mainState.prototype = {
     init: function () {
-        //Making the screen work in different orientations on different devices
-        this.scale.pageAlignHorizontally = true;
-        this.scale.pageAlignVertically = true;
-        //this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
-        //If the player clicks outside the game, it continues running - anti-cheating
-        this.stage.disableVisibiltyChange = true;
     },
     preload: function () {
-        game.load.script('models', 'Scripts/models.js');
-        game.load.script('cards', 'Scripts/Scenes/cards.js');
-        game.load.script('mainMenu', 'Scripts/mainmenu1.js');
-        game.load.script('game', 'Scripts/game.js');
-        game.load.script('credits', 'Scripts/Scenes/credits.js');
-        
-
-        game.load.script('board1', 'Scripts/Scenes/board1.js');
+        game.load.image('bpix', 'assets/gui/blackPixel.png');
+        game.load.image('wpix', 'assets/gui/whitePixel.png');
 
         //Load player images
-        game.load.image('cavalier', 'Assets/Players/cavalier.png');
-        game.load.image('wizard', 'Assets/Players/wizard.png');
-        game.load.image('sorceress', 'Assets/Players/sorceress.png');
-        game.load.image('thief', 'Assets/Players/thief.png');
+        game.load.image('cavalier', 'assets/players/cavalier.png');
+        game.load.image('wizard', 'assets/players/wizard.png');
+        game.load.image('sorceress', 'assets/players/sorceress.png');
+        game.load.image('trickster', 'assets/players/trickster.png');
+        game.load.image('convoker', 'assets/players/convoker.png');
+        game.load.image('blademaster', 'assets/players/blademaster.png');
+
+        //board squares
+        game.load.image('Fire', 'assets/fire.png');
+        game.load.image('Water', 'assets/ice.png');
+        game.load.image('neutral', 'assets/summoning.png');
+        game.load.image('Life', 'assets/divination.png');
+        game.load.image('Death', 'assets/necromancy.png');
+        game.load.image('Earth', 'assets/poison.png');
+
+        //load gui elements
+        game.load.spritesheet('confirmButton', 'assets/gui/confirmButtonSpritesheet.png', 215, 229);
+        game.load.spritesheet('cancelButton', 'assets/gui/cancelButtonSpritesheet.png', 215, 229);
+
     },
     create: function () {
         game.state.add('mainMenu', mainMenu);
         game.state.add('game', gameMain);
         game.state.add('credits', credits);
+        game.state.add('new', new_character);
+        game.state.add('map', campaign);
+        game.state.add('maptext', maptext);
+        game.state.add('cardmanager', cardmanager);
+        game.state.add('cutscene', cutscene);
+        game.state.add('shop', shop);
 
         game.state.start('mainMenu');
 
@@ -50,8 +59,8 @@ mainState.prototype = {
     }
 };
 
-var game = new Phaser.Game(gameProperties.screenWidth, gameProperties.screenHeight, Phaser.AUTO, 'gameDiv');
-
-game.state.add('main', mainState);
-
-game.state.start('main');
+var game = Phaser2Compat.create({
+    width: gameProperties.screenWidth,
+    height: gameProperties.screenHeight,
+    parent: 'gameDiv'
+});

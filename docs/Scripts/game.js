@@ -1,4 +1,4 @@
-﻿var gameMain = function () { };
+var gameMain = function () { };
 
 
 var playerDestinations = [],
@@ -19,7 +19,11 @@ var playerDestinations = [],
     playerDiscardWaiting = false,
     playerManaNotificationMenu = false,
     playerSpellTargeting = false,
-    multipleTargetsMenu  = false,
+    multipleTargetsMenu = false,
+    forwardMovement = true,
+    playerTurnMaintenanceComplete = false,
+    capturedLootRewardNotice = false,
+    capturedLootRewardNoticeText = "",
     targetArray = [],
     multipleTargetsArray = [];
 
@@ -27,107 +31,130 @@ var playerDestinations = [],
 gameMain.prototype = {
     preload: function () {
 
-        //Temp assign of player deck to static array
-        gameVariables.playerDeck = testPlayerCardList;
+        if (gameVariables.gameContinue == false) {
 
-        //Temp turn count to 0
-        gameVariables.turnCount = 0;
+            //Start a new game
+            gameVariables.turnCount = 0;
 
-        if (gameVariables.currentBoard == "board1") {
-            gameVariables.boardInfo = board1;
+            if (gameVariables.currentBoard == "board1") {
+                gameVariables.boardInfo = board1;
+            }
+            else if (gameVariables.currentBoard == "board2") {
+                gameVariables.boardInfo = board2;
+            }
+
+            gameVariables.gamePlayerArray.length = 0;
+            gameVariables.gameBoard.length = 0;
+
+            gameVariables.gamePlayerArray.push(new gamePlayer(99,
+                gameVariables.boardInfo.boardStart,
+                gameVariables.playerName,
+                gameVariables.playerClass,
+                gameVariables.playerColor,
+                gameVariables.playerHealth,
+                gameVariables.playerStartingMana,
+                true,
+                shuffle(gameVariables.playerDeck.slice()),
+                gameVariables.playerMaxHand,
+                gameVariables.playerGold,
+                gameVariables.playerArmor));
+
+            gameVariables.currentPlayer = 0;
+
+            //Find AI players that don't match human players class or color
+            var aiPlayers = gameVariables.boardInfo.computerPlayers.filter(function(gp) {
+                return gp.class != gameVariables.playerClass && gp.color != gameVariables.playerColor;
+            });
+
+            aiPlayers.forEach(function(item) {
+                gameVariables.gamePlayerArray.push(item);
+            });
+
         }
-        
-        gameVariables.gamePlayerArray.push(new gamePlayer(99,
-            gameVariables.boardInfo.boardStart,
-            gameVariables.playerName,
-            gameVariables.playerClass,
-            gameVariables.playerColor,
-            gameVariables.playerHealth,
-            gameVariables.playerStartingMana,
-            true,
-            shuffle(gameVariables.playerDeck),
-            gameVariables.playerMaxHand, 0));
+        else {
+            //Continue game
+            //Game player array should already be set.
+        }
 
-        gameVariables.currentPlayer = 0;
-
-        //Find AI players that don't match human players class or color
-        var aiPlayers = gameVariables.boardInfo.computerPlayers.filter(function(gp) {
-            return gp.class != gameVariables.playerClass && gp.color != gameVariables.playerColor;
-        });
-
-        aiPlayers.forEach(function(item) {
-            gameVariables.gamePlayerArray.push(item);
-        });
-        
 
         //background image
-        game.load.image('dirt', 'Assets/dirt4.png');
-
-        //board squares
-        game.load.image('red', 'Assets/fire.png');
-        game.load.image('blue', 'Assets/ice.png');
-        game.load.image('neutral', 'Assets/summoning.png');
-        game.load.image('yellow', 'Assets/divination.png');
-        game.load.image('purple', 'Assets/necromancy.png');
-        game.load.image('green', 'Assets/green.png');
+        game.load.image('dirt', 'assets/dirt4.png');
 
         //board elements
-        game.load.image('chest', 'Assets/BoardElements/chest_2_closed.png');
-        game.load.image('bluefountain', 'Assets/BoardElements/blue_fountain.png');
-        game.load.image('trap', 'Assets/BoardElements/trap_blade.png');
-        game.load.image('start', 'Assets/BoardElements/trap_magical.png');
-        game.load.image('gpix', 'Assets/GUI/greenPixel.png');
-        game.load.image('rpix', 'Assets/GUI/redPixel.png');
+        game.load.image('chest', 'assets/board-elements/chest_2_closed.png');
+        game.load.image('chestopen', 'assets/board-elements/chest_2_open.png');
+        game.load.image('bluefountain', 'assets/board-elements/blue_fountain.png');
+        game.load.image('redfountain', 'assets/board-elements/blood_fountain.png');
+        game.load.image('dryfountain', 'assets/board-elements/dry_fountain.png');
+        game.load.image('cardpicker', 'assets/board-elements/nemelex_1.png');
+        game.load.image('trap', 'assets/board-elements/trap_blade.png');
+        game.load.image('magictrap', 'assets/board-elements/trap_magical.png');
+        game.load.image('pressure', 'assets/board-elements/pressure_plate.png');
+        game.load.image('gpix', 'assets/gui/greenPixel.png');
+        game.load.image('rpix', 'assets/gui/redPixel.png');
+        game.load.image('start', 'assets/board-elements/stone_stairs_up.png');
 
         //dice images
-        game.load.image('1', 'Assets/front&side-1.png');
-        game.load.image('2', 'Assets/front-2.png');
-        game.load.image('3', 'Assets/front-3.png');
-        game.load.image('4', 'Assets/front&side-4.png');
-        game.load.image('5', 'Assets/front-5.png');
-        game.load.image('6', 'Assets/front-6.png');
+        game.load.image('1', 'assets/front&side-1.png');
+        game.load.image('2', 'assets/front-2.png');
+        game.load.image('3', 'assets/front-3.png');
+        game.load.image('4', 'assets/front&side-4.png');
+        game.load.image('5', 'assets/front-5.png');
+        game.load.image('6', 'assets/front-6.png');
 
         //cards
-        game.load.image('redFrame', 'Assets/RedFrame.png');
-        game.load.image('cardFront', 'Assets/FrontTexture.png');
+        game.load.image('redFrame', 'assets/RedFrame.png');
+        game.load.image('cardFront', 'assets/FrontTexture.png');
 
         //spells
-        game.load.image('zombie', 'Assets/Cards/zombie_ogre.png');
-        game.load.image('bolt', 'Assets/Cards/bolt_of_fire_new.png');
-        game.load.image('summon', 'Assets/Cards/summon_ugly_thing.png');
-        game.load.image('centaur', 'Assets/Cards/centaur.png');
-        game.load.image('rat', 'Assets/Cards/rat.png');
-        game.load.image('turtle', 'Assets/Cards/turtle.png');
-        game.load.image('bear', 'Assets/Cards/bear.png');
-        game.load.image('spider', 'Assets/Cards/spider.png');
-        game.load.image('yellow_wasp', 'Assets/Cards/yellow_wasp.png');
-        game.load.image('death', 'Assets/Cards/symbol_of_torment.png');
-        game.load.image('heal', 'Assets/Cards/regeneration_new.png');
-        game.load.image('disengage', 'Assets/Cards/ledas_liquefaction.png');
-        game.load.image('blizzard', 'Assets/Cards/ice_storm_new.png');
-        game.load.image('steal', 'Assets/Cards/apportation_new.png');
-        game.load.image('mushroom', 'Assets/Cards/wandering_mushroom_new.png');
-        game.load.image('dummy', 'Assets/Cards/training_dummy_new.png');
+        game.load.image('zombie', 'assets/cards/zombie_ogre.png');
+        game.load.image('bolt', 'assets/cards/bolt_of_fire_new.png');
+        game.load.image('summon', 'assets/cards/summon_ugly_thing.png');
+        game.load.image('centaur', 'assets/cards/centaur.png');
+        game.load.image('rat', 'assets/cards/rat.png');
+        game.load.image('turtle', 'assets/cards/turtle.png');
+        game.load.image('bear', 'assets/cards/bear.png');
+        game.load.image('spider', 'assets/cards/spider.png');
+        game.load.image('yellow_wasp', 'assets/cards/yellow_wasp.png');
+        game.load.image('death', 'assets/cards/symbol_of_torment.png');
+        game.load.image('heal', 'assets/cards/regeneration_new.png');
+        game.load.image('disengage', 'assets/cards/ledas_liquefaction.png');
+        game.load.image('blizzard', 'assets/cards/ice_storm_new.png');
+        game.load.image('steal', 'assets/cards/apportation_new.png');
+        game.load.image('mushroom', 'assets/cards/wandering_mushroom_new.png');
+        game.load.image('dummy', 'assets/cards/training_dummy_new.png');
+        game.load.image('research', 'assets/cards/magic_mapping.png');
+        game.load.image('poison', 'assets/cards/poison_arrow_6.png');
+        game.load.image('defense', 'assets/cards/condensation_shield_new.png');
 
 
         //GUI and buttons
-        game.load.image('menu', 'Assets/GUI/Menu.png');
-        game.load.image('menu2', 'Assets/GUI/Menu_2.png');
-        game.load.image('cursor', 'Assets/GUI/cursor.png');
-        game.load.image('target', 'Assets/GUI/silenced.png');
-        game.load.spritesheet('diceButton', 'Assets/GUI/diceButtonsSpritesheet.png', 404, 177);
-        game.load.spritesheet('leftButton', 'Assets/GUI/leftButtonSpritesheet.png', 221, 229);
-        game.load.spritesheet('upButton', 'Assets/GUI/upButtonSpritesheet.png', 221, 229);
-        game.load.spritesheet('rightButton', 'Assets/GUI/rightButtonSpritesheet.png', 221, 229);
-        game.load.spritesheet('downButton', 'Assets/GUI/downButtonSpritesheet.png', 221, 229);
-        game.load.image('turnArrow', 'Assets/GUI/arrow.png');
-        game.load.image('turnSprite', 'Assets/GUI/paper-button-off.png');
-        game.load.image('dialog', 'Assets/GUI/paper-dialog.png');
-        game.load.image('dialogorange', 'Assets/GUI/dialog.png');
-        game.load.image('dialogblue', 'Assets/GUI/dialog-box.png');
-        game.load.image('mana', 'Assets/GUI/mana_orb.png');
-        game.load.image('mana_empty', 'Assets/GUI/mana_orb_empty.png');
-        game.load.image('gold', 'Assets/GUI/gold_pile.png');
+        game.load.image('menu', 'assets/gui/Menu.png');
+        game.load.image('menu2', 'assets/gui/Menu_2.png');
+        game.load.image('cursor', 'assets/gui/cursor.png');
+        game.load.image('target', 'assets/gui/silenced.png');
+        game.load.spritesheet('diceButton', 'assets/gui/diceButtonsSpritesheet.png', 410, 183);
+        game.load.spritesheet('endButton', 'assets/gui/endturnButtonSpritesheet.png', 400, 173);
+        game.load.spritesheet('leftButton', 'assets/gui/leftButtonSpritesheet.png', 221, 229);
+        game.load.spritesheet('upButton', 'assets/gui/upButtonSpritesheet.png', 221, 229);
+        game.load.spritesheet('rightButton', 'assets/gui/rightButtonSpritesheet.png', 221, 229);
+        game.load.spritesheet('downButton', 'assets/gui/downButtonSpritesheet.png', 221, 229);
+        game.load.spritesheet('settingsButton', 'assets/gui/settingsButtonSpritesheet.png', 221, 229);
+        game.load.image('turnArrow', 'assets/gui/arrow.png');
+        game.load.image('turnSprite', 'assets/gui/paper-button-off.png');
+        game.load.image('dialog', 'assets/gui/paper-dialog.png');
+        game.load.image('dialogorange', 'assets/gui/dialog.png');
+        game.load.image('dialogblue', 'assets/gui/dialog-box.png');
+        game.load.image('mana', 'assets/gui/mana_orb.png');
+        game.load.image('mana_empty', 'assets/gui/mana_orb_empty.png');
+        game.load.image('shield', 'assets/gui/shield_of_reflection.png');
+        game.load.image('book', 'assets/gui/tome.png');
+        game.load.image('tools', 'assets/gui/tools.png');
+        game.load.image('x', 'assets/gui/x.png');
+        game.load.image('map', 'assets/gui/map.png');
+        game.load.image('heart', 'assets/gui/heart.png');
+        game.load.image('bag', 'assets/gui/backpack.png');
+        game.load.image('coin', 'assets/gui/coin.png');
 
     },
     create: function () {
@@ -146,6 +173,7 @@ gameMain.prototype = {
         target_layer = game.add.group();
         pop_layer = game.add.group();
 
+
         //Build the background
         var tile = game.add.tileSprite(0, 0, game.width, game.height, 'dirt');
         back_layer.add(tile);
@@ -155,12 +183,6 @@ gameMain.prototype = {
         playerArea.anchor.x = 1;
         playerArea.anchor.y = 1;
         back_layer.add(playerArea);
-        //var turnArea = game.add.sprite(game.width - 50, game.height - 278, 'dialog');
-        //turnArea.width = 250;
-        //turnArea.height = game.height-318;
-        //turnArea.anchor.x = 1;
-        //turnArea.anchor.y = 1;
-        //back_layer.add(turnArea);
         var infoArea = game.add.sprite(game.width - 310, game.height - 278, 'dialog');
         infoArea.width = 250;
         infoArea.height = game.height - 318;
@@ -168,17 +190,6 @@ gameMain.prototype = {
         infoArea.anchor.y = 1;
         back_layer.add(infoArea);
 
-        var pbs = game.add.sprite(game.width - 535, game.height - 258, gameVariables.playerColor);
-        var pb = game.add.sprite(game.width - 535, game.height - 258, gameVariables.playerImg);
-        pbs.width = 35;
-        pbs.height = 35;
-        back_layer.add(pbs);
-        back_layer.add(pb);
-        var ptxt = game.add.text(game.width - 495, game.height - 255, gameVariables.playerName, style);
-        var drawtext = game.add.text(game.width - 535, game.height - 90, "End Turn", style);
-        drawtext.inputEnabled = true;
-        drawtext.events.onInputUp.add(endPlayerTurn, this);
-        drawtext.visible = true;
         turnArrow = game.add.sprite(10, 10, 'turnArrow');
         turnArrow.x = game.width - 280;
         turnArrow.y = (50 * gameVariables.currentPlayer) + 60;
@@ -196,11 +207,17 @@ gameMain.prototype = {
         }
 
         //Add the game players to the board
-        var gameBoardResult = gameVariables.gameBoard.find(function (element) {
-            return element.sprite.gameSquareId == gameVariables.boardInfo.boardStart;
-        });
-
         for (i = 0; i < gameVariables.gamePlayerArray.length; i++) {
+
+            if (gameVariables.gameContinue == false) {
+                gameVariables.gamePlayerArray[i].square = gameVariables.boardInfo.boardStart;
+
+            }
+
+            var gameBoardResult = gameVariables.gameBoard.find(function (element) {
+                return element.sprite.gameSquareId == gameVariables.gamePlayerArray[i].square;
+            });
+
             gameVariables.gamePlayerArray[i].sprite = game.add.sprite(0, 0, gameVariables.gamePlayerArray[i].class);
             gameVariables.gamePlayerArray[i].sprite.width = 45;
             gameVariables.gamePlayerArray[i].sprite.height = 45;
@@ -215,11 +232,67 @@ gameMain.prototype = {
             else {
                 player_layer[i.toString()].add(gameVariables.gamePlayerArray[i].sprite);
             }
-    
+
             gameVariables.gamePlayerArray[i].turnSprite = game.add.sprite(game.width - 250, (50 * i) + 50, 'turnSprite');
         }
 
-        //Game info text and GUI
+
+        //Add cards to the players hands
+        if (gameVariables.gameContinue == false) {
+
+            for (i = 0; i < gameVariables.playerMaxHand; i++) {
+                var card = gameVariables.gamePlayerArray[0].deck.pop();
+                gameVariables.gamePlayerArray[0].handTracker.push(new playerHandTracker(card.id, card, 0, 0));
+                gameVariables.gamePlayerArray[0].hand.push(card);
+            }
+
+            for (i = 1; i < gameVariables.gamePlayerArray.length; i++) {
+                gameVariables.gamePlayerArray[i].deck = shuffle(gameVariables.gamePlayerArray[i].deck);
+                for (x = 0; x < 4; x++) {
+                    var card = gameVariables.gamePlayerArray[i].deck.pop();
+                    gameVariables.gamePlayerArray[i].hand.push(card);
+                }
+
+            }
+
+        }
+        createPlayerHand();
+
+
+        //Build the GUI
+        var pbs = game.add.sprite(game.width - 530, game.height - 255, gameVariables.playerColor);
+        var pb = game.add.sprite(game.width - 530, game.height - 255, gameVariables.playerImg);
+        pbs.width = 35;
+        pbs.height = 35;
+        back_layer.add(pbs);
+        back_layer.add(pb);
+        var ptxt = game.add.text(game.width - 495, game.height - 255, gameVariables.playerName, style);
+
+        var endbutton = game.add.button(game.width - 530, game.height - 110, 'endButton', endPlayerTurn, this, 1, 1, 0);
+        endbutton.width = 100;
+        endbutton.height = 44;
+        gameVariables.gamePlayerArray[0].manasprite = game.add.sprite(game.width - 535, game.height - 208, 'mana');
+        gameVariables.gamePlayerArray[0].manasprite.width = 20;
+        gameVariables.gamePlayerArray[0].manasprite.height = 20;
+        goldInfoText = game.add.text(game.width - 161, game.height - 250, gameVariables.playerGold, style);
+        goldInfoText.anchor.setTo(1, 0);
+        handtext = game.add.text(game.width - 490, game.height - 160, "4/5", style);
+        spellbook = game.add.sprite(game.width - 545, game.height - 183, 'book');
+        bag = game.add.sprite(game.width - 461, game.height - 183, 'bag');
+        map = game.add.sprite(game.width - 410, game.height - 183, 'map');
+        map.inputEnabled = true;
+        map.events.onInputDown.add(function (event) {
+            gameVariables.gameContinue = true;
+            game.state.start('map');
+        }, this);
+        tools = game.add.sprite(game.width - 110, game.height - 260, 'tools');
+        tools.height = 50;
+        tools.width = 50;
+        heart = game.add.sprite(game.width - 350, game.height - 270, 'heart');
+        hearttext = game.add.text(game.width - 295, game.height - 250, "20/20", style);
+        coin = game.add.sprite(game.width - 250, game.height - 270, 'coin');
+
+        //Game info text
         var infoText = game.add.text(game.width - 450, 60, "Info", style);
         back_layer.add(infoText);
         playerSquareCount = {};
@@ -227,15 +300,8 @@ gameMain.prototype = {
             playerSquareCount[i] = game.add.text(game.width - 60, (50 * i) + 65, "25%", style);
             playerSquareCount[i].anchor.setTo(1, 0);
             pop_layer.add(playerSquareCount[i]);
-           
+
         }
-        gameVariables.gamePlayerArray[0].manasprite = game.add.sprite(game.width - 535, game.height - 208, 'mana');
-        gameVariables.gamePlayerArray[0].manasprite.width = 20;
-        gameVariables.gamePlayerArray[0].manasprite.height = 20;
-        goldInfoText = game.add.text(game.width - 60, game.height - 250, gameVariables.playerGold, style);
-        goldInfoText.anchor.setTo(1, 0);
-        goldIcon = game.add.sprite(game.width - 60 - goldInfoText.width, game.height - 258, 'gold');
-        goldIcon.anchor.setTo(1, 0);
         infoText1 = game.add.text(game.width - 550, 115, 'text1', style);
         infoText2 = game.add.text(game.width - 425, 115, 'text2', style);
         infoText3 = game.add.text(game.width - 550, 175, 'text3', style);
@@ -289,36 +355,24 @@ gameMain.prototype = {
         dice = game.add.sprite(game.width - 125, game.height - 150, '1');
         dice.width = 40;
         dice.height = 40;
-        button = game.add.button(game.width - 170, game.height - 110, 'diceButton', diceRollButtonClick, this, null, null, 4, 2);
+        button = game.add.button(game.width - 170, game.height - 108, 'diceButton', diceRollButtonClick, this, 1, 1, 0);
         button.frame = 1;
         button.width = 100;
         button.height = 44;
-
-        //Add cards to the players hands
-        for (i = 0; i < gameVariables.playerMaxHand; i++) {
-            var card = gameVariables.gamePlayerArray[0].deck.pop();
-            gameVariables.gamePlayerArray[0].handTracker.push(new playerHandTracker(card.id, card, 0, 0));
-            gameVariables.gamePlayerArray[0].hand.push(card);
-        }
-        createPlayerHand();
-        for (i = 1; i < gameVariables.gamePlayerArray.length; i++) {
-            gameVariables.gamePlayerArray[i].deck = shuffle(gameVariables.gamePlayerArray[i].deck);
-            for (x = 0; x < 4; x++) {
-                var card = gameVariables.gamePlayerArray[i].deck.pop();
-                gameVariables.gamePlayerArray[i].hand.push(card);
-            }
-            
+        if (gameVariables.gamePlayerArray[0].playerRollDice == true) {
+            //Change roll button to "locked" frame
+            button.frame = 2;
         }
 
         //Confirmation menu
-        var style = { font: "bold 15px Arial", fill: "#000000", align: "center" };
+        var style = { font: "bold 15px Arial", fill: "#000000", align: "center", wordWrap: true, wordWrapWidth: 160 };
         menu = game.add.sprite(game.width / 2, game.height / 2, 'menu2');
         menu.anchor.x = 0.5;
         menu.anchor.y = 0.5;
         menu.visible = false;
         menu.inputEnabled = true;
         menu.events.onInputUp.add(menuClick, this);
-        qText = game.add.text((game.width / 2), (game.height / 2) - 20, "Would you like to cast this spell?", style);
+        qText = game.add.text((game.width / 2), (game.height / 2) - 40, "Would you like to cast this spell?", style);
         qText.anchor.x = 0.5;
         qText.anchor.y = 0.5;
         qText.visible = false;
@@ -364,16 +418,21 @@ gameMain.prototype = {
         leftButt.height = 40;
         leftButt.direction = "left";
         leftButt.visible = false;
-        upButt = game.add.button((game.width / 2 - 21), (game.height / 2) + 10, 'upButton', dirButtonClick, this, 1, 1, 2, 1);
+        upButt = game.add.button((game.width / 2 - 21), (game.height / 2) - 32 , 'upButton', dirButtonClick, this, 1, 1, 2, 1);
         upButt.width = 40;
         upButt.height = 40;
         upButt.direction = "up";
-        upButt.visible = false;      
+        upButt.visible = false;
         rightButt = game.add.button((game.width / 2 + 25), (game.height / 2) + 10, 'rightButton', dirButtonClick, this, 1, 1, 2, 1);
         rightButt.width = 40;
         rightButt.height = 40;
         rightButt.direction = "right";
         rightButt.visible = false;
+        downButt = game.add.button((game.width / 2 - 21), (game.height / 2) + 10, 'downButton', dirButtonClick, this, 1, 1, 2, 1);
+        downButt.width = 40;
+        downButt.height = 40;
+        downButt.direction = "down";
+        downButt.visible = false;
         pop_layer.add(menu);
         pop_layer.add(yesText);
         pop_layer.add(noText);
@@ -381,6 +440,7 @@ gameMain.prototype = {
         pop_layer.add(leftButt);
         pop_layer.add(upButt);
         pop_layer.add(rightButt);
+        pop_layer.add(downButt);
         pop_layer.add(manaText);
         pop_layer.add(cardText);
         pop_layer.add(healthText);
@@ -388,7 +448,9 @@ gameMain.prototype = {
 
     },
     update: function () {
+
         var style = { font: 'bold 15pt Arial', wordWrap: true, wordWrapWidth: 150, align: "center" };
+
         //Update player square capture percentage
         //Update game player mana and health in turn display
         for (i = 0; i < gameVariables.gamePlayerArray.length; i++) {
@@ -408,6 +470,15 @@ gameMain.prototype = {
             var txt = game.add.text(45, 8, gameVariables.gamePlayerArray[i].name, style);
             gameVariables.gamePlayerArray[i].turnSprite.addChild(txt);
 
+            if (gameVariables.gamePlayerArray[i].armor > 0) {
+                var shieldpic = game.add.sprite(130, 10, 'shield');
+                shieldpic.width = 17;
+                shieldpic.height = 17;
+                var armortext = game.add.text(135, 10, gameVariables.gamePlayerArray[i].armor, { font: "bold 10pt Arial" })
+                gameVariables.gamePlayerArray[i].turnSprite.addChild(shieldpic);
+                gameVariables.gamePlayerArray[i].turnSprite.addChild(armortext);
+            }
+
 
             var health = game.add.sprite(45, 29, 'rpix')
             health.width = 100;
@@ -426,22 +497,22 @@ gameMain.prototype = {
             gameVariables.gamePlayerArray[i].turnSprite.addChild(mana);
 
             for (x = 1; x < gameVariables.gamePlayerArray[i].maxmana; x++) {
-                
+
                 var mana = game.add.sprite(45 + (10 * x), 32, 'mana');
                 mana.width = 9;
                 mana.height = 9;
                 gameVariables.gamePlayerArray[i].turnSprite.addChild(mana);
             }
 
-            back_layer.add(gameVariables.gamePlayerArray[i].turnSprite);    
+            back_layer.add(gameVariables.gamePlayerArray[i].turnSprite);
 
             var calc = Math.round((gameVariables.gamePlayerArray[i].capturedSquares / gameVariables.boardInfo.boardTotal) * 100);
             playerSquareCount[i].setText(calc + '%');
         }
-        
+
         //Update player info
         gameVariables.gamePlayerArray[0].manasprite.destroy();
-        gameVariables.gamePlayerArray[0].manasprite = game.add.sprite(game.width - 535, game.height - 208, 'mana');
+        gameVariables.gamePlayerArray[0].manasprite = game.add.sprite(game.width - 530, game.height - 208, 'mana');
         gameVariables.gamePlayerArray[0].manasprite.width = 20;
         gameVariables.gamePlayerArray[0].manasprite.height = 20;
         if (gameVariables.gamePlayerArray[0].mana == 0) {
@@ -455,6 +526,8 @@ gameMain.prototype = {
             gameVariables.gamePlayerArray[0].manasprite.addChild(child);
         }
         goldInfoText.setText(gameVariables.gamePlayerArray[0].gold);
+        handtext.setText(gameVariables.gamePlayerArray[0].hand.length + "/" + gameVariables.playerMaxHand);
+        hearttext.setText(gameVariables.gamePlayerArray[0].hp + "/" + gameVariables.gamePlayerArray[0].maxhp);
 
         //Display card info on hover
         for (c = 0; c < gameVariables.gamePlayerArray[0].handTracker.length; c++) {
@@ -474,9 +547,31 @@ gameMain.prototype = {
         }
 
 
-
+        //PLAYER TURNS
         //Determine player turn
         if (gameVariables.currentPlayer == 0) {
+
+            if (playerTurnMaintenanceComplete == false) {
+                //Do player turn maintenance
+                playerTurnMaintenanceComplete = true;
+
+
+                gameVariables.gamePlayerArray[gameVariables.currentPlayer].playerRollDice = false;
+
+
+                //TODO: Check for game over conditions
+
+
+                //TODO: Check for persistent effects
+
+
+                gameVariables.gamePlayerArray[gameVariables.currentPlayer].mana = gameVariables.gamePlayerArray[gameVariables.currentPlayer].maxmana;
+
+                //TEsting square by moving player to it
+                //playerMove(gameVariables.gamePlayerArray[0].sprite, 9);
+            }
+
+
             //Human player turn
             if (playerNotified == false) {
                 //Display player turn notification
@@ -488,7 +583,6 @@ gameMain.prototype = {
 
                 game.world.bringToTop(player_layer);
 
-                gameVariables.gamePlayerArray[gameVariables.currentPlayer].mana = gameVariables.gamePlayerArray[gameVariables.currentPlayer].maxmana;
 
             }
 
@@ -498,7 +592,7 @@ gameMain.prototype = {
 
             if (playerCrossStart == true) {
 
-                //Must be computer that crossed the start. 
+                //Must be computer that crossed the start.
                 playerCrossStart = false;
 
                 if (gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp < 3) {
@@ -582,7 +676,7 @@ gameMain.prototype = {
                     //Wait for actions to complete
                 }
 
-            }          
+            }
 
         }
 
@@ -644,7 +738,7 @@ gameMain.prototype = {
 
             for (var i = 0; i < multipleTargetsArray.length; i++) {
 
-                var cur = game.add.sprite((game.width/2)+(i * 50), game.height/2, multipleTargetsArray[i].image);
+                var cur = game.add.sprite((game.width/2)+(i * 50)-50, game.height/2, multipleTargetsArray[i].image);
                 cur.anchor.setTo(0.5);
                 cur.targetArrayIndex = i;
                 cur.inputEnabled = true;
@@ -653,7 +747,7 @@ gameMain.prototype = {
                 multipleTargetsArray[i].sprite = cur;
 
             }
-            
+
 
         }
 
@@ -672,30 +766,44 @@ gameMain.prototype = {
             goldText.visible = true;
 
         }
-        
+
 
         //Display player direction choice menu
         if (playerDirChoiceMenu == true) {
 
-            var result = gameVariables.boardInfo.choiceSquares.find(function (element) {
-                return element.id == activePlayerSquare;
-            });
+            var choiceresult = {};
+
+            if (forwardMovement == true) {
+                choiceresult = gameVariables.boardInfo.choiceSquares.find(function (element) {
+                    return element.id == activePlayerSquare;
+                });
+            }
+            else {
+                choiceresult = gameVariables.boardInfo.backwardChoiceSquares.find(function (element) {
+                    return element.id == activePlayerSquare;
+                });
+            }
+
 
             menu.visible = true;
-            qText.setText("Please choose direction.");
+            qText.setText("Choose a direction.");
             qText.visible = true;
 
-            if (result.left > 0) {
+            if (choiceresult.left > 0) {
                 leftButt.visible = true;
-                leftButt.choice = result.left;
+                leftButt.choice = choiceresult.left;
             }
-            if (result.up > 0) {
+            if (choiceresult.up > 0) {
                 upButt.visible = true;
-                upButt.choice = result.up;
+                upButt.choice = choiceresult.up;
             }
-            if (result.right > 0) {
+            if (choiceresult.right > 0) {
                 rightButt.visible = true;
-                rightButt.choice = result.right;
+                rightButt.choice = choiceresult.right;
+            }
+            if (choiceresult.down > 0 ) {
+                downButt.visible = true;
+                downButt.choice = choiceresult.down;
             }
         }
 
@@ -729,6 +837,16 @@ gameMain.prototype = {
             playerDiscardWaiting = true;
         }
 
+        //Captured loot notification
+        if (capturedLootRewardNotice == true) {
+
+            capturedLootRewardNotice = false;
+            menu.visible = true;
+            qText.setText(capturedLootRewardNoticeText);
+            qText.visible = true;
+
+        }
+
         //Tween the cards back to starting position if moved if hand changes
         for (var i = 0; i < gameVariables.gamePlayerArray[0].handTracker.length; i++) {
 
@@ -746,7 +864,7 @@ gameMain.prototype = {
             tween5.start();
 
         }
-        
+
         //for (i = 0; i < gameBoard.length; i++) {
         //    if (gameBoard[i].sprite.input.pointerOver()) {
         //        gameBoard[i].sprite.alpha = 0.5;
@@ -775,12 +893,12 @@ function createPlayerHand() {
 
         addCardToHand(i);
 
-    }   
+    }
 }
 
 
 function addCardToHand(i) {
-    
+
     //Add card front
     gameVariables.gamePlayerArray[0].handTracker[i].spritefront = game.add.sprite(110 * i + 50, game.height - 50, 'cardFront');
     gameVariables.gamePlayerArray[0].handTracker[i].spritefront.width = 100;
@@ -809,7 +927,7 @@ function addCardToHand(i) {
     var style = { font: "bold 10px Arial", fill: "#000000", wordWrap: true, wordWrapWidth: gameVariables.gamePlayerArray[0].handTracker[i].spritefront.width, align: "center" };
     gameVariables.gamePlayerArray[0].handTracker[i].text1 = game.add.text(110 * i + 105, game.height - 170, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.name, style);
     gameVariables.gamePlayerArray[0].handTracker[i].text1.anchor.set(0.5);
-    gameVariables.gamePlayerArray[0].handTracker[i].text2 = game.add.text(110 * i + 115, game.height - 75, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.attack + "/" + gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.defense, { font: "bold 15px Arial" });
+    gameVariables.gamePlayerArray[0].handTracker[i].text2 = game.add.text(110 * i + 115, game.height - 77, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.attack + "/" + gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.defense, { font: "bold 15px Arial" });
 
 
     //Add card mana
@@ -820,6 +938,15 @@ function addCardToHand(i) {
         gameVariables.gamePlayerArray[0].handTracker[i].spritefront.addChild(manacost);
     }
 
+    //Add card armor
+    gameVariables.gamePlayerArray[0].handTracker[i].armor = game.add.sprite(110 * i + 60, game.height - 75, 'shield');
+    gameVariables.gamePlayerArray[0].handTracker[i].armor.width = 17;
+    gameVariables.gamePlayerArray[0].handTracker[i].armor.height = 17;
+    gameVariables.gamePlayerArray[0].handTracker[i].armortext = game.add.text(110 * i + 65, game.height - 76, gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.armor, { font: "bold 13px Arial" })
+    if (gameVariables.gamePlayerArray[0].handTracker[i].cardInfo.armor == 0) {
+        gameVariables.gamePlayerArray[0].handTracker[i].armor.visible = false;
+        gameVariables.gamePlayerArray[0].handTracker[i].armortext.visible = false;
+    }
 
     gameVariables.gamePlayerArray[0].handTracker[i].group = game.add.group();
 
@@ -828,8 +955,9 @@ function addCardToHand(i) {
     gameVariables.gamePlayerArray[0].handTracker[i].group.add(gameVariables.gamePlayerArray[0].handTracker[i].spriteimage);
     gameVariables.gamePlayerArray[0].handTracker[i].group.add(gameVariables.gamePlayerArray[0].handTracker[i].text1);
     gameVariables.gamePlayerArray[0].handTracker[i].group.add(gameVariables.gamePlayerArray[0].handTracker[i].text2);
+    gameVariables.gamePlayerArray[0].handTracker[i].group.add(gameVariables.gamePlayerArray[0].handTracker[i].armor);
+    gameVariables.gamePlayerArray[0].handTracker[i].group.add(gameVariables.gamePlayerArray[0].handTracker[i].armortext);
 
-       
 
 }
 
@@ -858,7 +986,7 @@ function drawCard() {
 function clearPlayerHand() {
     for (var i = 0; i < gameVariables.gamePlayerArray[0].handTracker.length; i++) {
         removeCardFromHandTracker(i);
-    }   
+    }
 }
 
 
@@ -873,6 +1001,8 @@ function removeCardFromHandTracker(handTrackerIndex) {
     gameVariables.gamePlayerArray[0].handTracker[handTrackerIndex].spriteimage.destroy();
     gameVariables.gamePlayerArray[0].handTracker[handTrackerIndex].text1.destroy();
     gameVariables.gamePlayerArray[0].handTracker[handTrackerIndex].text2.destroy();
+    gameVariables.gamePlayerArray[0].handTracker[handTrackerIndex].armor.destroy();
+    gameVariables.gamePlayerArray[0].handTracker[handTrackerIndex].armortext.destroy();
 
     //Remove card from hand tracker
     gameVariables.gamePlayerArray[0].handTracker.splice(handTrackerIndex, 1);
@@ -922,20 +1052,26 @@ function addGameSquare(type, x, y, squareId, gridX, gridY) {
 
     var gs = new gameSquare(squareId, x, y, sprite);
 
-    for (i = 0; i < gameVariables.boardInfo.specialSquares.length; i++) {    
+
+    //Add special square items to board
+    for (i = 0; i < gameVariables.boardInfo.specialSquares.length; i++) {
 
         if (gameVariables.boardInfo.specialSquares[i].squareId == squareId) {
+            if (gameVariables.boardInfo.specialSquares[i].looted > 0) {
+                gs.special = game.add.sprite(x, y, gameVariables.boardInfo.specialSquares[i].alt);
+            }
+            else {
+                gs.special = game.add.sprite(x, y, gameVariables.boardInfo.specialSquares[i].type);
+            }
 
-            gs.special = gameVariables.boardInfo.specialSquares[i];
-            var special = game.add.sprite(x, y, gameVariables.boardInfo.specialSquares[i].type);
-            special.anchor.x = 0.5;
-            special.anchor.y = 0.5;
-            gs.special.specialSprite = special;
-            board_layer.add(special);
+            gs.special.anchor.x = 0.5;
+            gs.special.anchor.y = 0.5;
+
+            board_layer.add(gs.special);
         }
 
     }
-        
+
     gameVariables.gameBoard.push(gs);
 
 }
@@ -946,7 +1082,7 @@ function cardClick(item) {
 
     if (playerDiscardWaiting == true) {
 
-        //Discard spell 
+        //Discard spell
         if (gameVariables.currentPlayer == 0) {
 
             for (i = 0; i < gameVariables.gamePlayerArray[0].handTracker.length; i++) {
@@ -1031,7 +1167,7 @@ function castSpell(id, player) {
     } else {
         highlightTargets(cardDetails, boardSquareDetail, player);
     }
-        
+
 
 
     //Discard spell that was cast
@@ -1094,7 +1230,7 @@ function highlightTargets(cardDetails, boardSquareDetail, player) {
 
     if (location == "self") {
         //Just select current square as target to start
-        targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: boardSquareDetail.id, player: player });
+        targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: boardSquareDetail.id, player: player, type: type });
     }
 
     if (location == "row") {
@@ -1104,7 +1240,7 @@ function highlightTargets(cardDetails, boardSquareDetail, player) {
 
     if (location == "square") {
         //Just select current square as target to start
-        targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: boardSquareDetail.id, player: player });
+        targetArray.push({ x: boardSquareDetail.sprite.x, y: boardSquareDetail.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: boardSquareDetail.id, player: player, type: type });
     }
 
     if (location == "adj") {
@@ -1122,7 +1258,7 @@ function highlightTargets(cardDetails, boardSquareDetail, player) {
             });
 
             if (typeof gbr !== 'undefined') {
-                targetArray.push({ x: gbr.x, y: gbr.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: neighborSquare, player: player });
+                targetArray.push({ x: gbr.x, y: gbr.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: neighborSquare, player: player, type: type });
             }
 
         });
@@ -1203,11 +1339,15 @@ function targetClicked(target) {
     //Check if self
     if (targetArrayItem.card.targetlocation == "self") {
 
+        processSpecialSpell(card, targetArrayItem.player, boardSquareDetail, "player", targetArrayItem.player.key);
+
         if (targetArray[target.targetArrayIndex].card.creature == true) {
 
             playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
 
         }
+
+        return;
     }
 
     //Check if square
@@ -1219,14 +1359,16 @@ function targetClicked(target) {
                 targetArray.push({ x: boardSquareDetail.creature.sprite.x, y: boardSquareDetail.creature.sprite.y, sprite: {}, card: targetArrayItem.card, originSquare: boardSquareDetail, targetSquare: boardSquareDetail.creature.squareId, player: targetArrayItem.player, type: "creature", model: boardSquareDetail.creature });
 
             }
-            
+
         }
         if (targetArrayItem.card.targettype == "player" || targetArrayItem.card.targettype == "both") {
 
-
             gameVariables.gamePlayerArray.forEach(function (gp) {
                 if (gp.sprite.gameSquareId == targetArrayItem.targetSquare) {
-                    targetArray.push({ x: gp.sprite.x, y: gp.sprite.y, sprite: {}, card: cardDetails, originSquare: boardSquareDetail, targetSquare: gp.sprite.gameSquareId, player: targetArrayItem.player, type: "player", model: gp });
+                    if (targetArrayItem.player.id != 99) {
+
+                    }
+
                 }
 
             });
@@ -1263,16 +1405,44 @@ function targetClicked(target) {
         multipleTargetsMenu = true;
     }
     else {
+
+        if (result.length == 0) {
+            if (targetArray[target.targetArrayIndex].card.creature == true) {
+
+                playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
+
+            }
+            return;
+        }
+
         game.camera.flash(0xff0000, 500);
 
         if (card.special == 0) {
 
-            if (result[0].type == "creature") {
+            if (result[0].type == "ground") {
+
+                if (boardSquareDetail.creature != null) {
+                    damageCreatureOnSquare(boardSquareDetail, card, targetArrayItem.player);
+                }
+
+                var targetPlayer = gameVariables.gamePlayerArray.filter(function (item) {
+                    return item.sprite.gameSquareId == targetArrayItem.targetSquare;
+                });
+
+                if (targetPlayer.length > 0) {
+                    targetPlayer.forEach(function (tp) {
+                        damagePlayerOnSquare(boardSquareDetail, card, targetArrayItem.player, tp.class);
+                    });
+
+                }
+
+            }
+            else if (result[0].type == "creature") {
                 damageCreatureOnSquare(boardSquareDetail, card, targetArrayItem.player);
             }
             else {
                 var targetPlayer = gameVariables.gamePlayerArray.find(function (item) {
-                    return item.sprite.gameSquareId == targetArrayItem.targetSquare.id;
+                    return item.sprite.gameSquareId == targetArrayItem.targetSquare;
                 });
 
                 damagePlayerOnSquare(boardSquareDetail, card, targetArrayItem.player, targetPlayer.class);
@@ -1289,7 +1459,7 @@ function targetClicked(target) {
 
                 processSpecialSpell(card, result[0].player, result[0].targetSquare, result[0].type, targetPlayer.class);
             }
-            
+
         }
 
 
@@ -1324,7 +1494,7 @@ function targetMenuClicked(item) {
 
     }
     else {
-        processSpecialSpell(targetResult.card, targetResult.player, boardResult, targetResult.type, targetResult.image);
+        processSpecialSpell(targetResult.card, targetResult.player, targetResult.targetSquare, targetResult.type, targetResult.image);
     }
 
     if (targetResult.card.creature == true) {
@@ -1371,7 +1541,7 @@ function damagePlayerOnSquare(boardSquareDetail, cardDetails, player, playerClas
 }
 
 
-function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {  
+function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
 
     //Check if square already has a creature
     if (boardSquareDetail.creature != null) {
@@ -1542,7 +1712,7 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
     var boardSquareDetail = gameVariables.gameBoard.find(function (item) {
         return item.id == targetSquare;
     });
-    
+
     if (card.special == 1) {
         var result = gameVariables.gamePlayerArray.find(function (item) {
             return item.class == targetImage;
@@ -1561,7 +1731,7 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
     }
 
     if (card.special == 3) {
-        //Heal 
+        //Heal
         if (targetType == "creature") {
             boardSquareDetail.creature.hitpoints = boardSquareDetail.creature.hitpoints + card.damage;
 
@@ -1581,9 +1751,10 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
         }
 
     }
-    
+
     if (card.special == 4) {
-        //Move forward
+        //Move player
+        calculateDestinations(player.gameSquareId, card.damage);
         playerMove(player, card.damage);
     }
 
@@ -1598,19 +1769,90 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
     }
 
     if (card.special == 8) {
-        targetSquare.creature.hitpoints = targetSquare.creature.hitpoints + card.defense;
-        targetSquare.creature.maxhitpoints = targetSquare.creature.maxhitpoints + card.defense;
-        targetSquare.creature.armor = targetSquare.creature.armor + card.armor;
-        targetSquare.creature.attack = targetSquare.creature.attack + card.attack;
+        boardSquareDetail.creature.hitpoints = boardSquareDetail.creature.hitpoints + card.defense;
+        boardSquareDetail.creature.maxhitpoints = boardSquareDetail.creature.maxhitpoints + card.defense;
+        boardSquareDetail.creature.armor = boardSquareDetail.creature.armor + card.armor;
+        boardSquareDetail.creature.attack = boardSquareDetail.creature.attack + card.attack;
+
+        //redraw defender health bar.
+        var percent = (boardSquareDetail.creature.hitpoints / boardSquareDetail.creature.maxhitpoints);
+        var pixelWidth = 20 - Math.round(percent * 20);
+
+        boardSquareDetail.creature.hitspritered.width = pixelWidth;
+    }
+
+    if (card.special == 10) {
+        currentPlayer.mana = currentPlayer.mana + card.damage;
+    }
+
+    if (card.special == 11) {
+        currentPlayer.maxmana = currentPlayer.maxmana + card.damage;
+    }
+}
+
+
+function processSpecialLoot(type, looted, result, boardSquareDetail) {
+    console.log(type);
+    switch (type) {
+        case "key":
+            //TODO: add key loot
+            break;
+        case "pressure":
+            if (looted == 0) {
+                game.camera.flash(0xff0000, 500);
+
+                capturedLootRewardNotice = true;
+                capturedLootRewardNoticeText = "The pit trap deals " + result + " damage!";
+                gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp - Math.max((result - gameVariables.gamePlayerArray[gameVariables.currentPlayer].armor), 0);
+
+                //Change pressure plate to open trap
+                boardSquareDetail.special.destroy();
+                var special = game.add.sprite(boardSquareDetail.x, boardSquareDetail.y, "trap");
+                special.anchor.x = 0.5;
+                special.anchor.y = 0.5;
+                boardSquareDetail.special = special;
+                board_layer.add(special);
+            }
+            break;
+        case "magictrap":
+            game.camera.flash(0xff0000, 500);
+
+            capturedLootRewardNotice = true;
+            capturedLootRewardNoticeText = "The magical trap deals " + result + " damage!";
+            gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp - result;
+            break;
+        case "chest":
+            if (looted == 0) {
+                capturedLootRewardNotice = true;
+                if (result == "rand") {
+                    //TODO: Add random rewards table
+                    capturedLootRewardNoticeText = "Found " + 110 + " gold in the chest!";
+                    gameVariables.gamePlayerArray[gameVariables.currentPlayer].gold = gameVariables.gamePlayerArray[gameVariables.currentPlayer].gold + result;
+                }
+                else if (result == "relic") {
+                    //TODO: Add relic loot
+                } else {
+                    capturedLootRewardNoticeText = "Found " + result + " gold in the chest!";
+                    gameVariables.gamePlayerArray[gameVariables.currentPlayer].gold = gameVariables.gamePlayerArray[gameVariables.currentPlayer].gold + result;
+                }
+
+                //Change chest to open chest
+                boardSquareDetail.special.destroy();
+                var special = game.add.sprite(boardSquareDetail.x, boardSquareDetail.y, "chestopen");
+                special.anchor.x = 0.5;
+                special.anchor.y = 0.5;
+                boardSquareDetail.special = special;
+                board_layer.add(special);
+            }
+            break;
+        case "start":
+            //Do nothing for now?
+            break;
     }
 }
 
 
 function captureSquare(id) {
-    //Check for loot on the square
-
-
-
 
     //Claim the square color
     var boardSquareDetail = gameVariables.gameBoard.find(function (item) {
@@ -1620,8 +1862,8 @@ function captureSquare(id) {
     for (i = 0; i < gameVariables.gamePlayerArray.length; i++) {
         if (gameVariables.gamePlayerArray[i].color == boardSquareDetail.sprite.key) {
             gameVariables.gamePlayerArray[i].capturedSquares--;
-        } 
-        
+        }
+
     }
 
     gameVariables.gamePlayerArray[gameVariables.currentPlayer].capturedSquares++;
@@ -1645,7 +1887,7 @@ function menuConfirmClick(item) {
         castSpell(cardClicked, gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite);
     }
 
-    
+
 }
 
 
@@ -1707,6 +1949,11 @@ function menuStartClick(choice) {
 
 function endPlayerTurn() {
 
+    if (gameVariables.gamePlayerArray[gameVariables.currentPlayer].playerRollDice == false) {
+        //Player must roll before end of turn
+        return;
+    }
+
     if (playerDiscardWaiting == true) {
         playerDiscardMenu = true;
         return;
@@ -1716,6 +1963,7 @@ function endPlayerTurn() {
         playerDiscardMenu = true;
     }
     else {
+        playerTurnMaintenanceComplete = false;
         playerNotified = false;
         endCurrentPlayerTurn();
     }
@@ -1739,14 +1987,27 @@ function endCurrentPlayerTurn() {
         }
     }
 
-        
+    //Check for loot on the square
+    var boardSquareLoot = gameVariables.boardInfo.specialSquares.find(function (element) {
+        return element.squareId == gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite.gameSquareId;
+    });
 
+
+    if (typeof boardSquareLoot != 'undefined') {
+        //found loot
+        processSpecialLoot(boardSquareLoot.type, boardSquareLoot.looted, boardSquareLoot.result, square);
+        boardSquareLoot.looted++;
+    }
+
+
+    //Change game to next player
     gameVariables.currentPlayer++;
 
     if (gameVariables.currentPlayer > gameVariables.gamePlayerArray.length - 1) {
         gameVariables.currentPlayer = 0;
     }
 
+    //Move turn tracker
     var tween = game.add.tween(turnArrow).to({ x: game.width - 280, y: (50 * gameVariables.currentPlayer) + 60 }, 500, Phaser.Easing.Linear.None, true);
 
     computerMoved = false;
@@ -1793,7 +2054,11 @@ function diceRoll(item) {
 
 
 function diceRollButtonClick() {
-    
+    if (gameVariables.gamePlayerArray[gameVariables.currentPlayer].playerRollDice == true) {
+        return;
+    }
+
+    gameVariables.gamePlayerArray[gameVariables.currentPlayer].playerRollDice = true;
     button.inputEnabled = false;
     diceRoll(dice);
 
@@ -1808,6 +2073,7 @@ function dirButtonClick(item) {
     leftButt.visible = false;
     upButt.visible = false;
     rightButt.visible = false;
+    downButt.visible = false;
 
     var gameBoardResult = gameVariables.gameBoard.find(function (element) {
         return element.sprite.gameSquareId == item.choice;
@@ -1815,12 +2081,24 @@ function dirButtonClick(item) {
 
     var tween = game.add.tween(gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite).to({ x: gameBoardResult.sprite.x, y: gameBoardResult.sprite.y }, 500, Phaser.Easing.Linear.None, true);
 
-    //Callback to complete the rest of the roll
-    tween.onComplete.add(function () {
-        gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite.gameSquareId = item.choice;
-        playerDestinations.length = 0;
-        playerMove(gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite, playerRoll - 1);
-    }, this);
+    if (forwardMovement == true) {
+        //Callback to complete the rest of the roll
+        tween.onComplete.add(function () {
+            gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite.gameSquareId = item.choice;
+            playerDestinations.length = 0;
+            playerMove(gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite, playerRoll - 1);
+        }, this);
+    }
+    else {
+        //Callback to complete the rest of the roll
+        tween.onComplete.add(function () {
+            gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite.gameSquareId = item.choice;
+            playerDestinations.length = 0;
+            playerMove(gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite, playerRoll + 1);
+        }, this);
+    }
+
+
 
 }
 
@@ -1835,10 +2113,12 @@ function playerMove(playerSprite, roll) {
     var nextPathIdArray = [];
 
     if (roll > 0) {
+        forwardMovement = true;
+
         var gameBoardResult = gameVariables.gameBoard.find(function (element) {
-            return element.sprite.gameSquareId == playerSprite.gameSquareId
+            return element.sprite.gameSquareId == playerSprite.gameSquareId;
         });
-        
+
         var neighbors = Array2D.orthogonals(gameVariables.boardInfo.squares, gameBoardResult.sprite.gridY, gameBoardResult.sprite.gridX);
 
         //Special cases if at end of board or beginning
@@ -1861,7 +2141,7 @@ function playerMove(playerSprite, roll) {
         } else {
             var boardPathId = neighbors.filter(function (element) {
 
-                return element > playerSprite.gameSquareId
+                return element > playerSprite.gameSquareId;
             });
 
             nextPathIdArray = boardPathId;
@@ -1879,7 +2159,7 @@ function playerMove(playerSprite, roll) {
             var AIchoice = nextPathIdArray[Math.floor(Math.random() * nextPathIdArray.length)];
             nextPathIdArray[0] = AIchoice;
         }
-     
+
         var gameBoardDestResult = gameVariables.gameBoard.find(function (element) {
             return element.sprite.gameSquareId == nextPathIdArray[0];
         });
@@ -1899,8 +2179,71 @@ function playerMove(playerSprite, roll) {
         }, this);
 
     }
+    else if (roll < 0) {
+        forwardMovement = false;
+        //Move player backwards
+        var gameBoardResult = gameVariables.gameBoard.find(function (element) {
+            return element.sprite.gameSquareId == playerSprite.gameSquareId;
+        });
+
+        var neighbors = Array2D.orthogonals(gameVariables.boardInfo.squares, gameBoardResult.sprite.gridY, gameBoardResult.sprite.gridX);
+
+        //Special cases if at end of board or beginning
+        if (playerSprite.gameSquareId == gameVariables.boardInfo.boardStart) {
+
+            var boardPathId = neighbors.find(function (element) {
+                return element == gameVariables.boardInfo.boardEnd;
+            });
+
+            nextPathIdArray.push(boardPathId);
+
+        } else if (playerSprite.gameSquareId == gameVariables.boardInfo.boardEnd) {
+
+            var boardPathId = neighbors.filter(function (element) {
+                return element < playerSprite.gameSquareId && element != gameVariables.boardInfo.boardStart && element != 0;
+            });
+
+            nextPathIdArray = boardPathId;
+
+        } else {
+            var boardPathId = neighbors.filter(function (element) {
+
+                return element < playerSprite.gameSquareId && element != 0;
+            });
+
+            nextPathIdArray = boardPathId;
+        }
+
+        if (nextPathIdArray.length > 1) {
+
+            if (gameVariables.currentPlayer == 0) {
+                //If player has multiple choices start player choice menu and return.
+                playerDirChoiceMenu = true;
+                activePlayerSquare = playerSprite.gameSquareId;
+                return;
+            }
+
+            var AIchoice = nextPathIdArray[Math.floor(Math.random() * nextPathIdArray.length)];
+            nextPathIdArray[0] = AIchoice;
+        }
+
+        var gameBoardDestResult = gameVariables.gameBoard.find(function (element) {
+            return element.sprite.gameSquareId == nextPathIdArray[0];
+        });
+
+
+        var tween = game.add.tween(playerSprite).to({ x: gameBoardDestResult.sprite.x, y: gameBoardDestResult.sprite.y }, 500, Phaser.Easing.Linear.None, true);
+
+        //Callback to complete the rest of the roll
+        tween.onComplete.add(function () {
+            playerSprite.gameSquareId = nextPathIdArray[0];
+            playerMove(gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite, roll + 1);
+        }, this);
+    }
     else {
         //Player movement done.
+        gameVariables.gamePlayerArray[gameVariables.currentPlayer].square =
+            gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite.gameSquareId;
         computerMoving = false;
         if (playerCrossStart == true) {
             playerCrossStartMenu = true;

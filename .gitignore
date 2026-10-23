@@ -235,6 +235,8 @@ FakesAssemblies/
 # Node.js Tools for Visual Studio
 .ntvs_analysis.dat
 node_modules/
+.vite/
+npm-debug.log*
 
 # Typescript v1 declaration files
 typings/
