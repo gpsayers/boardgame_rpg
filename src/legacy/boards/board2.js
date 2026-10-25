@@ -35,6 +35,7 @@ board2.specialSquares.push({ squareId: 37, type: "chest", looted: 0, result: 100
 board2.specialSquares.push({ squareId: 34, type: "chest", looted: 0, result: "rand", alt: "chestopen" });
 board2.specialSquares.push({ squareId: 1, type: "start", looted: 0, result: 0, alt: "start" });
 
+// Computer players for board2
 board2.computerPlayers.push(new gamePlayer(1, board1.boardStart, "Fancis", "wizard", "Fire", 8, 1, false, redWizard1List, 3, 100, 0));
 board2.computerPlayers.push(new gamePlayer(2, board1.boardStart, "Ginny", "sorceress", "Death", 10, 1, false, blackSorceress1List, 3, 100, 0));
 board2.computerPlayers.push(new gamePlayer(2, board1.boardStart, "Fred", "cavalier", "Life", 12, 1, false, redWizard1List, 3, 100, 0));
