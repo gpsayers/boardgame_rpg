@@ -12,6 +12,7 @@ var board2 = {
     boardStart: 1,
     boardEnd: 50,
     boardTotal: 35,
+    captureRequirement: 7,
     specialSquares: [],
     choiceSquares: [],
     backwardChoiceSquares: [],
@@ -37,7 +38,9 @@ board2.specialSquares.push({ squareId: 1, type: "start", looted: 0, result: 0, a
 
 // Computer players for board2
 board2.computerPlayers.push(new gamePlayer(1, board1.boardStart, "Fancis", "wizard", "Fire", 8, 1, false, redWizard1List, 3, 100, 0));
+board2.computerPlayers[board2.computerPlayers.length - 1].aiProfile = "aggressor";
 board2.computerPlayers.push(new gamePlayer(2, board1.boardStart, "Ginny", "sorceress", "Death", 10, 1, false, blackSorceress1List, 3, 100, 0));
-board2.computerPlayers.push(new gamePlayer(2, board1.boardStart, "Fred", "cavalier", "Life", 12, 1, false, redWizard1List, 3, 100, 0));
-
+board2.computerPlayers[board2.computerPlayers.length - 1].aiProfile = "guardian";
+board2.computerPlayers.push(new gamePlayer(3, board1.boardStart, "Fred", "cavalier", "Life", 12, 1, false, redWizard1List, 3, 100, 0));
+board2.computerPlayers[board2.computerPlayers.length - 1].aiProfile = "opportunist";
 
