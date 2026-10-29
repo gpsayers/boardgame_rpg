@@ -15,6 +15,7 @@ var playerDestinations = [],
     playerCrossStartMenu = false,
     playerDiscardMenu = false,
     playerDiscardWaiting = false,
+    playerDuplicateWaiting = false,
     playerManaNotificationMenu = false,
     playerSpellTargeting = false,
     multipleTargetsMenu = false,
@@ -159,6 +160,9 @@ gameMain.prototype = {
     },
     create: function () {
         battleEnded = false;
+        gameVariables.gamePlayerArray.forEach(function (player) {
+            player.battleGold = 0;
+        });
 
         //Default text style
         var style = { font: 'bold 15pt Arial', wordWrap: true, wordWrapWidth: 150, align: "center" };
@@ -971,6 +975,22 @@ function drawCard() {
 }
 
 
+function addTemporaryCardToHand(player, masterCard) {
+    if (player.hand.length >= player.maxhand) {
+        return null;
+    }
+    var tempCard = createTemporaryCard(masterCard);
+    if (player.human && player === gameVariables.gamePlayerArray[0]) {
+        var ind = player.handTracker.push(new playerHandTracker(tempCard.id, tempCard, 0, 0));
+        player.hand.push(tempCard);
+        addCardToHand(ind - 1);
+    } else {
+        player.hand.push(tempCard);
+    }
+    return tempCard;
+}
+
+
 function clearPlayerHand() {
     for (var i = 0; i < gameVariables.gamePlayerArray[0].handTracker.length; i++) {
         removeCardFromHandTracker(i);
@@ -1070,6 +1090,19 @@ function addGameSquare(type, x, y, squareId, gridX, gridY) {
 function cardClick(item) {
     cardClicked = item.cardId;
 
+    if (playerDuplicateWaiting == true) {
+        var handCard = gameVariables.gamePlayerArray[0].hand.find(function (candidate) {
+            return candidate.id == cardClicked;
+        });
+        playerDuplicateWaiting = false;
+        menu.visible = false;
+        qText.visible = false;
+        if (handCard) {
+            addTemporaryCardToHand(gameVariables.gamePlayerArray[0], handCard);
+        }
+        return;
+    }
+
     if (playerDiscardWaiting == true) {
 
         //Discard spell
@@ -1085,7 +1118,7 @@ function cardClick(item) {
             for (m = 0; m < gameVariables.gamePlayerArray[0].hand.length; m++) {
                 if (gameVariables.gamePlayerArray[0].hand[m].id == cardClicked) {
                     //Add card to discard
-                    gameVariables.gamePlayerArray[0].discard.push(gameVariables.gamePlayerArray[0].hand[m]);
+                    discardCard(gameVariables.gamePlayerArray[0], gameVariables.gamePlayerArray[0].hand[m]);
 
                     //Remove card from hand
                     gameVariables.gamePlayerArray[0].hand.splice(m, 1);
@@ -1148,6 +1181,10 @@ function castSpell(id, player) {
 
         if (cardDetails.spell == false) {
             playCreatureOnSquare(boardSquareDetail, cardDetails, player);
+            if (cardDetails.special === SPECIAL_EFFECT.CAST_SPELL) {
+                var caster = gameVariables.gamePlayerArray[gameVariables.currentPlayer];
+                processSpecialSpell(cardDetails, caster, caster.sprite.gameSquareId, "player", caster.class);
+            }
         }
         else {
             //Determine target
@@ -1175,7 +1212,7 @@ function castSpell(id, player) {
     for (m = 0; m < gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.length; m++) {
         if (gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand[m].id == id) {
             //Add card to discard
-            gameVariables.gamePlayerArray[gameVariables.currentPlayer].discard.push(gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand[m]);
+            discardCard(gameVariables.gamePlayerArray[gameVariables.currentPlayer], gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand[m]);
 
             //Remove card from hand
             gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.splice(m, 1);
@@ -1291,12 +1328,24 @@ function targetClicked(target) {
 
     }
 
+    if (targetArrayItem.teleport) {
+        var teleportData = targetArrayItem.teleport;
+        targetArray.length = 0;
+        executeTeleport(teleportData.type, teleportData.subject, targetArrayItem.targetSquare);
+        return;
+    }
+
     var boardSquareDetail = gameVariables.gameBoard.find(function (item) {
         return item.id == targetArrayItem.targetSquare;
     });
 
-    var card = targetArrayItem.card;
+    if (targetArrayItem.summon) {
+        targetArray.length = 0;
+        playCreatureOnSquare(boardSquareDetail, targetArrayItem.summon.creatureCard, targetArrayItem.player);
+        return;
+    }
 
+    var card = targetArrayItem.card;
 
     //Check if all
     if (targetArrayItem.card.targetlocation == "all") {
@@ -1309,15 +1358,23 @@ function targetClicked(target) {
                 return item.id == target.targetSquare;
             });
 
-            if (target.type == "player") {
+            if ((card.special === SPECIAL_EFFECT.DEBUFF_CREATURE || card.special === SPECIAL_EFFECT.SET_CREATURE_STATS ||
+                card.special === SPECIAL_EFFECT.UNSUMMON || card.special === SPECIAL_EFFECT.TRANSFORM) &&
+                target.type === "creature") {
+                processSpecialSpell(card, target.model, target.targetSquare, target.type, target.model);
+            } else if (target.type == "player") {
                 damagePlayerOnSquare(deets, target.card, target.player, target.model.class, target.model);
-            }
-            else {
+            } else {
                 damageCreatureOnSquare(deets, target.card, target.player);
             }
         });
 
-        if (targetArray[target.targetArrayIndex].card.creature == true) {
+        if (card.special === SPECIAL_EFFECT.CAST_SPELL) {
+            var caster = gameVariables.gamePlayerArray[gameVariables.currentPlayer];
+            processSpecialSpell(card, caster, caster.sprite.gameSquareId, "player", caster.class);
+        }
+
+        if (targetArrayItem.card.creature == true) {
 
             playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
 
@@ -1331,7 +1388,7 @@ function targetClicked(target) {
 
         processSpecialSpell(card, targetArrayItem.player, boardSquareDetail, "player", targetArrayItem.player.key);
 
-        if (targetArray[target.targetArrayIndex].card.creature == true) {
+        if (targetArrayItem.card.creature == true) {
 
             playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
 
@@ -1366,6 +1423,10 @@ function targetClicked(target) {
 
         if (targetArray.length == 0) {
             //No targets
+            if (targetArrayItem.card.special === SPECIAL_EFFECT.CAST_SPELL) {
+                var caster = gameVariables.gamePlayerArray[gameVariables.currentPlayer];
+                processSpecialSpell(card, caster, caster.sprite.gameSquareId, "player", caster.class);
+            }
             if (targetArrayItem.card.creature == true) {
 
                 playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
@@ -1397,7 +1458,11 @@ function targetClicked(target) {
     else {
 
         if (result.length == 0) {
-            if (targetArray[target.targetArrayIndex].card.creature == true) {
+            if (targetArrayItem.card.special === SPECIAL_EFFECT.CAST_SPELL) {
+                var caster = gameVariables.gamePlayerArray[gameVariables.currentPlayer];
+                processSpecialSpell(card, caster, caster.sprite.gameSquareId, "player", caster.class);
+            }
+            if (targetArrayItem.card.creature == true) {
 
                 playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
 
@@ -1450,7 +1515,7 @@ function targetClicked(target) {
         }
 
 
-        if (targetArray[target.targetArrayIndex].card.creature == true) {
+        if (targetArrayItem.card.creature == true) {
 
             playCreatureOnSquare(boardSquareDetail, targetArrayItem.card, targetArrayItem.player);
 
@@ -1564,7 +1629,11 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
                 cardDetails.armor,
                 cardDetails.attack,
                 cardDetails.defense,
-                gameVariables.gamePlayerArray[gameVariables.currentPlayer].id);
+                gameVariables.gamePlayerArray[gameVariables.currentPlayer].id,
+                cardDetails.flying,
+                cardDetails.blitz,
+                cardDetails.deadly,
+                cardDetails.reach, cardDetails.regen);
             var creatureSprite =
                 game.add.sprite(boardSquareDetail.sprite.x, boardSquareDetail.sprite.y, cardDetails.image);
             creatureSprite.width = 45;
@@ -1599,9 +1668,13 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
 
         //Creature already exists!
         //Super awesome creature combat battle
-        var defHp = (boardCreature.hitpoints - Math.max((cardDetails.attack - boardCreature.armor), 0));
+        var combat = resolveCombatRound({
+            attack: cardDetails.attack, armor: cardDetails.armor, hitpoints: cardDetails.defense,
+            flying: cardDetails.flying, reach: cardDetails.reach, blitz: cardDetails.blitz
+        }, boardCreature, true);
+        var defHp = boardCreature.hitpoints - combat.toDefender;
 
-        var attackerHP = (cardDetails.defense - Math.max((boardCreature.attack - cardDetails.armor), 0));
+        var attackerHP = cardDetails.defense - combat.toAttacker;
 
         if (defHp < 1) {
             //defender dead
@@ -1620,7 +1693,11 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
                     cardDetails.armor,
                     cardDetails.attack,
                     cardDetails.defense,
-                    gameVariables.gamePlayerArray[gameVariables.currentPlayer].id);
+                    gameVariables.gamePlayerArray[gameVariables.currentPlayer].id,
+                    cardDetails.flying,
+                    cardDetails.blitz,
+                    cardDetails.deadly,
+                    cardDetails.reach, cardDetails.regen);
                 var creatureSprite = game.add.sprite(boardSquareDetail.sprite.x,
                     boardSquareDetail.sprite.y,
                     cardDetails.image);
@@ -1671,7 +1748,11 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
             cardDetails.armor,
             cardDetails.attack,
             cardDetails.defense,
-            gameVariables.gamePlayerArray[gameVariables.currentPlayer].id);
+            gameVariables.gamePlayerArray[gameVariables.currentPlayer].id,
+            cardDetails.flying,
+            cardDetails.blitz,
+            cardDetails.deadly,
+            cardDetails.reach, cardDetails.regen);
         var creatureSprite =
             game.add.sprite(boardSquareDetail.sprite.x, boardSquareDetail.sprite.y, cardDetails.image);
         creatureSprite.width = 45;
@@ -1703,87 +1784,550 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
 }
 
 
+function placeCreatureSprites(creature, boardSquareDetail) {
+    var healthBarWidth = boardSquareDetail.sprite.width * 0.8;
+    var healthBarX = boardSquareDetail.sprite.x - healthBarWidth / 2;
+
+    creature.squareId = boardSquareDetail.id;
+    creature.sprite.x = boardSquareDetail.sprite.x;
+    creature.sprite.y = boardSquareDetail.sprite.y;
+    creature.hitspritegreen.x = healthBarX;
+    creature.hitspritegreen.y = boardSquareDetail.sprite.y + 17;
+    creature.hitspritered.y = boardSquareDetail.sprite.y + 17;
+    updateCreatureHealthBar(creature);
+}
+
+
+function destroyCreatureSprites(creature) {
+    [creature.sprite, creature.hitspritegreen, creature.hitspritered].forEach(function (sprite) {
+        if (sprite && sprite.destroy) {
+            sprite.destroy();
+        }
+    });
+}
+
+
+// Replaces a creature with a fresh one built from newCard (full HP, new sprite and stats).
+// The owner and square are kept, and the square's capture state is untouched.
+function transformCreature(square, newCard) {
+    var oldCreature = square.creature;
+    var healthBarWidth = square.sprite.width * 0.8;
+    var healthBarX = square.sprite.x - healthBarWidth / 2;
+
+    destroyCreatureSprites(oldCreature);
+    var creature = new gameSquareCreature(newCard.id, square.id, null, newCard.defense, newCard.defense,
+        newCard.armor, newCard.attack, newCard.defense, oldCreature.playerOwnedId,
+        newCard.flying, newCard.blitz, newCard.deadly, newCard.reach, newCard.regen);
+    var creatureSprite = game.add.sprite(square.sprite.x, square.sprite.y, newCard.image);
+    creatureSprite.width = 45;
+    creatureSprite.height = 45;
+    creatureSprite.anchor.x = 0.5;
+    creatureSprite.anchor.y = 0.5;
+    creature_layer.add(creatureSprite);
+    creature.sprite = creatureSprite;
+
+    var healthGreen = game.add.sprite(healthBarX, square.sprite.y + 17, 'gpix');
+    healthGreen.width = healthBarWidth;
+    healthGreen.height = 3;
+    var healthRed = game.add.sprite(healthBarX, square.sprite.y + 17, 'rpix');
+    healthRed.width = 0;
+    healthRed.height = 3;
+    creature_layer.add(healthGreen);
+    creature_layer.add(healthRed);
+    creature.hitspritegreen = healthGreen;
+    creature.hitspritered = healthRed;
+
+    square.creature = creature;
+    updateCreatureHealthBar(creature);
+    return creature;
+}
+
+
+// A moved creature behaves as if summoned on the destination: it fights any enemy there
+// (one round, like a summon) and captures the square if it survives.
+// Returns "moved", "defeated", "traded", or false when the move is not allowed.
+function moveCreatureToSquare(fromSquareId, toSquareId) {
+    var fromSquare = gameVariables.gameBoard.find(function (item) {
+        return item.id == fromSquareId;
+    });
+    var toSquare = gameVariables.gameBoard.find(function (item) {
+        return item.id == toSquareId;
+    });
+    if (!fromSquare || !toSquare || fromSquare === toSquare || !fromSquare.creature) {
+        return false;
+    }
+
+    var mover = fromSquare.creature;
+    var defender = toSquare.creature;
+    if (defender && defender.playerOwnedId === mover.playerOwnedId) {
+        return false;
+    }
+
+    var moverOwner = gameVariables.gamePlayerArray.find(function (item) {
+        return item.id === mover.playerOwnedId;
+    });
+    var moverCard = masterCardList.find(function (item) {
+        return item.id === mover.cardId;
+    });
+    var moverName = (moverOwner ? moverOwner.name : "Unknown") + "'s " +
+        (moverCard ? moverCard.name : "creature");
+
+    fromSquare.creature = null;
+
+    if (!defender) {
+        toSquare.creature = mover;
+        placeCreatureSprites(mover, toSquare);
+        captureSquare(toSquare.id, moverOwner);
+        console.log(moverName + " moves to square " + toSquare.id + " and captures it");
+        return "moved";
+    }
+
+    var defenderOwner = gameVariables.gamePlayerArray.find(function (item) {
+        return item.id === defender.playerOwnedId;
+    });
+    var defenderCard = masterCardList.find(function (item) {
+        return item.id === defender.cardId;
+    });
+    var defenderName = (defenderOwner ? defenderOwner.name : "Unknown") + "'s " +
+        (defenderCard ? defenderCard.name : "creature");
+
+    var combat = resolveCombatRound(mover, defender, true);
+    var defenderDamage = combat.toDefender;
+    var moverDamage = combat.toAttacker;
+    defender.hitpoints -= defenderDamage;
+    mover.hitpoints -= moverDamage;
+    console.log(moverName + " attacks " + defenderName + " on square " + toSquare.id +
+        " for " + defenderDamage + " damage; " + defenderName + " deals " + moverDamage + " back");
+
+    if (defender.hitpoints > 0) {
+        // Like a summoned attacker, the mover is lost if the defender holds the square.
+        updateCreatureHealthBar(defender);
+        destroyCreatureSprites(mover);
+        console.log(moverName + " is defeated and " + defenderName + " holds square " + toSquare.id);
+        return "defeated";
+    }
+
+    destroyCreatureSprites(defender);
+    toSquare.creature = null;
+    console.log(defenderName + " dies");
+
+    if (mover.hitpoints > 0) {
+        toSquare.creature = mover;
+        placeCreatureSprites(mover, toSquare);
+        captureSquare(toSquare.id, moverOwner);
+        console.log(moverName + " survives and captures square " + toSquare.id);
+        return "moved";
+    }
+
+    destroyCreatureSprites(mover);
+    console.log(moverName + " dies; square " + toSquare.id + " is now empty");
+    return "traded";
+}
+
+
+// Valid teleport destinations: never the subject's own square, and a creature cannot
+// land on a square holding a creature owned by the same player.
+function getTeleportDestinations(subjectType, subject) {
+    var fromId = subjectType === "creature" ? subject.squareId : subject.sprite.gameSquareId;
+    return gameVariables.gameBoard.filter(function (square) {
+        if (square.id == fromId) {
+            return false;
+        }
+        return !(subjectType === "creature" && square.creature &&
+            square.creature.playerOwnedId === subject.playerOwnedId);
+    });
+}
+
+
+function chooseAITeleportDestination(subjectType, subject, owner, destinations) {
+    var scored = destinations.map(function (square) {
+        var score = Math.random();
+        if (subjectType === "creature") {
+            var unowned = square.ownerPlayerId !== undefined
+                ? square.ownerPlayerId !== owner.id
+                : square.sprite.key !== owner.color;
+            if (!square.creature) {
+                score += 2;
+            } else if (Math.max(subject.attack - square.creature.armor, 0) >= square.creature.hitpoints) {
+                score += 2;
+            }
+            if (unowned) {
+                score += 1;
+            }
+        }
+        return { square: square, score: score };
+    });
+    scored.sort(function (a, b) {
+        return b.score - a.score;
+    });
+    return scored.length ? scored[0].square : null;
+}
+
+
+function teleportPlayerToSquare(player, square) {
+    player.sprite.x = square.sprite.x;
+    player.sprite.y = square.sprite.y;
+    player.sprite.gameSquareId = square.id;
+    if ("square" in player) {
+        player.square = square.id;
+    }
+}
+
+
+function executeTeleport(subjectType, subject, destinationId) {
+    var destination = gameVariables.gameBoard.find(function (item) {
+        return item.id == destinationId;
+    });
+    if (!destination) {
+        return false;
+    }
+    if (subjectType === "creature") {
+        return !!moveCreatureToSquare(subject.squareId, destination.id);
+    }
+    teleportPlayerToSquare(subject, destination);
+    return true;
+}
+
+
+function beginTeleportTargeting(card, subjectType, subject, destinations, caster) {
+    playerSpellTargeting = true;
+    targetArray.length = 0;
+    destinations.forEach(function (square) {
+        targetArray.push({
+            x: square.sprite.x, y: square.sprite.y, sprite: {}, card: card,
+            teleport: { type: subjectType, subject: subject },
+            targetSquare: square.id, player: caster, type: "ground"
+        });
+    });
+}
+
+
+function getSummonCreatureCard(card) {
+    var creatureCard = card.secondSpell && masterCardList.find(function (item) {
+        return item.id === card.secondSpell;
+    });
+    if (!creatureCard || !creatureCard.creature) {
+        console.error("Card " + card.name + " uses Summon but SecondSpell is not a creature card ID.");
+        return null;
+    }
+    return creatureCard;
+}
+
+
+// Summon destinations exclude squares already holding a creature owned by the summoner.
+function getSummonDestinations(owner) {
+    return gameVariables.gameBoard.filter(function (square) {
+        return !(square.creature && square.creature.playerOwnedId === owner.id);
+    });
+}
+
+
+function chooseAISummonSquare(creatureCard, owner, destinations) {
+    var scored = destinations.map(function (square) {
+        var score = Math.random();
+        if (!square.creature) {
+            score += 2;
+        } else if (Math.max(creatureCard.attack - square.creature.armor, 0) >= square.creature.hitpoints) {
+            score += 2;
+        }
+        var unowned = square.ownerPlayerId !== undefined
+            ? square.ownerPlayerId !== owner.id
+            : square.sprite.key !== owner.color;
+        if (unowned) {
+            score += 1;
+        }
+        return { square: square, score: score };
+    });
+    scored.sort(function (a, b) {
+        return b.score - a.score;
+    });
+    return scored.length ? scored[0].square : null;
+}
+
+
+function beginSummonTargeting(card, creatureCard, destinations, caster) {
+    playerSpellTargeting = true;
+    targetArray.length = 0;
+    destinations.forEach(function (square) {
+        targetArray.push({
+            x: square.sprite.x, y: square.sprite.y, sprite: {}, card: card,
+            summon: { creatureCard: creatureCard },
+            targetSquare: square.id, player: caster, type: "ground"
+        });
+    });
+}
+
+
 function processSpecialSpell(card, player, targetSquare, targetType, targetImage) {
-
     var currentPlayer = gameVariables.gamePlayerArray[gameVariables.currentPlayer];
-
     var boardSquareDetail = gameVariables.gameBoard.find(function (item) {
-        return item.id == targetSquare;
+        var squareId = targetSquare && typeof targetSquare === "object"
+            ? targetSquare.id
+            : targetSquare;
+        return item.id == squareId;
     });
 
-    if (card.special == SPECIAL_EFFECT.STEAL_GOLD) {
-        var victim = gameVariables.gamePlayerArray.find(function (item) {
-            return item.class == targetImage;
-        });
+    var targetPlayer = targetType === "player" ? player : null;
+    var targetCreature = targetType === "creature" && boardSquareDetail
+        ? boardSquareDetail.creature
+        : null;
 
-        if (victim && victim !== currentPlayer) {
-            var stolenGold = Math.min(card.damage, Math.max(victim.gold, 0));
-            victim.gold -= stolenGold;
-            currentPlayer.gold += stolenGold;
-        }
-
-    }
-
-    if (card.special == SPECIAL_EFFECT.SLOW_MOVEMENT) {
-        //Slow movement
-
-    }
-
-    if (card.special == SPECIAL_EFFECT.HEAL) {
-        //Heal
-        if (targetType == "creature") {
-            boardSquareDetail.creature.hitpoints = boardSquareDetail.creature.hitpoints + card.damage;
-
-            if (boardSquareDetail.creature.hitpoints > boardSquareDetail.creature.maxhitpoints) {
-                boardSquareDetail.creature.hitpoints = boardSquareDetail.creature.maxhitpoints;
+    switch (card.special) {
+        case SPECIAL_EFFECT.STEAL_GOLD:
+            var victim = targetPlayer || gameVariables.gamePlayerArray.find(function (item) {
+                return item.class == targetImage;
+            });
+            if (victim && victim !== currentPlayer) {
+                var stolenGold = Math.min(Math.max(0, card.damage), Math.max(victim.gold, 0));
+                victim.gold -= stolenGold;
+                currentPlayer.gold += stolenGold;
             }
-            updateCreatureHealthBar(boardSquareDetail.creature);
-        } else {
-            player.hp = player.hp + card.damage;
-            if (player.hp > player.maxhp) {
-                player.hp = player.maxhp;
+            break;
+        case SPECIAL_EFFECT.SLOW_MOVEMENT:
+            if (targetPlayer) {
+                targetPlayer.movementPenalty = (targetPlayer.movementPenalty || 0) +
+                    Math.max(0, card.damage);
             }
+            break;
+        case SPECIAL_EFFECT.HEAL:
+            if (targetCreature) {
+                targetCreature.hitpoints = Math.min(
+                    targetCreature.hitpoints + card.damage,
+                    targetCreature.maxhitpoints
+                );
+                updateCreatureHealthBar(targetCreature);
+            } else if (targetPlayer) {
+                targetPlayer.hp = Math.min(targetPlayer.hp + card.damage, targetPlayer.maxhp);
+            }
+            break;
+        case SPECIAL_EFFECT.MOVE_FORWARD:
+        case SPECIAL_EFFECT.MOVE_BACK:
+            var movingPlayer = currentPlayer;
+            var movement = Math.max(0, card.damage) *
+                (card.special === SPECIAL_EFFECT.MOVE_BACK ? -1 : 1);
+            if (movingPlayer && movingPlayer.sprite && movingPlayer.sprite.gameSquareId != null) {
+                calculateDestinations(movingPlayer.sprite.gameSquareId, movement);
+                playerMove(movingPlayer.sprite, movement);
+            }
+            break;
+        case SPECIAL_EFFECT.DRAW_CARDS:
+            for (var drawIndex = 0; drawIndex < Math.max(0, card.damage); drawIndex++) {
+                if (currentPlayer.human) {
+                    drawCard();
+                } else {
+                    computerDrawCard(gameVariables.currentPlayer);
+                }
+            }
+            break;
+        case SPECIAL_EFFECT.GAIN_GOLD:
+            grantBattleGold(currentPlayer, card.damage);
+            break;
+        case SPECIAL_EFFECT.BUFF_CREATURE:
+            if (targetCreature) {
+                targetCreature.hitpoints += card.defense;
+                targetCreature.maxhitpoints += card.defense;
+                targetCreature.armor += card.armor;
+                targetCreature.attack += card.attack;
+                ["flying", "blitz", "deadly", "reach"].forEach(function (ability) {
+                    if (card[ability]) {
+                        targetCreature[ability] = card[ability];
+                    }
+                });
+                targetCreature.regen = (targetCreature.regen || 0) + (card.regen || 0);
+                updateCreatureHealthBar(targetCreature);
+            }
+            break;
+        case SPECIAL_EFFECT.DEBUFF_CREATURE:
+        case SPECIAL_EFFECT.SET_CREATURE_STATS:
+            if (targetCreature) {
+                if (card.special === SPECIAL_EFFECT.SET_CREATURE_STATS) {
+                    // Sets the stat (never raising it), including to 0. Max HP is kept at 1 or more
+                    // so HP only drops to the new max and this never kills a creature.
+                    // If value is -1 it will not change that stat
+                    if (card.defense !== -1) {
+                        var newMaxHp = Math.max(Math.min(targetCreature.maxhitpoints, card.defense), 1);
+                        targetCreature.maxhitpoints = newMaxHp;
+                        targetCreature.hitpoints = Math.min(targetCreature.hitpoints, newMaxHp);
+                    }
+                    if (card.attack !== -1) {
+                        targetCreature.attack = Math.max(0, Math.min(targetCreature.attack, card.attack));
+                    }
 
-        }
 
-    }
+                } else {
+                    targetCreature.hitpoints -= Math.max(0, card.defense);
+                    targetCreature.maxhitpoints = Math.max(
+                        0,
+                        targetCreature.maxhitpoints - Math.max(0, card.defense)
+                    );
+                    targetCreature.attack = Math.max(
+                        0,
+                        targetCreature.attack - Math.max(0, card.attack)
+                    );
+                }
+                targetCreature.armor = Math.max(
+                    0,
+                    targetCreature.armor - Math.max(0, card.armor)
+                );
+                if (card.flying) {
+                    targetCreature.flying = 0;
+                }
+                if (card.blitz) {
+                    targetCreature.blitz = 0;
+                }
+                if (card.deadly) {
+                    targetCreature.deadly = 0;
+                }
+                if (card.reach) {
+                    targetCreature.reach = 0;
+                }
+                if (card.regen) {
+                    targetCreature.regen = 0;
+                }
 
-    if (card.special == SPECIAL_EFFECT.MOVE_FORWARD) {
-        //Move player
-        calculateDestinations(player.gameSquareId, card.damage);
-        playerMove(player, card.damage);
-    }
-
-    if (card.special == SPECIAL_EFFECT.DRAW_CARDS) {
-        for (i = 0; i < card.damage; i++) {
+                if (targetCreature.hitpoints <= 0) {
+                    [targetCreature.sprite, targetCreature.hitspritegreen, targetCreature.hitspritered]
+                        .forEach(function (sprite) {
+                            if (sprite && sprite.destroy) {
+                                sprite.destroy();
+                            }
+                        });
+                    boardSquareDetail.creature = null;
+                } else {
+                    updateCreatureHealthBar(targetCreature);
+                }
+            }
+            break;
+        case SPECIAL_EFFECT.DUPLICATE_CARD:
+            // Only the human player's hand is supported; they pick the card to copy.
+            if (currentPlayer.human && currentPlayer.hand.length < currentPlayer.maxhand &&
+                currentPlayer.hand.length > 0) {
+                playerDuplicateWaiting = true;
+                menu.visible = true;
+                qText.setText("Choose a card in your hand to duplicate.");
+                qText.visible = true;
+            }
+            break;
+        case SPECIAL_EFFECT.TRANSFORM:
+            if (targetCreature && boardSquareDetail) {
+                var transformCard = getSummonCreatureCard(card);
+                if (transformCard) {
+                    transformCreature(boardSquareDetail, transformCard);
+                }
+            }
+            break;
+        case SPECIAL_EFFECT.UNSUMMON:
+            if (targetCreature) {
+                var summonCard = masterCardList.find(function (item) {
+                    return item.id === targetCreature.cardId;
+                });
+                var creatureOwner = gameVariables.gamePlayerArray.find(function (item) {
+                    return item.id === targetCreature.playerOwnedId;
+                });
+                [targetCreature.sprite, targetCreature.hitspritegreen, targetCreature.hitspritered]
+                    .forEach(function (sprite) {
+                        if (sprite && sprite.destroy) {
+                            sprite.destroy();
+                        }
+                    });
+                boardSquareDetail.creature = null;
+                if (summonCard && creatureOwner) {
+                    addTemporaryCardToHand(creatureOwner, summonCard);
+                }
+            }
+            break;
+        case SPECIAL_EFFECT.TELEPORT:
+            var teleportType = targetCreature ? "creature" : (targetPlayer ? "player" : null);
+            var teleportSubject = targetCreature || targetPlayer;
+            if (!teleportType) {
+                break;
+            }
+            var teleportDestinations = getTeleportDestinations(teleportType, teleportSubject);
+            if (teleportDestinations.length === 0) {
+                break;
+            }
             if (currentPlayer.human) {
-                drawCard();
+                beginTeleportTargeting(card, teleportType, teleportSubject, teleportDestinations, currentPlayer);
             } else {
-                computerDrawCard(gameVariables.currentPlayer);
+                var teleportOwner = teleportType === "creature"
+                    ? gameVariables.gamePlayerArray.find(function (item) {
+                        return item.id === teleportSubject.playerOwnedId;
+                    })
+                    : teleportSubject;
+                var teleportChoice = chooseAITeleportDestination(
+                    teleportType, teleportSubject, teleportOwner || currentPlayer, teleportDestinations);
+                if (teleportChoice) {
+                    executeTeleport(teleportType, teleportSubject, teleportChoice.id);
+                }
             }
-        }
+            break;
+        case SPECIAL_EFFECT.SUMMON:
+            var summonCreatureCard = getSummonCreatureCard(card);
+            var summonDestinations = getSummonDestinations(currentPlayer);
+            if (!summonCreatureCard || summonDestinations.length === 0) {
+                break;
+            }
+            if (currentPlayer.human) {
+                beginSummonTargeting(card, summonCreatureCard, summonDestinations, currentPlayer);
+            } else {
+                var summonSquare = chooseAISummonSquare(summonCreatureCard, currentPlayer, summonDestinations);
+                if (summonSquare) {
+                    playCreatureOnSquare(summonSquare, summonCreatureCard, currentPlayer.sprite);
+                }
+            }
+            break;
+        case SPECIAL_EFFECT.SELF_DAMAGE:
+            currentPlayer.hp = Math.max(0, currentPlayer.hp - Math.max(0, card.damage));
+            break;
+        case SPECIAL_EFFECT.BOOST_MANA:
+            currentPlayer.mana = Math.min(
+                currentPlayer.maxmana,
+                currentPlayer.mana + Math.max(0, card.damage)
+            );
+            break;
+        case SPECIAL_EFFECT.BOOST_MAX_MANA:
+            // A negative value drains the targeted player's max mana (the caster if no player is targeted).
+            var maxManaPlayer = card.damage < 0 && targetPlayer && "maxmana" in targetPlayer
+                ? targetPlayer
+                : currentPlayer;
+            maxManaPlayer.maxmana = Math.max(0, maxManaPlayer.maxmana + card.damage);
+            maxManaPlayer.mana = Math.min(maxManaPlayer.mana, maxManaPlayer.maxmana);
+            break;
+        case SPECIAL_EFFECT.CAST_SPELL:
+            playSecondSpell(card, currentPlayer);
+            break;
+    }
+}
+
+function playSecondSpell(card, player) {
+    if (!card.secondSpell) {
+        console.error("Card " + card.name + " uses Cast Spell but has no second spell ID.");
+        return;
     }
 
-    if (card.special == SPECIAL_EFFECT.GAIN_GOLD) {
-        currentPlayer.gold = currentPlayer.gold + card.damage;
+    var secondCard = masterCardList.find(function (item) {
+        return item.id === card.secondSpell;
+    });
+    if (!secondCard) {
+        console.error("Card " + card.name + " references missing second spell " + card.secondSpell + ".");
+        return;
     }
 
-    if (card.special == SPECIAL_EFFECT.BUFF_CREATURE) {
-        boardSquareDetail.creature.hitpoints = boardSquareDetail.creature.hitpoints + card.defense;
-        boardSquareDetail.creature.maxhitpoints = boardSquareDetail.creature.maxhitpoints + card.defense;
-        boardSquareDetail.creature.armor = boardSquareDetail.creature.armor + card.armor;
-        boardSquareDetail.creature.attack = boardSquareDetail.creature.attack + card.attack;
-
-        //redraw defender health bar.
-        updateCreatureHealthBar(boardSquareDetail.creature);
+    if (!player.human && typeof computerAI !== "undefined" &&
+        typeof computerAI.playSecondarySpell === "function") {
+        computerAI.playSecondarySpell(secondCard, player);
+        return;
     }
 
-    if (card.special == SPECIAL_EFFECT.BOOST_MANA) {
-        currentPlayer.mana = currentPlayer.mana + card.damage;
+    var playerSquare = gameVariables.gameBoard.find(function (square) {
+        return square.id == player.sprite.gameSquareId;
+    });
+    if (!playerSquare) {
+        throw new Error("Cannot cast a secondary spell without a valid player square.");
     }
-
-    if (card.special == SPECIAL_EFFECT.BOOST_MAX_MANA) {
-        currentPlayer.maxmana = currentPlayer.maxmana + card.damage;
+    highlightTargets(secondCard, playerSquare, player.sprite);
+    if (targetArray.length === 0) {
+        console.error("Secondary spell " + secondCard.name + " has no valid targets.");
     }
 }
 
@@ -1849,7 +2393,8 @@ function processSpecialLoot(type, looted, result, boardSquareDetail) {
 }
 
 
-function captureSquare(id) {
+function captureSquare(id, owner) {
+    owner = owner || gameVariables.gamePlayerArray[gameVariables.currentPlayer];
 
     //Claim the square color
     var boardSquareDetail = gameVariables.gameBoard.find(function (item) {
@@ -1863,9 +2408,9 @@ function captureSquare(id) {
 
     }
 
-    gameVariables.gamePlayerArray[gameVariables.currentPlayer].capturedSquares++;
+    owner.capturedSquares++;
 
-    boardSquareDetail.sprite.loadTexture(gameVariables.gamePlayerArray[gameVariables.currentPlayer].color);
+    boardSquareDetail.sprite.loadTexture(owner.color);
 
 
 }
@@ -1988,6 +2533,13 @@ function resolveCurrentPlayerSquareEffects() {
 }
 
 function resolveCurrentPlayerEndTurnEffects() {
+    gameVariables.gameBoard.forEach(function (boardSquare) {
+        if (boardSquare.creature &&
+            boardSquare.creature.playerOwnedId == gameVariables.gamePlayerArray[gameVariables.currentPlayer].id &&
+            applyCreatureRegen(boardSquare.creature) > 0) {
+            updateCreatureHealthBar(boardSquare.creature);
+        }
+    });
     var square = gameVariables.gameBoard.find(function (item) {
         return item.id == gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite.gameSquareId;
     });
@@ -2057,6 +2609,16 @@ function getBattleOutcome() {
 }
 
 function endBattle(outcome) {
+    gameVariables.gamePlayerArray.forEach(function (player, index) {
+        if (index === 0 && outcome.humanWon && player.hp > 0) {
+            var awardedGold = awardBattleGold(player);
+            if (awardedGold > 0) {
+                outcome.message += " You gain " + awardedGold + " gold.";
+            }
+        } else {
+            forfeitBattleGold(player);
+        }
+    });
     battleEnded = true;
     computerMoving = false;
     playerDirChoiceMenu = false;
@@ -2066,6 +2628,7 @@ function endBattle(outcome) {
     playerCrossStartMenu = false;
     playerDiscardMenu = false;
     playerDiscardWaiting = false;
+    playerDuplicateWaiting = false;
     playerNotificationMenu = false;
     playerDestinations.length = 0;
     targetArray.length = 0;
@@ -2114,7 +2677,10 @@ function endBattle(outcome) {
 function diceRoll(item) {
 
     //Create random number between 1-6
-    var roll = 1 + Math.floor(Math.random() * 6);
+    var roll = applyMovementPenalty(
+        gameVariables.gamePlayerArray[gameVariables.currentPlayer],
+        1 + Math.floor(Math.random() * 6)
+    );
 
     switch (roll) {
         case 1:

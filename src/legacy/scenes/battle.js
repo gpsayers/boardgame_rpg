@@ -235,6 +235,7 @@ battle.prototype = {
         humanSprite.x -= this.tileSize * 0.35;
         humanSprite.gameSquareId = humanSquareId;
         humanPlayer.sprite = humanSprite;
+        humanPlayer.battleGold = 0;
         humanPlayer.square = humanSquareId;
         this.humanPlayerLayer.add(humanSprite);
         this.battleTestHuman = humanPlayer;
@@ -739,6 +740,21 @@ battle.prototype = {
         if (!this.humanTurnActive) {
             return;
         }
+        if (this.pendingBattleDuplicate) {
+            this.pendingBattleDuplicate = false;
+            var copied = this.humanCards.indexOf(cardInfo) >= 0 &&
+                this.humanCards.length < this.humanMaxHand;
+            if (copied) {
+                this.humanCards.push(createTemporaryCard(cardInfo));
+            }
+            this.logBattleEvent(this.battleTestHuman.name + (copied
+                ? " duplicates " + cardInfo.name
+                : " cannot duplicate " + cardInfo.name + " (hand full)"), this.battleTestHuman);
+            this.createHumanCardHand(this.humanHandRoot, this.humanCards);
+            this.refreshBattlePlayerStatus();
+            this.battleTurnStatus.textContent = copied ? "Duplicated " + cardInfo.name + "." : "Hand is full.";
+            return;
+        }
         this.playBattleTestCard(this.battleTestHuman, cardInfo, this.humanCards);
     },
 
@@ -899,8 +915,7 @@ battle.prototype = {
         this.cancelBattleTargeting(true);
         player.mana -= cardInfo.cost;
         hand.splice(handIndex, 1);
-        player.discard = player.discard || [];
-        player.discard.push(cardInfo);
+        discardCard(player, cardInfo);
 
         var outcome = "";
         if (cardInfo.spell) {
@@ -929,6 +944,11 @@ battle.prototype = {
         if (!isAI) {
             this.createHumanCardHand(this.humanHandRoot, this.humanCards);
             this.battleTurnStatus.textContent = "Played " + cardInfo.name + ": " + outcome;
+            this.promptBattleTeleportDestination(player, cardInfo);
+            this.promptBattleSummonSquare(player, cardInfo);
+            if (this.pendingBattleDuplicate) {
+                this.battleTurnStatus.textContent = "Choose a card in your hand to duplicate.";
+            }
         } else {
             this.battleTurnStatus.textContent = player.name + " played " + cardInfo.name + ": " + outcome;
         }
@@ -937,12 +957,17 @@ battle.prototype = {
 
     castBattleSecondSpell: function (cardInfo, player) {
         if (!cardInfo.secondSpell) {
+            if (cardInfo.special === SPECIAL_EFFECT.CAST_SPELL) {
+                this.logBattleEvent(cardInfo.name + " has no second spell ID", player);
+            }
             return;
         }
         var secondCard = masterCardList.find(function (item) {
             return item.id === cardInfo.secondSpell;
         });
         if (!secondCard) {
+            this.logBattleEvent(cardInfo.name + " references missing second spell " +
+                cardInfo.secondSpell, player);
             return;
         }
 
@@ -960,6 +985,63 @@ battle.prototype = {
         }, this);
     },
 
+    performBattleTeleport: function (subjectType, subject, squareId, caster) {
+        var destination = this.getBattleSquare(squareId);
+        if (!destination) {
+            return;
+        }
+        if (subjectType === "creature") {
+            var from = this.getBattleSquare(subject.squareId);
+            this.moveBattleCreature(from, destination, this.findBattlePlayer(subject.playerOwnedId));
+        } else {
+            this.moveBattlePlayer(subject, squareId);
+        }
+        this.refreshBattlePlayerStatus();
+        this.renderSquareDetails();
+    },
+
+    // Human teleports pick their destination after the subject; the AI picks automatically.
+    promptBattleTeleportDestination: function (player, cardInfo) {
+        var pending = this.pendingBattleTeleport;
+        this.pendingBattleTeleport = null;
+        if (!pending) {
+            return;
+        }
+        var scene = this;
+        var destinations = getTeleportDestinations(pending.type, pending.subject).map(function (square) {
+            return { type: "ground", targetSquare: square.id };
+        });
+        this.showBattleTargetChooser(player, cardInfo, null, destinations, function (chosen) {
+            scene.cancelBattleTargeting();
+            scene.performBattleTeleport(pending.type, pending.subject, chosen.targetSquare, player);
+            scene.battleTurnStatus.textContent = "Played " + cardInfo.name + ": teleported to square " +
+                chosen.targetSquare;
+        });
+        this.battleTurnStatus.textContent = "Choose a destination square for " + cardInfo.name + ".";
+    },
+
+    // Human summons pick their square after the spell resolves; the AI picks automatically.
+    promptBattleSummonSquare: function (player, cardInfo) {
+        var pending = this.pendingBattleSummon;
+        this.pendingBattleSummon = null;
+        if (!pending) {
+            return;
+        }
+        var scene = this;
+        var destinations = getSummonDestinations(player).map(function (square) {
+            return { type: "ground", targetSquare: square.id };
+        });
+        this.showBattleTargetChooser(player, cardInfo, null, destinations, function (chosen) {
+            scene.cancelBattleTargeting();
+            var square = scene.getBattleSquare(chosen.targetSquare);
+            var outcome = scene.resolveBattleTestSummon(square, pending.creatureCard, player);
+            scene.refreshBattlePlayerStatus();
+            scene.renderSquareDetails();
+            scene.battleTurnStatus.textContent = "Played " + cardInfo.name + ": " + outcome;
+        });
+        this.battleTurnStatus.textContent = "Choose a square to summon " + pending.creatureCard.name + ".";
+    },
+
     applyBattleSpell: function (cardInfo, player, target) {
         var scene = this;
         var spellName = player.name + "'s " + cardInfo.name;
@@ -974,6 +1056,105 @@ battle.prototype = {
 
             if (special === SPECIAL_EFFECT.MOVE_FORWARD) {
                 this.moveBattlePlayer(player, target.targetSquare);
+            } else if (special === SPECIAL_EFFECT.DEBUFF_CREATURE || special === SPECIAL_EFFECT.SET_CREATURE_STATS) {
+                var creatureName = this.describeBattleTarget(target);
+                processSpecialSpell(cardInfo, model, target.targetSquare, target.type, model);
+                if (model.hitpoints <= 0) {
+                    [model.sprite, model.hitspritegreen, model.hitspritered].forEach(function (sprite) {
+                        var spriteIndex = this.boardSquares.indexOf(sprite);
+                        if (spriteIndex >= 0) {
+                            this.boardSquares.splice(spriteIndex, 1);
+                        }
+                    }, this);
+                    this.logBattleEvent(creatureName + " dies", this.findBattlePlayer(model.playerOwnedId));
+                } else {
+                    this.updateBattleCreatureHealth(model);
+                    this.logBattleEvent(spellName + " weakens " + creatureName, player);
+                }
+            } else if (special === SPECIAL_EFFECT.DUPLICATE_CARD) {
+                if (player === this.battleTestHuman && this.humanCards.length < this.humanMaxHand &&
+                    this.humanCards.length > 0) {
+                    this.pendingBattleDuplicate = true;
+                    this.logBattleEvent(spellName + " lets you duplicate a card", player);
+                } else {
+                    this.logBattleEvent(spellName + " has nothing to duplicate (hand full)", player);
+                }
+            } else if (special === SPECIAL_EFFECT.TRANSFORM) {
+                var transformCard = getSummonCreatureCard(cardInfo);
+                var transformSquare = this.getBattleSquare(target.targetSquare);
+                if (!transformCard || !model || !transformSquare) {
+                    this.logBattleEvent(spellName + " has nothing to transform into", player);
+                } else {
+                    var transformName = this.describeBattleTarget(target);
+                    var transformOwner = this.findBattlePlayer(model.playerOwnedId);
+                    this.removeBattleCreature(model);
+                    this.createBattleCreature(transformSquare, transformCard, transformOwner || player,
+                        transformCard.defense);
+                    this.logBattleEvent(spellName + " transforms " + transformName + " into " +
+                        transformCard.name, player);
+                }
+            } else if (special === SPECIAL_EFFECT.UNSUMMON) {
+                var unsummonName = this.describeBattleTarget(target);
+                var unsummonOwner = this.findBattlePlayer(model.playerOwnedId);
+                var unsummonCard = masterCardList.find(function (item) {
+                    return item.id === model.cardId;
+                });
+                [model.sprite, model.hitspritegreen, model.hitspritered].forEach(function (sprite) {
+                    var spriteIndex = this.boardSquares.indexOf(sprite);
+                    if (spriteIndex >= 0) {
+                        this.boardSquares.splice(spriteIndex, 1);
+                    }
+                }, this);
+                this.removeBattleCreature(model);
+                var unsummonSquare = this.getBattleSquare(target.targetSquare);
+                if (unsummonSquare) {
+                    unsummonSquare.creature = null;
+                }
+                var returned = false;
+                if (unsummonCard && unsummonOwner) {
+                    var ownerIsHuman = unsummonOwner === this.battleTestHuman;
+                    var ownerHand = ownerIsHuman ? this.humanCards : unsummonOwner.hand;
+                    var ownerMax = ownerIsHuman ? this.humanMaxHand : unsummonOwner.maxhand;
+                    if (ownerHand.length < ownerMax) {
+                        ownerHand.push(createTemporaryCard(unsummonCard));
+                        returned = true;
+                    }
+                }
+                this.logBattleEvent(spellName + " returns " + unsummonName +
+                    (returned ? " to hand" : " (hand full, no card returned)"), player);
+            } else if (special === SPECIAL_EFFECT.TELEPORT) {
+                var teleportDestinations = (target.type === "creature" || target.type === "player")
+                    ? getTeleportDestinations(target.type, model) : [];
+                if (teleportDestinations.length === 0) {
+                    this.logBattleEvent(spellName + " has no valid destination", player);
+                } else {
+                    this.logBattleEvent(spellName + " teleports " + this.describeBattleTarget(target), player);
+                    if (player === this.battleTestHuman) {
+                        this.pendingBattleTeleport = { type: target.type, subject: model };
+                    } else {
+                        var teleportOwner = target.type === "creature"
+                            ? this.findBattlePlayer(model.playerOwnedId) : model;
+                        var teleportChoice = chooseAITeleportDestination(
+                            target.type, model, teleportOwner || player, teleportDestinations);
+                        if (teleportChoice) {
+                            this.performBattleTeleport(target.type, model, teleportChoice.id, player);
+                        }
+                    }
+                }
+            } else if (special === SPECIAL_EFFECT.SUMMON) {
+                var summonedCard = getSummonCreatureCard(cardInfo);
+                var summonOptions = getSummonDestinations(player);
+                if (!summonedCard || summonOptions.length === 0) {
+                    this.logBattleEvent(spellName + " has nothing to summon", player);
+                } else if (player === this.battleTestHuman) {
+                    this.pendingBattleSummon = { creatureCard: summonedCard };
+                } else {
+                    var summonChoice = chooseAISummonSquare(summonedCard, player, summonOptions);
+                    if (summonChoice) {
+                        this.logBattleEvent(spellName + " summons " + summonedCard.name, player);
+                        this.resolveBattleTestSummon(summonChoice, summonedCard, player);
+                    }
+                }
             } else if (special === SPECIAL_EFFECT.NONE || cardInfo.targetlocation === "all") {
                 this.applyBattleSpellDamage(cardInfo, player, target, spellName);
             } else if (special === SPECIAL_EFFECT.HEAL) {
@@ -1005,7 +1186,7 @@ battle.prototype = {
                 }
             } else if (special === SPECIAL_EFFECT.GAIN_GOLD) {
                 processSpecialSpell(cardInfo, player, target.targetSquare, "player", player.class);
-                this.logBattleEvent(player.name + " gains " + cardInfo.damage + " gold", player);
+                this.logBattleEvent(player.name + " gains " + cardInfo.damage + " battle gold", player);
             } else if (special === SPECIAL_EFFECT.BOOST_MANA) {
                 processSpecialSpell(cardInfo, player, target.targetSquare, "player", player.class);
                 this.logBattleEvent(player.name + " gains " + cardInfo.damage + " mana", player);
@@ -1014,10 +1195,15 @@ battle.prototype = {
                 this.logBattleEvent(player.name + " takes " + cardInfo.damage + " damage from " + cardInfo.name, player);
                 if (player.hp <= 0) {
                     this.logBattleEvent(player.name + " is defeated", player);
+                    this.forfeitBattleGoldLogged(player);
                 }
             } else if (special === SPECIAL_EFFECT.BOOST_MAX_MANA) {
-                processSpecialSpell(cardInfo, player, target.targetSquare, "player", player.class);
-                this.logBattleEvent(player.name + "'s maximum mana increases by " + cardInfo.damage, player);
+                var maxManaTarget = cardInfo.damage < 0 && target.type === "player" && target.model
+                    ? target.model : player;
+                processSpecialSpell(cardInfo, maxManaTarget, target.targetSquare, "player", maxManaTarget.class);
+                this.logBattleEvent(maxManaTarget.name + "'s maximum mana " +
+                    (cardInfo.damage < 0 ? "decreases by " + (-cardInfo.damage) : "increases by " + cardInfo.damage),
+                    player);
             }
         } finally {
             gameVariables.currentPlayer = previousCurrentPlayer;
@@ -1064,6 +1250,7 @@ battle.prototype = {
             model.hp = Math.max(model.hp - damage, 0);
             if (damage > 0 && model.hp <= 0) {
                 this.logBattleEvent(model.name + " is defeated", model);
+                this.forfeitBattleGoldLogged(model);
             }
         }
     },
@@ -1131,9 +1318,12 @@ battle.prototype = {
         }, this);
     },
 
-    showBattleTargetChooser: function (player, cardInfo, hand, targets) {
+    showBattleTargetChooser: function (player, cardInfo, hand, targets, onChoose) {
         var scene = this;
         this.cancelBattleTargeting(true);
+        var choose = onChoose || function (chosen) {
+            scene.castBattleCard(player, cardInfo, hand, [chosen], false);
+        };
 
         var panel = this.humanHandPanel;
         var hint = panel.querySelector(".battle-hand-heading span");
@@ -1166,7 +1356,7 @@ battle.prototype = {
             button.appendChild(detail);
 
             button.addEventListener("click", function () {
-                scene.castBattleCard(player, cardInfo, hand, [target], false);
+                choose(target);
             });
             ["mouseenter", "focus"].forEach(function (eventName) {
                 button.addEventListener(eventName, function () {
@@ -1189,7 +1379,7 @@ battle.prototype = {
                 return target.targetSquare === squareId;
             });
             if (group.length === 1) {
-                scene.castBattleCard(player, cardInfo, hand, group, false);
+                choose(group[0]);
                 return;
             }
             if (targeting.list) {
@@ -1284,15 +1474,20 @@ battle.prototype = {
                 ? "replaced your creature"
                 : "summoned " + cardInfo.name + " and captured square " + square.id;
         } else {
-            var defenderDamage = Math.max(cardInfo.attack - previousCreature.armor, 0);
-            var attackerDamage = Math.max(previousCreature.attack - cardInfo.armor, 0);
-            var defenderHp = previousCreature.hitpoints;
-            var attackerHp = cardInfo.defense;
+            var attackerFighter = {
+                attack: cardInfo.attack, armor: cardInfo.armor, hitpoints: cardInfo.defense,
+                flying: cardInfo.flying, reach: cardInfo.reach, blitz: cardInfo.blitz
+            };
+            var defenderFighter = {
+                attack: previousCreature.attack, armor: previousCreature.armor,
+                hitpoints: previousCreature.hitpoints, flying: previousCreature.flying,
+                reach: previousCreature.reach, blitz: previousCreature.blitz
+            };
             var defenderOwner = this.findBattlePlayer(previousCreature.playerOwnedId);
             var attackerName = player.name + "'s " + cardInfo.name;
             var defenderName = (defenderOwner ? defenderOwner.name : "Unknown") + "'s " +
                 (previousCreature.cardName || "creature");
-            var stalemate = defenderDamage === 0 && attackerDamage === 0;
+            var stalemate = false;
             var rounds = 0;
 
             // Each round both creatures strike simultaneously until at least one is defeated.
@@ -1301,14 +1496,12 @@ battle.prototype = {
                 if (rounds > 1) {
                     this.logBattleEvent("Combat round " + rounds + " on square " + square.id);
                 }
-                this.logBattleAttack(attackerName, defenderName, cardInfo.attack, defenderDamage, player);
-                if (previousCreature.attack > 0) {
-                    this.logBattleAttack(defenderName, attackerName, previousCreature.attack, attackerDamage,
-                        defenderOwner);
-                }
-                defenderHp -= defenderDamage;
-                attackerHp -= attackerDamage;
-            } while (!stalemate && defenderHp > 0 && attackerHp > 0);
+                var roundResult = this.resolveBattleCombatRound(attackerFighter, attackerName, player,
+                    defenderFighter, defenderName, defenderOwner, rounds === 1);
+                stalemate = roundResult.toDefender === 0 && roundResult.toAttacker === 0;
+            } while (!stalemate && defenderFighter.hitpoints > 0 && attackerFighter.hitpoints > 0);
+            var defenderHp = defenderFighter.hitpoints;
+            var attackerHp = attackerFighter.hitpoints;
 
             if (stalemate) {
                 this.logBattleEvent(attackerName + " is spent; " + defenderName + " holds the square",
@@ -1343,6 +1536,117 @@ battle.prototype = {
         return outcome;
     },
 
+    // Resolves one combat round, applies the damage to both fighters, and logs what happened.
+    resolveBattleCombatRound: function (attacker, attackerName, attackerOwner, defender, defenderName,
+        defenderOwner, firstRound) {
+        var result = resolveCombatRound(attacker, defender, firstRound);
+        var attackerBlitz = firstRound && attacker.blitz && !defender.blitz;
+        var defenderBlitz = firstRound && defender.blitz && !attacker.blitz;
+        var normalToDefender = combatDamage(attacker, defender);
+        var normalToAttacker = combatDamage(defender, attacker);
+
+        function strike(strikerName, targetName, striker, target, damage, normalDamage, owner, scene, struck) {
+            if (!struck) {
+                return;
+            }
+            if (target.flying && !(striker.flying || striker.reach)) {
+                scene.logBattleEvent(strikerName + " cannot reach flying " + targetName, owner);
+            } else if (striker.attack > 0) {
+                scene.logBattleAttack(strikerName, targetName, striker.attack, damage, owner);
+            }
+        }
+
+        if (attackerBlitz) {
+            this.logBattleEvent(attackerName + " strikes first with Blitz", attackerOwner);
+        } else if (defenderBlitz) {
+            this.logBattleEvent(defenderName + " strikes first with Blitz", defenderOwner);
+        }
+        strike(attackerName, defenderName, attacker, defender, result.toDefender, normalToDefender,
+            attackerOwner, this, true);
+        // A creature slain by Blitz before it could strike back deals no damage.
+        var struckBack = result.toAttacker > 0 || normalToAttacker === 0;
+        strike(defenderName, attackerName, defender, attacker, result.toAttacker, normalToAttacker,
+            defenderOwner, this, struckBack);
+
+        defender.hitpoints -= result.toDefender;
+        attacker.hitpoints -= result.toAttacker;
+        return result;
+    },
+
+    // A moved creature behaves as if summoned on the destination: it fights any enemy there
+    // to the death and captures the square if it survives.
+    moveBattleCreature: function (fromSquare, toSquare, player) {
+        var mover = fromSquare && fromSquare.creature;
+        if (!mover || !toSquare || fromSquare === toSquare) {
+            return false;
+        }
+        var defender = toSquare.creature;
+        if (defender && defender.playerOwnedId === mover.playerOwnedId) {
+            return false;
+        }
+        player = player || this.findBattlePlayer(mover.playerOwnedId);
+
+        var moverName = player.name + "'s " + (mover.cardName || "creature");
+        fromSquare.creature = null;
+        this.logBattleEvent(moverName + " moves from square " + fromSquare.id + " to square " +
+            toSquare.id, player);
+
+        var survived = true;
+        if (defender) {
+            var defenderOwner = this.findBattlePlayer(defender.playerOwnedId);
+            var defenderName = (defenderOwner ? defenderOwner.name : "Unknown") + "'s " +
+                (defender.cardName || "creature");
+            var stalemate = false;
+            var rounds = 0;
+
+            do {
+                rounds++;
+                if (rounds > 1) {
+                    this.logBattleEvent("Combat round " + rounds + " on square " + toSquare.id);
+                }
+                var moveRound = this.resolveBattleCombatRound(mover, moverName, player,
+                    defender, defenderName, defenderOwner, rounds === 1);
+                stalemate = moveRound.toDefender === 0 && moveRound.toAttacker === 0;
+            } while (!stalemate && defender.hitpoints > 0 && mover.hitpoints > 0);
+
+            if (stalemate) {
+                this.logBattleEvent(moverName + " is spent; " + defenderName + " holds the square",
+                    defenderOwner);
+            }
+            if (mover.hitpoints <= 0) {
+                this.logBattleEvent(moverName + " dies", player);
+            }
+            if (defender.hitpoints <= 0) {
+                this.logBattleEvent(defenderName + " dies", defenderOwner);
+                this.removeBattleCreature(defender);
+                toSquare.creature = null;
+            } else {
+                this.updateBattleCreatureHealth(defender);
+                survived = false;
+            }
+            survived = survived && mover.hitpoints > 0;
+        }
+
+        if (!survived) {
+            this.removeBattleCreature(mover);
+        } else {
+            var position = this.squarePositions.get(toSquare.id);
+            var barWidth = this.tileSize * 0.8;
+            mover.squareId = toSquare.id;
+            mover.sprite.x = position.x;
+            mover.sprite.y = position.y;
+            mover.hitspritegreen.x = position.x - barWidth / 2;
+            mover.hitspritegreen.y = position.y + this.tileSize * 0.36;
+            mover.hitspritered.y = position.y + this.tileSize * 0.36;
+            toSquare.creature = mover;
+            this.updateBattleCreatureHealth(mover);
+            this.captureBattleSquare(toSquare, player);
+        }
+        this.refreshBattlePlayerStatus();
+        this.renderSquareDetails();
+        return true;
+    },
+
     createBattleCreature: function (square, cardInfo, player, hitpoints) {
         var position = this.squarePositions.get(square.id);
         var creatureSprite = game.add.sprite(position.x, position.y, cardInfo.image);
@@ -1373,7 +1677,12 @@ battle.prototype = {
             cardInfo.armor,
             cardInfo.attack,
             cardInfo.defense,
-            player.id
+            player.id,
+            cardInfo.flying,
+            cardInfo.blitz,
+            cardInfo.deadly,
+            cardInfo.reach,
+            cardInfo.regen
         );
         square.creature.cardName = cardInfo.name;
         square.creature.hitspritegreen = healthBackground;
@@ -1614,8 +1923,31 @@ battle.prototype = {
         player.hp = Math.max(player.hp - damage, 0);
         if (damage > 0 && player.hp <= 0) {
             this.logBattleEvent(player.name + " is defeated", player);
+            this.forfeitBattleGoldLogged(player);
         }
         this.refreshBattlePlayerStatus();
+    },
+
+    applyEndOfTurnRegen: function (player) {
+        gameVariables.gameBoard.forEach(function (square) {
+            var creature = square.creature;
+            if (!creature || creature.playerOwnedId !== player.id) {
+                return;
+            }
+            var healed = applyCreatureRegen(creature);
+            if (healed > 0) {
+                this.updateBattleCreatureHealth(creature);
+                this.logBattleEvent((creature.cardName || "Creature") + " regenerates " + healed +
+                    " (" + creature.hitpoints + "/" + creature.maxhitpoints + ")", player);
+            }
+        }, this);
+    },
+
+    forfeitBattleGoldLogged: function (player) {
+        var lost = forfeitBattleGold(player);
+        if (lost > 0) {
+            this.logBattleEvent(player.name + " loses " + lost + " battle gold", player);
+        }
     },
 
     passBattleTestTurn: function () {
@@ -1626,6 +1958,7 @@ battle.prototype = {
         this.cancelBattleTargeting();
         this.logBattleEvent(this.battleTestHuman.name + " passes the turn", this.battleTestHuman);
         this.applyEndOfTurnCreatureDamage(this.battleTestHuman);
+        this.applyEndOfTurnRegen(this.battleTestHuman);
         this.humanTurnActive = false;
         this.battlePassButton.disabled = true;
         this.battlePassButton.textContent = "AI turns…";
@@ -1667,6 +2000,7 @@ battle.prototype = {
             },
             onTurnComplete: function (player) {
                 scene.applyEndOfTurnCreatureDamage(player);
+                scene.applyEndOfTurnRegen(player);
                 scene.battleDie.classList.remove("is-rolling");
                 var manaCount = scene.playerManaLabels.get(player);
                 if (manaCount) {

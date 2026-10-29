@@ -11,7 +11,15 @@ var SPECIAL_EFFECT = Object.freeze({
     BUFF_CREATURE: 8,
     SELF_DAMAGE: 9,
     BOOST_MANA: 10,
-    BOOST_MAX_MANA: 11
+    BOOST_MAX_MANA: 11,
+    CAST_SPELL: 12,
+    DEBUFF_CREATURE: 13,
+    UNSUMMON: 14,
+    TELEPORT: 15,
+    SUMMON: 16,
+    SET_CREATURE_STATS: 17,
+    TRANSFORM: 18,
+    DUPLICATE_CARD: 19
 });
 
 var SPECIAL_EFFECT_NAMES = Object.freeze((function () {
@@ -28,6 +36,13 @@ var SPECIAL_EFFECT_NAMES = Object.freeze((function () {
     names[SPECIAL_EFFECT.BOOST_MANA] = "Boosts mana";
     names[SPECIAL_EFFECT.BOOST_MAX_MANA] = "Boosts max mana";
     names[SPECIAL_EFFECT.CAST_SPELL] = "Casts a spell";
+    names[SPECIAL_EFFECT.DEBUFF_CREATURE] = "Debuffs creature";
+    names[SPECIAL_EFFECT.UNSUMMON] = "Returns creature to hand";
+    names[SPECIAL_EFFECT.TELEPORT] = "Teleports";
+    names[SPECIAL_EFFECT.SUMMON] = "Summons a creature";
+    names[SPECIAL_EFFECT.SET_CREATURE_STATS] = "Set creature stat";
+    names[SPECIAL_EFFECT.TRANSFORM] = "Transforms creature";
+    names[SPECIAL_EFFECT.DUPLICATE_CARD] = "Duplicates a card";
     return names;
 })());
 
@@ -79,12 +94,83 @@ function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human,
     this.capturedSquares = 0;
     this.manasprite = {};
     this.gold = gold;
+    this.battleGold = 0;
     this.armor = armor;
+    this.movementPenalty = 0;
     this.playerRollDice = false;
     this.aiProfile = null;
 }
 
 //location: sprite.gameSquareId
+
+function applyMovementPenalty(player, roll) {
+    var penalty = Math.max(0, player.movementPenalty || 0);
+    player.movementPenalty = 0;
+    return Math.max(0, roll - penalty);
+}
+
+// A temporary card is a per-instance copy that lives only in a hand.
+function createTemporaryCard(masterCard) {
+    var copy = Object.assign({}, masterCard);
+    copy.temporary = true;
+    return copy;
+}
+
+// Sends a played/discarded card to the discard pile; temporary cards are destroyed instead.
+function discardCard(player, card) {
+    if (!card || card.temporary) {
+        return false;
+    }
+    player.discard = player.discard || [];
+    player.discard.push(card);
+    return true;
+}
+
+// Gold from special 6 is held as battle gold: it only joins the player's total if they win.
+// Stolen gold (special 1) moves real gold and always persists.
+function grantBattleGold(player, amount) {
+    amount = Math.max(0, amount || 0);
+    player.battleGold = (player.battleGold || 0) + amount;
+    return amount;
+}
+
+function forfeitBattleGold(player) {
+    var forfeited = player.battleGold || 0;
+    player.battleGold = 0;
+    return forfeited;
+}
+
+function awardBattleGold(player) {
+    var awarded = player.battleGold || 0;
+    player.gold += awarded;
+    player.battleGold = 0;
+    return awarded;
+}
+
+// Damage a striker deals to a target in creature combat. Only Flying or Reach creatures can hurt a Flying creature.
+function combatDamage(striker, target) {
+    if (target.flying && !(striker.flying || striker.reach)) {
+        return 0;
+    }
+    return Math.max(striker.attack - target.armor, 0);
+}
+
+// One simultaneous combat round between { attack, armor, hitpoints, flying, reach, blitz } fighters.
+// On the first round a lone Blitz creature strikes first, and a defender it kills deals no damage back.
+function resolveCombatRound(attacker, defender, firstRound) {
+    var toDefender = combatDamage(attacker, defender);
+    var toAttacker = combatDamage(defender, attacker);
+    if (firstRound && attacker.blitz && !defender.blitz) {
+        if (defender.hitpoints - toDefender <= 0) {
+            toAttacker = 0;
+        }
+    } else if (firstRound && defender.blitz && !attacker.blitz) {
+        if (attacker.hitpoints - toAttacker <= 0) {
+            toDefender = 0;
+        }
+    }
+    return { toDefender: toDefender, toAttacker: toAttacker };
+}
 
 function gameSquare(id, x, y, sprite) {
     this.id = id;
@@ -97,7 +183,8 @@ function gameSquare(id, x, y, sprite) {
 
 //location: creature.squareId
 
-function gameSquareCreature(cardId, squareId, sprite, hitpoints, maxhitpoints, armor, attack, def, player) {
+function gameSquareCreature(cardId, squareId, sprite, hitpoints, maxhitpoints, armor, attack, def, player,
+    flying, blitz, deadly, reach, regen) {
     this.cardId = cardId;
     this.squareId = squareId;
     this.sprite = sprite;
@@ -109,6 +196,21 @@ function gameSquareCreature(cardId, squareId, sprite, hitpoints, maxhitpoints, a
     this.hitspritegreen = {};
     this.hitspritered = {};
     this.playerOwnedId = player;
+    this.flying = flying || 0;
+    this.blitz = blitz || 0;
+    this.deadly = deadly || 0;
+    this.reach = reach || 0;
+    this.regen = regen || 0;
+}
+
+// Heals a creature by its regen amount, capped at max hitpoints. Returns the amount healed.
+function applyCreatureRegen(creature) {
+    if (!creature || !creature.regen || creature.hitpoints <= 0) {
+        return 0;
+    }
+    var healed = Math.min(creature.regen, creature.maxhitpoints - creature.hitpoints);
+    creature.hitpoints += Math.max(healed, 0);
+    return Math.max(healed, 0);
 }
 
 function grantStartMana(player) {
@@ -116,31 +218,41 @@ function grantStartMana(player) {
     player.mana++;
 }
 
-function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense, damage, image, armor, threat, tarlocation, tartype, tarcount, special, school, flying, blitz, deadly, secondSpell, specialDesc) {
-    this.flying = flying || 0;
-    this.blitz = blitz || 0;
-    this.deadly = deadly || 0;
-    this.secondSpell = secondSpell || 0;
-    this.specialDesc = specialDesc || "";
-    this.id = id;
-    this.name = name;
-    this.desc = desc;
-    this.cost = cost;
-    this.rare = rare;
-    this.gold = gold;
-    this.creature = creature;
-    this.spell = spell;
-    this.attack = attack;
-    this.defense = defense;
-    this.damage = damage;
-    this.image = image;
-    this.armor = armor;
-    this.threat = threat;
-    this.targetlocation = tarlocation;
-    this.targettype = tartype;
-    this.targetcount = tarcount;
-    this.special = special;
-    this.school = school;
+function card(fields) {
+    this.id = fields.id;
+    this.name = fields.name;
+    this.desc = fields.description;
+    this.description = fields.description;
+    this.mana = fields.mana;
+    this.cost = fields.mana;
+    this.rare = fields.rarity;
+    this.rarity = fields.rarity;
+    this.gold = fields.gold;
+    this.creature = fields.creature;
+    this.spell = fields.spell;
+    this.attack = fields.attack;
+    this.defense = fields.defense;
+    this.damage = fields.damage;
+    this.image = fields.image;
+    this.threat = fields.threat;
+    this.targetlocation = fields.targetLocation;
+    this.targetLocation = fields.targetLocation;
+    this.targettype = fields.targetType;
+    this.targetType = fields.targetType;
+    this.targetcount = fields.targetCount;
+    this.targetCount = fields.targetCount;
+    this.special = fields.special;
+    this.classOrColor = fields.classOrColor;
+    this.school = fields.classOrColor;
+    this.armor = fields.armor;
+    this.flying = fields.flying;
+    this.blitz = fields.blitz;
+    this.deadly = fields.deadly;
+    this.reach = fields.reach || 0;
+    this.regen = fields.regen || 0;
+    this.secondSpell = fields.secondSpell;
+    this.additionalDescription = fields.additionalDescription;
+    this.specialDesc = fields.additionalDescription;
 }
 
 //Target locations: Entire board (all), adjacent (adj), current square (square), row (row), self (self), any (any)
@@ -158,6 +270,15 @@ function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense
 //9.Self damage
 //10.Boost mana
 //11.Boost maximum mana
+//12.Cast second spell
+//13.Debuff creature: subtracts attack/defense/armor, removes listed abilities; dies at 0 HP
+//19.Duplicate card: the human player picks a card in hand; a temporary copy joins the hand (none if the hand is full). Self target only; AI never plays it
+//17.Set creature stat: sets attack and defense (max HP) to the card values, including 0 (max HP minimum 1); never raises them or kills
+//18.Transform: replaces a creature with the creature card in SecondSpell (fresh stats and full HP, same owner and square); unsummoning it returns a temporary copy of the new card
+//14.Unsummon: remove a creature from the board and give its owner a temporary copy of the card
+//15.Teleport: move a creature or player to a chosen square (creatures fight/capture on arrival)
+//16.Summon: summons the creature card in SecondSpell on a chosen square; no mana, never enters hand/deck/discard
+//6.Gain gold: adds battle gold, which joins total gold only if the player wins the battle
 
 function playerHandTracker(id, cardInfo, positionx, positiony) {
     this.id = id;

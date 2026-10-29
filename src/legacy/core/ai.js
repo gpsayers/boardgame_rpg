@@ -26,9 +26,16 @@ var computerAI = (function () {
         return priority;
     }
 
+    function isMaxManaDrain(card) {
+        return card.special === SPECIAL_EFFECT.BOOST_MAX_MANA && card.damage < 0;
+    }
+
     function getActionName(card) {
         if (card.creature) {
             return "summonCreatures";
+        }
+        if (isMaxManaDrain(card)) {
+            return "damageOpponents";
         }
         if (card.special === SPECIAL_EFFECT.HEAL) {
             return "healSelf";
@@ -50,6 +57,12 @@ var computerAI = (function () {
             return 0;
         }
 
+        if (isMaxManaDrain(card)) {
+            return targetPlayer && targetPlayer.id !== player.id
+                ? Math.min(-card.damage, targetPlayer.maxmana)
+                : 0;
+        }
+
         if (card.special === SPECIAL_EFFECT.HEAL) {
             if (targetCreature) {
                 if (!isFriendlyCreature(targetCreature, player)) {
@@ -68,6 +81,55 @@ var computerAI = (function () {
             return targetCreature && isFriendlyCreature(targetCreature, player)
                 ? card.defense + card.attack + card.armor
                 : 0;
+        }
+
+        if (card.special === SPECIAL_EFFECT.DEBUFF_CREATURE || card.special === SPECIAL_EFFECT.SET_CREATURE_STATS) {
+            if (!targetCreature || isFriendlyCreature(targetCreature, player)) {
+                return 0;
+            }
+            var isSet = card.special === SPECIAL_EFFECT.SET_CREATURE_STATS;
+            var hpLoss = isSet
+                ? Math.max(targetCreature.maxhitpoints - Math.max(card.defense, 1), 0)
+                : Math.min(card.defense, targetCreature.hitpoints);
+            var attackLoss = isSet
+                ? Math.max(targetCreature.attack - card.attack, 0)
+                : Math.min(card.attack, targetCreature.attack);
+            return hpLoss + attackLoss +
+                Math.min(card.armor, targetCreature.armor) +
+                ((card.flying && targetCreature.flying) ? 1 : 0) +
+                ((card.blitz && targetCreature.blitz) ? 1 : 0) +
+                ((card.deadly && targetCreature.deadly) ? 1 : 0);
+        }
+
+        if (card.special === SPECIAL_EFFECT.TRANSFORM) {
+            var transformInto = masterCardList.find(function (item) {
+                return item.id === card.secondSpell;
+            });
+            if (!targetCreature || !transformInto || !transformInto.creature) {
+                return 0;
+            }
+            var currentStrength = targetCreature.hitpoints + targetCreature.attack + targetCreature.armor;
+            var newStrength = transformInto.defense + transformInto.attack + transformInto.armor;
+            return isFriendlyCreature(targetCreature, player)
+                ? Math.max(newStrength - currentStrength, 0)
+                : Math.max(currentStrength - newStrength, 0);
+        }
+
+        if (card.special === SPECIAL_EFFECT.UNSUMMON) {
+            if (!targetCreature || isFriendlyCreature(targetCreature, player)) {
+                return 0;
+            }
+            return targetCreature.hitpoints + targetCreature.attack + targetCreature.armor;
+        }
+
+        if (card.special === SPECIAL_EFFECT.TELEPORT) {
+            if (targetCreature && isFriendlyCreature(targetCreature, player)) {
+                return getTeleportDestinations("creature", targetCreature).length > 0
+                    ? 1 + targetCreature.attack
+                    : 0;
+            }
+            return targetPlayer && targetPlayer.id === player.id &&
+                getTeleportDestinations("player", targetPlayer).length > 0 ? 1 : 0;
         }
 
         if (card.special === SPECIAL_EFFECT.STEAL_GOLD) {
@@ -209,7 +271,8 @@ var computerAI = (function () {
     }
 
     function scoreCard(card, player, targetProvider) {
-        if (card.cost > player.mana || card.special === SPECIAL_EFFECT.MOVE_FORWARD) {
+        if (card.cost > player.mana || card.special === SPECIAL_EFFECT.MOVE_FORWARD ||
+            card.special === SPECIAL_EFFECT.DUPLICATE_CARD) {
             return null;
         }
 
@@ -244,8 +307,16 @@ var computerAI = (function () {
 
         if (card.special === SPECIAL_EFFECT.DRAW_CARDS) {
             utility = Math.min(card.damage, player.deck.length + player.discard.length + player.hand.length);
-        } else if (card.special === SPECIAL_EFFECT.GAIN_GOLD || card.special === SPECIAL_EFFECT.BOOST_MAX_MANA) {
+        } else if (card.special === SPECIAL_EFFECT.GAIN_GOLD ||
+            (card.special === SPECIAL_EFFECT.BOOST_MAX_MANA && !isMaxManaDrain(card))) {
             utility = card.damage;
+        } else if (card.special === SPECIAL_EFFECT.SUMMON) {
+            var summonedCard = masterCardList.find(function (item) {
+                return item.id === card.secondSpell;
+            });
+            utility = summonedCard && summonedCard.creature
+                ? 1 + summonedCard.attack + summonedCard.defense / 2
+                : 0;
         }
         if (utility <= 0) {
             return null;
@@ -298,6 +369,9 @@ var computerAI = (function () {
         var model = target.model || player;
 
         if (card.special === SPECIAL_EFFECT.HEAL || card.special === SPECIAL_EFFECT.BUFF_CREATURE ||
+            card.special === SPECIAL_EFFECT.DEBUFF_CREATURE || card.special === SPECIAL_EFFECT.SET_CREATURE_STATS ||
+            card.special === SPECIAL_EFFECT.UNSUMMON || card.special === SPECIAL_EFFECT.TRANSFORM ||
+            card.special === SPECIAL_EFFECT.TELEPORT || isMaxManaDrain(card) ||
             card.special === SPECIAL_EFFECT.STEAL_GOLD) {
             processSpecialSpell(
                 card,
@@ -310,7 +384,9 @@ var computerAI = (function () {
         }
 
         if (card.special === SPECIAL_EFFECT.DRAW_CARDS || card.special === SPECIAL_EFFECT.GAIN_GOLD ||
-            card.special === SPECIAL_EFFECT.BOOST_MANA || card.special === SPECIAL_EFFECT.BOOST_MAX_MANA) {
+            card.special === SPECIAL_EFFECT.BOOST_MANA ||
+            (card.special === SPECIAL_EFFECT.BOOST_MAX_MANA && !isMaxManaDrain(card)) ||
+            card.special === SPECIAL_EFFECT.SUMMON) {
             processSpecialSpell(card, player, player.sprite.gameSquareId, "player", player.class);
             return;
         }
@@ -322,6 +398,46 @@ var computerAI = (function () {
         }
     }
 
+    function playSecondarySpell(card, player) {
+        var targets = previewTargets(card, player);
+        if (targets.length === 0) {
+            return false;
+        }
+
+        var targetIndex = 0;
+        var bestValue = getTargetValue(card, targets[0], player);
+        for (var i = 1; i < targets.length; i++) {
+            var value = getTargetValue(card, targets[i], player);
+            if (value > bestValue) {
+                bestValue = value;
+                targetIndex = i;
+            }
+        }
+        resolveCardTargets({ card: card, targetIndex: targetIndex }, targets, player);
+        return true;
+    }
+
+    function castSecondarySpell(card, player) {
+        if (!card.secondSpell) {
+            console.error("Card " + card.name + " uses Cast Spell but has no second spell ID.");
+            return false;
+        }
+
+        var secondCard = masterCardList.find(function (item) {
+            return item.id === card.secondSpell;
+        });
+        if (!secondCard) {
+            console.error("Card " + card.name + " references missing second spell " + card.secondSpell + ".");
+            return false;
+        }
+
+        if (!playSecondarySpell(secondCard, player)) {
+            console.error("Secondary spell " + secondCard.name + " has no valid targets.");
+            return false;
+        }
+        return true;
+    }
+
     function resolveCardTargets(selection, targets, player) {
         var card = masterCardList.find(function (item) {
             return item.id === selection.card.id;
@@ -330,8 +446,23 @@ var computerAI = (function () {
             return;
         }
 
+        if (card.special === SPECIAL_EFFECT.CAST_SPELL) {
+            castSecondarySpell(card, player);
+            return;
+        }
+
+        if (card.special === SPECIAL_EFFECT.SUMMON) {
+            applyTargetEffect(card, {
+                type: "player",
+                targetSquare: player.sprite.gameSquareId,
+                model: player
+            }, player);
+            return;
+        }
+
         if (card.special === SPECIAL_EFFECT.DRAW_CARDS || card.special === SPECIAL_EFFECT.GAIN_GOLD ||
-            card.special === SPECIAL_EFFECT.BOOST_MANA || card.special === SPECIAL_EFFECT.BOOST_MAX_MANA) {
+            card.special === SPECIAL_EFFECT.BOOST_MANA ||
+            (card.special === SPECIAL_EFFECT.BOOST_MAX_MANA && !isMaxManaDrain(card))) {
             applyTargetEffect(card, {
                 type: "player",
                 targetSquare: player.sprite.gameSquareId,
@@ -400,13 +531,16 @@ var computerAI = (function () {
         }
 
         var card = player.hand.splice(handIndex, 1)[0];
-        player.discard.push(card);
+        discardCard(player, card);
         player.mana -= card.cost;
 
         if (card.creature && !card.spell) {
             var square = getBoardSquare(player.sprite.gameSquareId);
             if (square) {
                 playCreatureOnSquare(square, card, player.sprite);
+            }
+            if (card.special === SPECIAL_EFFECT.CAST_SPELL) {
+                castSecondarySpell(card, player);
             }
         } else {
             resolveCardTargets(selection, targets, player);
@@ -695,7 +829,7 @@ var computerAI = (function () {
                 }
             }
             player.playerRollDice = true;
-            var roll = 1 + Math.floor(Math.random() * 6);
+            var roll = applyMovementPenalty(player, 1 + Math.floor(Math.random() * 6));
             if (callbacks.onTurnStart) {
                 callbacks.onTurnStart(player, roll);
             }
@@ -760,7 +894,7 @@ var computerAI = (function () {
                 }
                 break;
             case "rollAndMove":
-                var roll = 1 + Math.floor(Math.random() * 6);
+                var roll = applyMovementPenalty(player, 1 + Math.floor(Math.random() * 6));
                 player.playerRollDice = true;
                 turnState.roll = roll;
                 if (typeof dice !== "undefined" && dice.loadTexture) {
@@ -811,6 +945,7 @@ var computerAI = (function () {
         choosePath: choosePath,
         chooseBattleTestCard: getBestCard,
         movePlayer: movePlayer,
+        playSecondarySpell: playSecondarySpell,
         runBattleTestTurns: runBattleTestTurns
     };
 })();
