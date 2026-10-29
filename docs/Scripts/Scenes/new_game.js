@@ -7,8 +7,8 @@ new_character.prototype = {
             { key: "wizard", label: "Wizard" },
             { key: "sorceress", label: "Sorceress" },
             { key: "trickster", label: "Trickster" },
-            { key: "convoker", label: "Convoker" },
-            { key: "blademaster", label: "Blademaster" }
+            { key: "dwarf", label: "Dwarf", file: "dwarf_new.png" },
+            { key: "vampire", label: "Vampire", file: "vampire_old.png" }
         ];
         var schools = [
             { key: "Fire", label: "Fire", image: "fire.png" },
@@ -65,7 +65,7 @@ new_character.prototype = {
             button.setAttribute("aria-pressed", choice.key === selectedKey ? "true" : "false");
             button.setAttribute("aria-label", choice.label + (isClass ? " class" : " school of magic"));
             image.src = isClass
-                ? gameAssetUrl("assets/players/" + choice.key + ".png")
+                ? gameAssetUrl("assets/players/" + (choice.file || choice.key + ".png"))
                 : gameAssetUrl("assets/" + choice.image);
             image.alt = "";
             image.width = 50;

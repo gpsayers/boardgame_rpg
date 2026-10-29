@@ -10,9 +10,7 @@ var playerDestinations = [],
     playerNotificationMenu = false,
     playerNotified = false,
     playerCardDrawn = false,
-    computerMoved = false,
     computerMoving = false,
-    computerActing = false,
     playerCrossStart = false,
     playerCrossStartMenu = false,
     playerDiscardMenu = false,
@@ -24,6 +22,8 @@ var playerDestinations = [],
     playerTurnMaintenanceComplete = false,
     capturedLootRewardNotice = false,
     capturedLootRewardNoticeText = "",
+    battleEnded = false,
+    playerStatusPanels = [],
     targetArray = [],
     multipleTargetsArray = [];
 
@@ -158,19 +158,21 @@ gameMain.prototype = {
 
     },
     create: function () {
+        battleEnded = false;
 
         //Default text style
         var style = { font: 'bold 15pt Arial', wordWrap: true, wordWrapWidth: 150, align: "center" };
 
         //Create layers for sprite z levels
         back_layer = game.add.group();
-        board_layer = game.add.group();
-        player_layer = game.add.group();
-        player_layer['1'] = game.add.group();
-        player_layer['2'] = game.add.group();
-        player_layer['3'] = game.add.group();
+        board_square_layer = game.add.group();
+        board_special_layer = game.add.group();
+        creature_layer = game.add.group();
+        ai_player_layer = game.add.group();
+        human_player_layer = game.add.group();
+        spell_effect_layer = game.add.group();
         cursor_layer = game.add.group();
-        target_layer = game.add.group();
+        target_layer = spell_effect_layer;
         pop_layer = game.add.group();
 
 
@@ -226,14 +228,14 @@ gameMain.prototype = {
             gameVariables.gamePlayerArray[i].sprite.x = gameBoardResult.x;
             gameVariables.gamePlayerArray[i].sprite.y = gameBoardResult.y;
             gameVariables.gamePlayerArray[i].sprite.gameSquareId = gameBoardResult.id;
-            if (i == 0) {
-                player_layer.add(gameVariables.gamePlayerArray[i].sprite);
+            if (gameVariables.gamePlayerArray[i].human) {
+                human_player_layer.add(gameVariables.gamePlayerArray[i].sprite);
             }
             else {
-                player_layer[i.toString()].add(gameVariables.gamePlayerArray[i].sprite);
+                ai_player_layer.add(gameVariables.gamePlayerArray[i].sprite);
             }
 
-            gameVariables.gamePlayerArray[i].turnSprite = game.add.sprite(game.width - 250, (50 * i) + 50, 'turnSprite');
+            gameVariables.gamePlayerArray[i].turnSprite = null;
         }
 
 
@@ -292,16 +294,11 @@ gameMain.prototype = {
         hearttext = game.add.text(game.width - 295, game.height - 250, "20/20", style);
         coin = game.add.sprite(game.width - 250, game.height - 270, 'coin');
 
+        createPlayerStatusPanels();
+
         //Game info text
         var infoText = game.add.text(game.width - 450, 60, "Info", style);
         back_layer.add(infoText);
-        playerSquareCount = {};
-        for (i = 0; i < gameVariables.gamePlayerArray.length; i++) {
-            playerSquareCount[i] = game.add.text(game.width - 60, (50 * i) + 65, "25%", style);
-            playerSquareCount[i].anchor.setTo(1, 0);
-            pop_layer.add(playerSquareCount[i]);
-
-        }
         infoText1 = game.add.text(game.width - 550, 115, 'text1', style);
         infoText2 = game.add.text(game.width - 425, 115, 'text2', style);
         infoText3 = game.add.text(game.width - 550, 175, 'text3', style);
@@ -391,11 +388,6 @@ gameMain.prototype = {
 
 
         //Cross start menu
-        manaText = game.add.text((game.width / 2) - 60, (game.height / 2) + 40, "Mana", style);
-        manaText.inputEnabled = true;
-        manaText.visible = false;
-        manaText.events.onInputUp.add(menuStartClick, this);
-
         cardText = game.add.text((game.width / 2) -60, (game.height / 2) + 10, "Card", style);
         cardText.inputEnabled = true;
         cardText.visible = false;
@@ -441,7 +433,6 @@ gameMain.prototype = {
         pop_layer.add(upButt);
         pop_layer.add(rightButt);
         pop_layer.add(downButt);
-        pop_layer.add(manaText);
         pop_layer.add(cardText);
         pop_layer.add(healthText);
         pop_layer.add(goldText);
@@ -449,66 +440,22 @@ gameMain.prototype = {
     },
     update: function () {
 
-        var style = { font: 'bold 15pt Arial', wordWrap: true, wordWrapWidth: 150, align: "center" };
-
-        //Update player square capture percentage
-        //Update game player mana and health in turn display
-        for (i = 0; i < gameVariables.gamePlayerArray.length; i++) {
-
-            gameVariables.gamePlayerArray[i].turnSprite.destroy();
-
-            //Add turn tracker
-            gameVariables.gamePlayerArray[i].turnSprite = game.add.sprite(game.width - 250, (50 * i) + 50, 'turnSprite');
-            var child = game.add.sprite(10, 10, gameVariables.gamePlayerArray[i].color);
-            child.height = 30;
-            child.width = 30;
-            gameVariables.gamePlayerArray[i].turnSprite.addChild(child);
-            var child = game.add.sprite(10, 10, gameVariables.gamePlayerArray[i].class);
-            child.height = 28;
-            child.width = 28;
-            gameVariables.gamePlayerArray[i].turnSprite.addChild(child);
-            var txt = game.add.text(45, 8, gameVariables.gamePlayerArray[i].name, style);
-            gameVariables.gamePlayerArray[i].turnSprite.addChild(txt);
-
-            if (gameVariables.gamePlayerArray[i].armor > 0) {
-                var shieldpic = game.add.sprite(130, 10, 'shield');
-                shieldpic.width = 17;
-                shieldpic.height = 17;
-                var armortext = game.add.text(135, 10, gameVariables.gamePlayerArray[i].armor, { font: "bold 10pt Arial" })
-                gameVariables.gamePlayerArray[i].turnSprite.addChild(shieldpic);
-                gameVariables.gamePlayerArray[i].turnSprite.addChild(armortext);
-            }
-
-
-            var health = game.add.sprite(45, 29, 'rpix')
-            health.width = 100;
-            health.height = 2;
-            gameVariables.gamePlayerArray[i].turnSprite.addChild(health);
-
-            var hp = (gameVariables.gamePlayerArray[i].hp / gameVariables.gamePlayerArray[i].maxhp) * 100;
-            var health = game.add.sprite(45, 29, 'gpix')
-            health.width = hp;
-            health.height = 2;
-            gameVariables.gamePlayerArray[i].turnSprite.addChild(health);
-
-            var mana = game.add.sprite(45, 32, 'mana');
-            mana.width = 9;
-            mana.height = 9;
-            gameVariables.gamePlayerArray[i].turnSprite.addChild(mana);
-
-            for (x = 1; x < gameVariables.gamePlayerArray[i].maxmana; x++) {
-
-                var mana = game.add.sprite(45 + (10 * x), 32, 'mana');
-                mana.width = 9;
-                mana.height = 9;
-                gameVariables.gamePlayerArray[i].turnSprite.addChild(mana);
-            }
-
-            back_layer.add(gameVariables.gamePlayerArray[i].turnSprite);
-
-            var calc = Math.round((gameVariables.gamePlayerArray[i].capturedSquares / gameVariables.boardInfo.boardTotal) * 100);
-            playerSquareCount[i].setText(calc + '%');
+        if (battleEnded) {
+            return;
         }
+
+        var outcome = getBattleOutcome();
+        if (outcome) {
+            endBattle(outcome);
+            return;
+        }
+
+        if (gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp <= 0) {
+            advanceToNextPlayer();
+            return;
+        }
+
+        updatePlayerStatusPanels();
 
         //Update player info
         gameVariables.gamePlayerArray[0].manasprite.destroy();
@@ -581,103 +528,11 @@ gameMain.prototype = {
                 qText.setText("Your turn!");
                 qText.visible = true;
 
-                game.world.bringToTop(player_layer);
-
-
             }
 
         }
         else {
-            //Computer player turn
-
-            if (playerCrossStart == true) {
-
-                //Must be computer that crossed the start.
-                playerCrossStart = false;
-
-                if (gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp < 3) {
-                    //Take the health option
-                    gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp + 2;
-                }
-                else if (gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.length < 2) {
-                    //Draw cards
-                    computerDrawCard(gameVariables.currentPlayer);
-                    computerDrawCard(gameVariables.currentPlayer);
-                }
-                else if (gameVariables.gamePlayerArray[gameVariables.currentPlayer].maxmana < 5) {
-                    //Max mana increase
-                    gameVariables.gamePlayerArray[gameVariables.currentPlayer].maxmana++;
-                }
-                else {
-                    //Gain gold
-                    gameVariables.gamePlayerArray[gameVariables.currentPlayer].gold = gameVariables.gamePlayerArray[gameVariables.currentPlayer].gold + 100;
-                }
-            }
-
-            game.world.bringToTop(player_layer[gameVariables.currentPlayer]);
-
-            gameVariables.gamePlayerArray[gameVariables.currentPlayer].mana = gameVariables.gamePlayerArray[gameVariables.currentPlayer].maxmana;
-
-            if (computerMoved == false) {
-                //Execute a move
-                var roll = 1 + Math.floor(Math.random() * 6);
-
-                computerMoved = true;
-                computerMoving = true;
-
-                cursor1.visible = false;
-                cursor2.visible = false;
-
-                playerDestinations.length = 0;
-
-                calculateDestinations(gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite.gameSquareId, roll);
-
-                playerMove(gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite, roll);
-            }
-
-            if (computerMoving) {
-                //Wait for move to finish
-            }
-            else {
-
-                if (computerActing == false) {
-                    //take computer actions.
-                    computerActing = true;
-
-                    gameVariables.gamePlayerArray[gameVariables.currentPlayer].mana = gameVariables.gamePlayerArray[gameVariables.currentPlayer].maxmana;
-
-                    //Draw Card
-                    computerDrawCard(gameVariables.currentPlayer);
-
-                    //Play a random spell
-                    //var randCard = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.splice(Math.floor(Math.random() * gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.length), 1);
-
-                    //Play spell with hightest threat that we have mana for
-                    gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.sort(compareHandThreat);
-
-                    var ai_card_to_cast = null;
-
-                    for (i = 0; i < gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand.length; i++) {
-                        if (gameVariables.gamePlayerArray[gameVariables.currentPlayer].mana >= gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand[i].cost) {
-                            //Cast this card
-                            ai_card_to_cast = gameVariables.gamePlayerArray[gameVariables.currentPlayer].hand[i];
-                        }
-                    }
-
-                    if (ai_card_to_cast != null) {
-                        castSpell(ai_card_to_cast.id, gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite);
-                    }
-
-
-
-                    endCurrentPlayerTurn();
-                }
-                else {
-                    //Wait for actions to complete
-                }
-
-            }
-
+            computerAI.update();
         }
 
 
@@ -719,7 +574,6 @@ gameMain.prototype = {
                 cur.inputEnabled = true;
                 cur.events.onInputDown.add(targetClicked, this);
                 target_layer.add(cur);
-                game.world.bringToTop(target_layer);
                 targetArray[i].sprite = cur;
                 game.add.tween(targetArray[i].sprite).to({ alpha: 0 }, 500, Phaser.Easing.Linear.NONE, true,0,1000);
             }
@@ -760,7 +614,6 @@ gameMain.prototype = {
             menu.visible = true;
             qText.setText("Please choose a reward.");
             qText.visible = true;
-            manaText.visible = true;
             cardText.visible = true;
             healthText.visible = true;
             goldText.visible = true;
@@ -886,6 +739,141 @@ gameMain.prototype = {
         //}
     }
 
+}
+
+function getPlayerSchoolTheme(player) {
+    var schoolAliases = {
+        red: "Fire",
+        blue: "Water",
+        white: "Life",
+        yellow: "Life",
+        black: "Death",
+        purple: "Death",
+        green: "Earth"
+    };
+    var school = schoolAliases[player.color] || player.color;
+    var validSchools = ["Fire", "Water", "Life", "Death", "Earth"];
+
+    return validSchools.indexOf(school) >= 0 ? school : "Fire";
+}
+
+function createPlayerStatusPanels() {
+    var players = gameVariables.gamePlayerArray;
+    var rowStep = Math.min(82, (game.height - 90) / players.length);
+    var panelHeight = Math.min(76, rowStep - 5);
+    var panelWidth = 280;
+    var panelX = game.width - panelWidth - 42;
+    var startY = 34;
+    var textStyle = {
+        font: "bold 12px Arial",
+        fill: "#ffffff",
+        stroke: "#17202b",
+        strokeThickness: 2
+    };
+
+    playerStatusPanels.length = 0;
+
+    players.forEach(function (player, index) {
+        var x = panelX;
+        var y = startY + index * rowStep;
+        var background = game.add.sprite(x, y, "turnSprite");
+        background.width = panelWidth;
+        background.height = panelHeight;
+        pop_layer.add(background);
+        player.turnSprite = background;
+
+        var schoolBackground = game.add.sprite(x, y, getPlayerSchoolTheme(player));
+        schoolBackground.width = panelWidth;
+        schoolBackground.height = panelHeight;
+        schoolBackground.alpha = 0.55;
+        pop_layer.add(schoolBackground);
+
+        var avatar = game.add.sprite(x + 7, y + 7, player.class);
+        avatar.width = 42;
+        avatar.height = 42;
+        pop_layer.add(avatar);
+
+        var name = game.add.text(x + 56, y + 5, player.name, {
+            font: "bold 14px Arial",
+            fill: "#ffffff",
+            stroke: "#17202b",
+            strokeThickness: 3,
+            wordWrap: true,
+            wordWrapWidth: panelWidth - 64
+        });
+        pop_layer.add(name);
+
+        var school = game.add.text(x + 56, y + 22, getPlayerSchoolTheme(player) + " school", textStyle);
+        pop_layer.add(school);
+
+        var mana = game.add.text(x + 56, y + 39, "", textStyle);
+        pop_layer.add(mana);
+        var hand = game.add.text(x + 156, y + 39, "", textStyle);
+        pop_layer.add(hand);
+        var health = game.add.text(x + 56, y + 53, "", textStyle);
+        pop_layer.add(health);
+        var captured = game.add.text(x + 156, y + 53, "", textStyle);
+        pop_layer.add(captured);
+
+        var healthBarX = x + 56;
+        var healthBarY = y + panelHeight - 9;
+        var healthBarWidth = panelWidth - 68;
+        var healthBarBackground = game.add.sprite(healthBarX, healthBarY, "rpix");
+        healthBarBackground.width = healthBarWidth;
+        healthBarBackground.height = 5;
+        pop_layer.add(healthBarBackground);
+
+        var healthBar = game.add.sprite(healthBarX, healthBarY, "gpix");
+        healthBar.height = 5;
+        pop_layer.add(healthBar);
+
+        playerStatusPanels.push({
+            background: background,
+            schoolBackground: schoolBackground,
+            avatar: avatar,
+            name: name,
+            school: school,
+            mana: mana,
+            hand: hand,
+            health: health,
+            captured: captured,
+            healthBar: healthBar,
+            healthBarWidth: healthBarWidth,
+            x: x,
+            y: y,
+            height: panelHeight
+        });
+    });
+
+    turnArrow.anchor.setTo(0.5);
+    pop_layer.add(turnArrow);
+    updatePlayerStatusPanels();
+}
+
+function updatePlayerStatusPanels() {
+    var players = gameVariables.gamePlayerArray;
+    var captureRequirement = gameVariables.boardInfo.captureRequirement || gameVariables.boardInfo.boardTotal;
+
+    players.forEach(function (player, index) {
+        var panel = playerStatusPanels[index];
+        if (!panel) {
+            return;
+        }
+
+        panel.mana.setText("Mana " + player.mana + "/" + player.maxmana);
+        panel.hand.setText("Hand " + player.hand.length + "/" + player.maxhand);
+        panel.health.setText("HP " + player.hp + "/" + player.maxhp);
+        panel.captured.setText("Squares " + player.capturedSquares + "/" + captureRequirement);
+
+        var healthRatio = player.maxhp > 0 ? player.hp / player.maxhp : 0;
+        panel.healthBar.width = panel.healthBarWidth * Math.max(0, Math.min(healthRatio, 1));
+
+        if (index === gameVariables.currentPlayer) {
+            turnArrow.visible = true;
+            turnArrow.x = panel.x - 17;
+            turnArrow.y = panel.y + panel.height / 2;
+        }
+    });
 }
 
 function createPlayerHand() {
@@ -1045,10 +1033,12 @@ function addGameSquare(type, x, y, squareId, gridX, gridY) {
     sprite.anchor.y = 0.5;
     sprite.inputEnabled = true;
     sprite.events.onInputDown.add(boardSquareClicked, this);
+    sprite.events.onInputOver.add(showSquareDetails, this);
+    sprite.events.onInputOut.add(hideSquareDetails, this);
     sprite.gameSquareId = squareId;
     sprite.gridX = gridX;
     sprite.gridY = gridY;
-    board_layer.add(sprite);
+    board_square_layer.add(sprite);
 
     var gs = new gameSquare(squareId, x, y, sprite);
 
@@ -1067,7 +1057,7 @@ function addGameSquare(type, x, y, squareId, gridX, gridY) {
             gs.special.anchor.x = 0.5;
             gs.special.anchor.y = 0.5;
 
-            board_layer.add(gs.special);
+            board_special_layer.add(gs.special);
         }
 
     }
@@ -1320,7 +1310,7 @@ function targetClicked(target) {
             });
 
             if (target.type == "player") {
-                damagePlayerOnSquare(deets, target.card, target.player, target.model.class);
+                damagePlayerOnSquare(deets, target.card, target.player, target.model.class, target.model);
             }
             else {
                 damageCreatureOnSquare(deets, target.card, target.player);
@@ -1395,10 +1385,10 @@ function targetClicked(target) {
         for (i = 0; i < result.length; i++) {
 
             if (result[i].type == "creature") {
-                multipleTargetsArray.push({ sprite: {}, image: result[i].model.sprite.key, card: result[i].card, originSquare: result[i].originSquare, targetSquare: result[i].targetSquare, player: result[i].player, type: "creature" });
+                multipleTargetsArray.push({ sprite: {}, image: result[i].model.sprite.key, model: result[i].model, card: result[i].card, originSquare: result[i].originSquare, targetSquare: result[i].targetSquare, player: result[i].player, type: "creature" });
             }
             else {
-                multipleTargetsArray.push({ sprite: {}, image: result[i].model.class, card: result[i].card, originSquare: result[i].originSquare, targetSquare: result[i].targetSquare, player: result[i].player, type: "player" });
+                multipleTargetsArray.push({ sprite: {}, image: result[i].model.class, model: result[i].model, card: result[i].card, originSquare: result[i].originSquare, targetSquare: result[i].targetSquare, player: result[i].player, type: "player" });
             }
         }
 
@@ -1417,7 +1407,7 @@ function targetClicked(target) {
 
         game.camera.flash(0xff0000, 500);
 
-        if (card.special == 0) {
+        if (card.special == SPECIAL_EFFECT.NONE) {
 
             if (result[0].type == "ground") {
 
@@ -1431,7 +1421,7 @@ function targetClicked(target) {
 
                 if (targetPlayer.length > 0) {
                     targetPlayer.forEach(function (tp) {
-                        damagePlayerOnSquare(boardSquareDetail, card, targetArrayItem.player, tp.class);
+                        damagePlayerOnSquare(boardSquareDetail, card, targetArrayItem.player, tp.class, tp);
                     });
 
                 }
@@ -1445,7 +1435,7 @@ function targetClicked(target) {
                     return item.sprite.gameSquareId == targetArrayItem.targetSquare;
                 });
 
-                damagePlayerOnSquare(boardSquareDetail, card, targetArrayItem.player, targetPlayer.class);
+                damagePlayerOnSquare(boardSquareDetail, card, targetArrayItem.player, result[0].model.class, result[0].model);
             }
         }
         else {
@@ -1453,11 +1443,8 @@ function targetClicked(target) {
                 processSpecialSpell(card, result[0].player, result[0].targetSquare, result[0].type, result[0].model);
             }
             else {
-                var targetPlayer = gameVariables.gamePlayerArray.find(function (item) {
-                    return item.sprite.gameSquareId == result[0].targetSquare;
-                });
-
-                processSpecialSpell(card, result[0].player, result[0].targetSquare, result[0].type, targetPlayer.class);
+                var targetPlayer = result[0].model;
+                processSpecialSpell(card, targetPlayer, result[0].targetSquare, result[0].type, targetPlayer.class);
             }
 
         }
@@ -1484,17 +1471,21 @@ function targetMenuClicked(item) {
 
     game.camera.flash(0xff0000, 500);
 
-    if (targetResult.card.special == 0) {
+    if (targetResult.card.special == SPECIAL_EFFECT.NONE) {
         if (targetResult.type == "creature") {
             damageCreatureOnSquare(boardResult, targetResult.card, targetResult.player);
         }
         else {
-            damagePlayerOnSquare(boardResult, targetResult.card, targetResult.player, targetResult.sprite.key);
+            damagePlayerOnSquare(boardResult, targetResult.card, targetResult.player, targetResult.sprite.key, targetResult.model);
         }
 
     }
     else {
-        processSpecialSpell(targetResult.card, targetResult.player, targetResult.targetSquare, targetResult.type, targetResult.image);
+        var targetPlayer = targetResult.model || gameVariables.gamePlayerArray.find(function (player) {
+            return player.sprite.gameSquareId == targetResult.targetSquare &&
+                player.class == targetResult.image;
+        });
+        processSpecialSpell(targetResult.card, targetPlayer || targetResult.player, targetResult.targetSquare, targetResult.type, targetResult.image);
     }
 
     if (targetResult.card.creature == true) {
@@ -1511,6 +1502,17 @@ function targetMenuClicked(item) {
 }
 
 
+function updateCreatureHealthBar(creature) {
+    var maxHealth = Math.max(creature.maxhitpoints, 1);
+    var healthRatio = Math.max(0, Math.min(creature.hitpoints / maxHealth, 1));
+    var damageWidth = creature.hitspritegreen.width * (1 - healthRatio);
+
+    creature.hitspritered.width = damageWidth;
+    creature.hitspritered.x = creature.hitspritegreen.x +
+        creature.hitspritegreen.width - damageWidth;
+}
+
+
 function damageCreatureOnSquare(boardSquareDetail, cardDetails, player) {
     boardSquareDetail.creature.hitpoints = (boardSquareDetail.creature.hitpoints -
         Math.max((cardDetails.damage - boardSquareDetail.creature.armor), 0));
@@ -1523,25 +1525,25 @@ function damageCreatureOnSquare(boardSquareDetail, cardDetails, player) {
         boardSquareDetail.creature = null;
     } else {
         //Defender takes damage but lives.
-        var percent = (boardSquareDetail.creature.hitpoints / boardSquareDetail.creature.maxhitpoints);
-        var pixelWidth = 20 - Math.round(percent * 20);
-
-        boardSquareDetail.creature.hitspritered.width = pixelWidth;
+        updateCreatureHealthBar(boardSquareDetail.creature);
     }
 }
 
 
-function damagePlayerOnSquare(boardSquareDetail, cardDetails, player, playerClass) {
+function damagePlayerOnSquare(boardSquareDetail, cardDetails, player, playerClass, targetPlayer) {
     for (i = 0; i < gameVariables.gamePlayerArray.length; i++) {
-        if (gameVariables.gamePlayerArray[i].class == playerClass)
-        {
-            gameVariables.gamePlayerArray[i].hp = (gameVariables.gamePlayerArray[i].hp - Math.max((cardDetails.damage - gameVariables.gamePlayerArray[i].armor), 0));
+        var currentTarget = gameVariables.gamePlayerArray[i];
+        if (targetPlayer ? currentTarget === targetPlayer :
+            currentTarget.class == playerClass && currentTarget.sprite.gameSquareId == boardSquareDetail.id) {
+            currentTarget.hp = currentTarget.hp - Math.max((cardDetails.damage - currentTarget.armor), 0);
         }
     }
 }
 
 
 function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
+    var healthBarWidth = boardSquareDetail.sprite.width * 0.8;
+    var healthBarX = boardSquareDetail.sprite.x - healthBarWidth / 2;
 
     //Check if square already has a creature
     if (boardSquareDetail.creature != null) {
@@ -1569,23 +1571,24 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
             creatureSprite.height = 45;
             creatureSprite.anchor.x = 0.5;
             creatureSprite.anchor.y = 0.5;
-            board_layer.add(creatureSprite);
+            creature_layer.add(creatureSprite);
             boardSquareDetail.creature.sprite = creatureSprite;
 
             var creatureHitpointsG =
-                game.add.sprite(boardSquareDetail.sprite.x - 10, boardSquareDetail.sprite.y + 17, 'gpix');
-            creatureHitpointsG.width = 20;
+                game.add.sprite(healthBarX, boardSquareDetail.sprite.y + 17, 'gpix');
+            creatureHitpointsG.width = healthBarWidth;
             creatureHitpointsG.height = 3;
             var creatureHitpointsR =
-                game.add.sprite(boardSquareDetail.sprite.x - 10, boardSquareDetail.sprite.y + 17, 'rpix');
+                game.add.sprite(healthBarX, boardSquareDetail.sprite.y + 17, 'rpix');
             creatureHitpointsR.width = 0;
             creatureHitpointsR.height = 3;
 
-            board_layer.add(creatureHitpointsG);
-            board_layer.add(creatureHitpointsR);
+            creature_layer.add(creatureHitpointsG);
+            creature_layer.add(creatureHitpointsR);
 
             boardSquareDetail.creature.hitspritegreen = creatureHitpointsG;
             boardSquareDetail.creature.hitspritered = creatureHitpointsR;
+            updateCreatureHealthBar(boardSquareDetail.creature);
 
             captureSquare(boardSquareDetail.id);
 
@@ -1625,41 +1628,35 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
                 creatureSprite.height = 45;
                 creatureSprite.anchor.x = 0.5;
                 creatureSprite.anchor.y = 0.5;
-                board_layer.add(creatureSprite);
+                creature_layer.add(creatureSprite);
                 boardSquareDetail.creature.sprite = creatureSprite;
 
-                var percent = (attackerHP / cardDetails.defense);
-                var pixelWidth = 20 - Math.round(percent * 20);
-
-                var creatureHitpointsG = game.add.sprite(boardSquareDetail.sprite.x - 10,
+                var creatureHitpointsG = game.add.sprite(healthBarX,
                     boardSquareDetail.sprite.y + 17,
                     'gpix');
-                creatureHitpointsG.width = 20;
+                creatureHitpointsG.width = healthBarWidth;
                 creatureHitpointsG.height = 3;
-                var creatureHitpointsR = game.add.sprite(boardSquareDetail.sprite.x - 10,
+                var creatureHitpointsR = game.add.sprite(healthBarX,
                     boardSquareDetail.sprite.y + 17,
                     'rpix');
-                creatureHitpointsR.width = pixelWidth;
                 creatureHitpointsR.height = 3;
 
-                board_layer.add(creatureHitpointsG);
-                board_layer.add(creatureSprite);
+                creature_layer.add(creatureHitpointsG);
+                creature_layer.add(creatureHitpointsR);
 
                 boardSquareDetail.creature.hitspritegreen = creatureHitpointsG;
                 boardSquareDetail.creature.hitspritered = creatureHitpointsR;
+                updateCreatureHealthBar(boardSquareDetail.creature);
 
 
-                captureSquare(player.gameSquareId);
+                captureSquare(boardSquareDetail.id);
             }
 
 
         } else {
             boardCreature.hitpoints = defHp;
             //Defender takes damage but lives. Attacker is discarded
-            var percent = (defHp / boardCreature.maxhitpoints);
-            var pixelWidth = 20 - Math.round(percent * 20);
-
-            boardSquareDetail.creature.hitspritered.width = pixelWidth;
+            updateCreatureHealthBar(boardSquareDetail.creature);
 
         }
 
@@ -1681,23 +1678,24 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
         creatureSprite.height = 45;
         creatureSprite.anchor.x = 0.5;
         creatureSprite.anchor.y = 0.5;
-        board_layer.add(creatureSprite);
+        creature_layer.add(creatureSprite);
         boardSquareDetail.creature.sprite = creatureSprite;
 
         var creatureHitpointsG =
-            game.add.sprite(boardSquareDetail.sprite.x - 10, boardSquareDetail.sprite.y + 17, 'gpix');
-        creatureHitpointsG.width = 20;
+            game.add.sprite(healthBarX, boardSquareDetail.sprite.y + 17, 'gpix');
+        creatureHitpointsG.width = healthBarWidth;
         creatureHitpointsG.height = 3;
         var creatureHitpointsR =
-            game.add.sprite(boardSquareDetail.sprite.x - 10, boardSquareDetail.sprite.y + 17, 'rpix');
+            game.add.sprite(healthBarX, boardSquareDetail.sprite.y + 17, 'rpix');
         creatureHitpointsR.width = 0;
         creatureHitpointsR.height = 3;
 
-        board_layer.add(creatureHitpointsG);
-        board_layer.add(creatureHitpointsR);
+        creature_layer.add(creatureHitpointsG);
+        creature_layer.add(creatureHitpointsR);
 
         boardSquareDetail.creature.hitspritegreen = creatureHitpointsG;
         boardSquareDetail.creature.hitspritered = creatureHitpointsR;
+        updateCreatureHealthBar(boardSquareDetail.creature);
 
         captureSquare(boardSquareDetail.id);
     }
@@ -1713,24 +1711,25 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
         return item.id == targetSquare;
     });
 
-    if (card.special == 1) {
-        var result = gameVariables.gamePlayerArray.find(function (item) {
+    if (card.special == SPECIAL_EFFECT.STEAL_GOLD) {
+        var victim = gameVariables.gamePlayerArray.find(function (item) {
             return item.class == targetImage;
         });
 
-
-        if (result.gold >= card.damage) {
-            currentPlayer.gold = currentPlayer.gold + card.damage;
+        if (victim && victim !== currentPlayer) {
+            var stolenGold = Math.min(card.damage, Math.max(victim.gold, 0));
+            victim.gold -= stolenGold;
+            currentPlayer.gold += stolenGold;
         }
 
     }
 
-    if (card.special == 2) {
+    if (card.special == SPECIAL_EFFECT.SLOW_MOVEMENT) {
         //Slow movement
 
     }
 
-    if (card.special == 3) {
+    if (card.special == SPECIAL_EFFECT.HEAL) {
         //Heal
         if (targetType == "creature") {
             boardSquareDetail.creature.hitpoints = boardSquareDetail.creature.hitpoints + card.damage;
@@ -1738,10 +1737,7 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
             if (boardSquareDetail.creature.hitpoints > boardSquareDetail.creature.maxhitpoints) {
                 boardSquareDetail.creature.hitpoints = boardSquareDetail.creature.maxhitpoints;
             }
-            var percent = (boardSquareDetail.creature.hitpoints / boardSquareDetail.creature.maxhitpoints);
-            var pixelWidth = 20 - Math.round(percent * 20);
-
-            boardSquareDetail.creature.hitspritered.width = pixelWidth;
+            updateCreatureHealthBar(boardSquareDetail.creature);
         } else {
             player.hp = player.hp + card.damage;
             if (player.hp > player.maxhp) {
@@ -1752,40 +1748,41 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
 
     }
 
-    if (card.special == 4) {
+    if (card.special == SPECIAL_EFFECT.MOVE_FORWARD) {
         //Move player
         calculateDestinations(player.gameSquareId, card.damage);
         playerMove(player, card.damage);
     }
 
-    if (card.special == 5) {
+    if (card.special == SPECIAL_EFFECT.DRAW_CARDS) {
         for (i = 0; i < card.damage; i++) {
-            drawCard();
+            if (currentPlayer.human) {
+                drawCard();
+            } else {
+                computerDrawCard(gameVariables.currentPlayer);
+            }
         }
     }
 
-    if (card.special == 6) {
+    if (card.special == SPECIAL_EFFECT.GAIN_GOLD) {
         currentPlayer.gold = currentPlayer.gold + card.damage;
     }
 
-    if (card.special == 8) {
+    if (card.special == SPECIAL_EFFECT.BUFF_CREATURE) {
         boardSquareDetail.creature.hitpoints = boardSquareDetail.creature.hitpoints + card.defense;
         boardSquareDetail.creature.maxhitpoints = boardSquareDetail.creature.maxhitpoints + card.defense;
         boardSquareDetail.creature.armor = boardSquareDetail.creature.armor + card.armor;
         boardSquareDetail.creature.attack = boardSquareDetail.creature.attack + card.attack;
 
         //redraw defender health bar.
-        var percent = (boardSquareDetail.creature.hitpoints / boardSquareDetail.creature.maxhitpoints);
-        var pixelWidth = 20 - Math.round(percent * 20);
-
-        boardSquareDetail.creature.hitspritered.width = pixelWidth;
+        updateCreatureHealthBar(boardSquareDetail.creature);
     }
 
-    if (card.special == 10) {
+    if (card.special == SPECIAL_EFFECT.BOOST_MANA) {
         currentPlayer.mana = currentPlayer.mana + card.damage;
     }
 
-    if (card.special == 11) {
+    if (card.special == SPECIAL_EFFECT.BOOST_MAX_MANA) {
         currentPlayer.maxmana = currentPlayer.maxmana + card.damage;
     }
 }
@@ -1811,7 +1808,7 @@ function processSpecialLoot(type, looted, result, boardSquareDetail) {
                 special.anchor.x = 0.5;
                 special.anchor.y = 0.5;
                 boardSquareDetail.special = special;
-                board_layer.add(special);
+                board_special_layer.add(special);
             }
             break;
         case "magictrap":
@@ -1842,7 +1839,7 @@ function processSpecialLoot(type, looted, result, boardSquareDetail) {
                 special.anchor.x = 0.5;
                 special.anchor.y = 0.5;
                 boardSquareDetail.special = special;
-                board_layer.add(special);
+                board_special_layer.add(special);
             }
             break;
         case "start":
@@ -1919,10 +1916,6 @@ function menuStartClick(choice) {
         case "Gold":
             gameVariables.playerGold = gameVariables.playerGold + 100;
             break;
-        case "Mana":
-            gameVariables.gamePlayerArray[0].maxmana++;
-            gameVariables.gamePlayerArray[0].mana++;
-            break;
         case "Card":
             drawCard();
             drawCard();
@@ -1939,7 +1932,6 @@ function menuStartClick(choice) {
     menu.visible = false;
     qText.setText("Please choose a reward.");
     qText.visible = false;
-    manaText.visible = false;
     cardText.visible = false;
     healthText.visible = false;
     goldText.visible = false;
@@ -1974,45 +1966,148 @@ function endPlayerTurn() {
 
 
 function endCurrentPlayerTurn() {
+    resolveCurrentPlayerSquareEffects();
+    resolveCurrentPlayerEndTurnEffects();
+    advanceToNextPlayer();
+}
 
-    //If current player is on square with creature, take damage
+function resolveCurrentPlayerSquareEffects() {
     var square = gameVariables.gameBoard.find(function (item) {
         return item.id == gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite.gameSquareId;
     });
 
-    if (square.creature != null) {
-        if (square.creature.playerOwnedId != gameVariables.gamePlayerArray[gameVariables.currentPlayer].id) {
-            //Take damage from creature in square
-            gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp = (gameVariables.gamePlayerArray[gameVariables.currentPlayer].hp - Math.max((square.creature.attack - gameVariables.gamePlayerArray[gameVariables.currentPlayer].armor), 0));
-        }
-    }
-
-    //Check for loot on the square
+    //Resolve loot and hazards on the square the player landed on.
     var boardSquareLoot = gameVariables.boardInfo.specialSquares.find(function (element) {
         return element.squareId == gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite.gameSquareId;
     });
 
-
     if (typeof boardSquareLoot != 'undefined') {
-        //found loot
         processSpecialLoot(boardSquareLoot.type, boardSquareLoot.looted, boardSquareLoot.result, square);
         boardSquareLoot.looted++;
     }
+}
 
+function resolveCurrentPlayerEndTurnEffects() {
+    var square = gameVariables.gameBoard.find(function (item) {
+        return item.id == gameVariables.gamePlayerArray[gameVariables.currentPlayer].sprite.gameSquareId;
+    });
+    var player = gameVariables.gamePlayerArray[gameVariables.currentPlayer];
 
-    //Change game to next player
-    gameVariables.currentPlayer++;
+    if (square && square.creature != null) {
+        if (square.creature.playerOwnedId != player.id) {
+            player.hp = player.hp - Math.max((square.creature.attack - player.armor), 0);
+        }
+    }
+}
 
-    if (gameVariables.currentPlayer > gameVariables.gamePlayerArray.length - 1) {
-        gameVariables.currentPlayer = 0;
+function advanceToNextPlayer() {
+    var players = gameVariables.gamePlayerArray;
+    var currentPlayer = gameVariables.currentPlayer;
+
+    for (var offset = 1; offset <= players.length; offset++) {
+        var nextPlayer = (currentPlayer + offset) % players.length;
+        if (players[nextPlayer].hp > 0) {
+            gameVariables.currentPlayer = nextPlayer;
+            break;
+        }
     }
 
-    //Move turn tracker
-    var tween = game.add.tween(turnArrow).to({ x: game.width - 280, y: (50 * gameVariables.currentPlayer) + 60 }, 500, Phaser.Easing.Linear.None, true);
+    updatePlayerStatusPanels();
 
-    computerMoved = false;
     computerMoving = false;
-    computerActing = false;
+}
+
+function getBattleOutcome() {
+    var players = gameVariables.gamePlayerArray;
+    var humanPlayer = players[0];
+
+    if (humanPlayer.hp <= 0) {
+        return {
+            humanWon: false,
+            message: "You have been eliminated."
+        };
+    }
+
+    var captureRequirement = gameVariables.boardInfo.captureRequirement;
+    if (captureRequirement > 0) {
+        var captureWinner = players.find(function (player) {
+            return player.hp > 0 && player.capturedSquares >= captureRequirement;
+        });
+
+        if (captureWinner) {
+            return {
+                humanWon: captureWinner === humanPlayer,
+                message: captureWinner.name + " captured enough squares to win."
+            };
+        }
+    }
+
+    var livingPlayers = players.filter(function (player) {
+        return player.hp > 0;
+    });
+
+    if (livingPlayers.length === 1) {
+        return {
+            humanWon: livingPlayers[0] === humanPlayer,
+            message: livingPlayers[0].name + " is the last player standing."
+        };
+    }
+
+    return null;
+}
+
+function endBattle(outcome) {
+    battleEnded = true;
+    computerMoving = false;
+    playerDirChoiceMenu = false;
+    playerChoiceMenu = false;
+    playerSpellTargeting = false;
+    multipleTargetsMenu = false;
+    playerCrossStartMenu = false;
+    playerDiscardMenu = false;
+    playerDiscardWaiting = false;
+    playerNotificationMenu = false;
+    playerDestinations.length = 0;
+    targetArray.length = 0;
+    multipleTargetsArray.length = 0;
+
+    var blocker = game.add.tileSprite(0, 0, game.width, game.height, 'dirt');
+    blocker.alpha = 0.7;
+    blocker.inputEnabled = true;
+    game.world.bringToTop(blocker);
+
+    pop_layer.children.forEach(function (child) {
+        child.visible = false;
+    });
+
+    menu.events.onInputUp.removeAll();
+    menu.inputEnabled = false;
+    menu.visible = true;
+    qText.setText(outcome.humanWon ? "Victory!" : "Battle lost");
+    qText.visible = true;
+    game.world.bringToTop(pop_layer);
+
+    var resultText = game.add.text(game.width / 2, (game.height / 2) + 8, outcome.message, {
+        font: "bold 18px Arial",
+        fill: "#000000",
+        align: "center",
+        wordWrap: true,
+        wordWrapWidth: 360
+    });
+    resultText.anchor.setTo(0.5);
+
+    var continueText = game.add.text(game.width / 2, (game.height / 2) + 72, "Continue", {
+        font: "bold 18px Arial",
+        fill: "#000000",
+        align: "center"
+    });
+    continueText.anchor.setTo(0.5);
+    continueText.inputEnabled = true;
+    continueText.events.onInputUp.add(function () {
+        game.state.start("maptext");
+    }, this);
+    game.world.bringToTop(resultText);
+    game.world.bringToTop(continueText);
 }
 
 
@@ -2156,7 +2251,7 @@ function playerMove(playerSprite, roll) {
                 return;
             }
 
-            var AIchoice = nextPathIdArray[Math.floor(Math.random() * nextPathIdArray.length)];
+            var AIchoice = computerAI.choosePath(nextPathIdArray);
             nextPathIdArray[0] = AIchoice;
         }
 
@@ -2164,9 +2259,10 @@ function playerMove(playerSprite, roll) {
             return element.sprite.gameSquareId == nextPathIdArray[0];
         });
 
-        if (nextPathIdArray[0] == gameVariables.boardInfo.boardStart)
-        {
+        if (playerSprite.gameSquareId === gameVariables.boardInfo.boardEnd &&
+            nextPathIdArray[0] === gameVariables.boardInfo.boardStart) {
             playerCrossStart = true;
+            grantStartMana(gameVariables.gamePlayerArray[gameVariables.currentPlayer]);
         }
 
 
@@ -2223,7 +2319,7 @@ function playerMove(playerSprite, roll) {
                 return;
             }
 
-            var AIchoice = nextPathIdArray[Math.floor(Math.random() * nextPathIdArray.length)];
+            var AIchoice = computerAI.choosePath(nextPathIdArray);
             nextPathIdArray[0] = AIchoice;
         }
 
@@ -2381,6 +2477,92 @@ function boardSquareClicked(item) {
 
 }
 
+
+var squareDetailPanel = null;
+
+var specialEffectNames = SPECIAL_EFFECT_NAMES;
+
+function buildSquareDetailText(squareId) {
+    var square = gameVariables.gameBoard.find(function (s) {
+        return s.id == squareId;
+    });
+    if (!square) {
+        return "";
+    }
+
+    var players = gameVariables.gamePlayerArray;
+    var lines = ["Square " + squareId];
+
+    var owner = players.find(function (p) {
+        return p.color == square.sprite.key;
+    });
+    lines.push("Owner: " + (owner ? owner.name : "None"));
+
+    var onSquare = players.filter(function (p) {
+        return p.sprite && p.sprite.gameSquareId == squareId;
+    });
+    lines.push("Players: " + (onSquare.length ?
+        onSquare.map(function (p) { return p.name + " (HP " + p.hp + "/" + p.maxhp + ")"; }).join(", ") : "None"));
+
+    var creature = square.creature;
+    if (creature) {
+        var card = masterCardList.find(function (c) {
+            return c.id == creature.cardId;
+        });
+        var creatureOwner = players.find(function (p) {
+            return p.id == creature.playerOwnedId;
+        });
+        var effects = [];
+        if (card) {
+            if (card.special && specialEffectNames[card.special]) {
+                effects.push(specialEffectNames[card.special]);
+            }
+            if (card.desc) {
+                effects.push(card.desc);
+            }
+        }
+        lines.push("Creatures: " + (card ? card.name : "Unknown"));
+        lines.push("  Owner: " + (creatureOwner ? creatureOwner.name : "None"));
+        lines.push("  HP: " + creature.hitpoints + "/" + creature.maxhitpoints);
+        lines.push("  Attack: " + creature.attack + "  Armor: " + creature.armor);
+        lines.push("  Effects: " + (effects.length ? effects.join("; ") : "None"));
+    } else {
+        lines.push("Creatures: None");
+    }
+
+    return lines.join("\n");
+}
+
+function showSquareDetails(item) {
+    hideSquareDetails();
+
+    var text = game.add.text(0, 0, buildSquareDetailText(item.gameSquareId),
+        { font: "bold 13px Arial", fill: "#ffffff", wordWrap: true, wordWrapWidth: 260 });
+    var pad = 6;
+    var bg = game.add.sprite(0, 0, 'bpix');
+    bg.alpha = 0.85;
+    bg.width = text.width + pad * 2;
+    bg.height = text.height + pad * 2;
+
+    var x = Math.min(item.x + 30, game.width - bg.width - 4);
+    var y = Math.min(Math.max(item.y - bg.height / 2, 4), game.height - bg.height - 4);
+    bg.x = x;
+    bg.y = y;
+    text.x = x + pad;
+    text.y = y + pad;
+
+    pop_layer.add(bg);
+    pop_layer.add(text);
+    squareDetailPanel = { bg: bg, text: text };
+}
+
+function hideSquareDetails() {
+    if (squareDetailPanel) {
+        squareDetailPanel.bg.destroy();
+        squareDetailPanel.text.destroy();
+        squareDetailPanel = null;
+    }
+}
 
 function makeInfoInvis(visible) {
     infoText1.visible = visible;

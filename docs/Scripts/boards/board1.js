@@ -12,6 +12,7 @@ var board1 = {
     boardStart: 1,
     boardEnd: 33,
     boardTotal: 28,
+    captureRequirement: 7,
     specialSquares: [],
     choiceSquares: [],
     computerPlayers: []
@@ -26,9 +27,9 @@ board1.specialSquares.push({ squareId: 25, type: "chest", looted: 0, result: 100
 board1.specialSquares.push({ squareId: 31, type: "bluefountain", looted: 0, result: 1, alt: "dryfountain" });
 board1.specialSquares.push({ squareId: 1, type: "start", looted: 0, result: 0, alt: "start" });
 
-board1.computerPlayers.push(new gamePlayer(1, board1.boardStart, "Fancis", "wizard", "red", 8, 1, false, redWizard1List, 3,100,0));
-board1.computerPlayers.push(new gamePlayer(2, board1.boardStart, "Ginny", "sorceress", "purple", 10, 1, false, blackSorceress1List, 3,100,0));
-board1.computerPlayers.push(new gamePlayer(2, board1.boardStart, "Fred", "cavalier", "yellow", 12, 1, false, redWizard1List, 3,100,0));
-
-
-
+// Computer players for board1
+board1.computerPlayers.push(new gamePlayer(1, board1.boardStart, "Fancis", "wizard", "yellow", 8, 1, false, battleTestCardList, 3,100,0));
+board1.computerPlayers[board1.computerPlayers.length - 1].aiProfile = "aggressor";
+board1.computerPlayers.push(new gamePlayer(2, board1.boardStart, "Ginny", "sorceress", "purple", 10, 1, false, battleTestCardList, 3,100,0));
+board1.computerPlayers[board1.computerPlayers.length - 1].aiProfile = "guardian";
+//board1.computerPlayers.push(new gamePlayer(3, board1.boardStart, "Fred", "cavalier", "yellow", 12, 1, false, redWizard1List, 3,100,0));

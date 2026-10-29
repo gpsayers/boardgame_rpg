@@ -57,7 +57,8 @@
         var originX = visual.originX || 0;
         var originY = visual.originY || 0;
 
-        object.input.hitArea.setTo(-width * originX, -height * originY, width, height);
+        // Container input coordinates are offset by half the display size.
+        object.input.hitArea.setTo(width * (0.5 - originX), height * (0.5 - originY), width, height);
     }
 
     function setInputEnabled(object, enabled) {
@@ -67,7 +68,7 @@
             var height = Math.max(1, visual && (visual.displayHeight || visual.height) || 1);
             var originX = visual && visual.originX || 0;
             var originY = visual && visual.originY || 0;
-            var hitArea = new Phaser.Geom.Rectangle(-width * originX, -height * originY, width, height);
+            var hitArea = new Phaser.Geom.Rectangle(width * (0.5 - originX), height * (0.5 - originY), width, height);
 
             object.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
             if (!object.__legacyPointerTracking) {
@@ -405,7 +406,9 @@
 
     var add = {
         sprite: function (x, y, key, frame) {
-            return makeDisplayObject(requireScene().add.sprite(0, 0, key, frame), x, y);
+            var sprite = requireScene().add.sprite(0, 0, key, frame);
+            sprite.setOrigin(0, 0);
+            return makeDisplayObject(sprite, x, y);
         },
         text: function (x, y, text, style) {
             return makeDisplayObject(requireScene().add.text(0, 0, text, styleForPhaser4(style)), x, y);

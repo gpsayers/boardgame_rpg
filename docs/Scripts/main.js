@@ -24,6 +24,8 @@ mainState.prototype = {
         game.load.image('wizard', 'assets/players/wizard.png');
         game.load.image('sorceress', 'assets/players/sorceress.png');
         game.load.image('trickster', 'assets/players/trickster.png');
+        game.load.image('dwarf', 'assets/players/dwarf_new.png');
+        game.load.image('vampire', 'assets/players/vampire_old.png');
         game.load.image('convoker', 'assets/players/convoker.png');
         game.load.image('blademaster', 'assets/players/blademaster.png');
 
@@ -34,6 +36,13 @@ mainState.prototype = {
         game.load.image('Life', 'assets/divination.png');
         game.load.image('Death', 'assets/necromancy.png');
         game.load.image('Earth', 'assets/poison.png');
+        game.load.image('red', 'assets/fire.png');
+        game.load.image('blue', 'assets/ice.png');
+        game.load.image('white', 'assets/divination.png');
+        game.load.image('yellow', 'assets/divination.png');
+        game.load.image('black', 'assets/necromancy.png');
+        game.load.image('purple', 'assets/necromancy.png');
+        game.load.image('green', 'assets/poison.png');
 
         //load gui elements
         game.load.spritesheet('confirmButton', 'assets/gui/confirmButtonSpritesheet.png', 215, 229);

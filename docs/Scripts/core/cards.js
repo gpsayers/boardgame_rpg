@@ -29,6 +29,10 @@ blackSorceress1List = [];
 
 testPlayerCardList = [];
 
+battleTestCardList = [];
+
+battleTestPlayerCardList = [];
+
 function loadCardList() {
     var xmlhttp = new XMLHttpRequest();
 
@@ -66,14 +70,19 @@ function processData(allText) {
                 tarr.push(headers[j] + ":" + data[j]);
             }
             lines.push(tarr);
-            masterCardList.push(new card(parseInt(data[0]), data[1], data[2], parseInt(data[3]), data[4], parseInt(data[5]), (data[6] == "TRUE"), (data[7] == "TRUE"), parseInt(data[8]), parseInt(data[9]), parseInt(data[10]), data[11], parseInt(data[12]), parseInt(data[13]), data[14], data[15], data[16], parseInt(data[17]), data[18]))
+            masterCardList.push(new card(parseInt(data[0]), data[1], data[2], parseInt(data[3]), data[4], parseInt(data[5]), (data[6] == "TRUE"), (data[7] == "TRUE"), parseInt(data[8]) || 0, parseInt(data[9]) || 0, parseInt(data[10]) || 0, data[11], parseInt(data[12]) || 0, parseInt(data[13]) || 0, data[14], data[15], data[16], parseInt(data[17]) || 0, data[18], parseInt(data[19]) || 0, parseInt(data[20]) || 0, parseInt(data[21]) || 0, parseInt(data[22]) || 0, data[23]))
         }
     }
     updateCardDeck(redWizard1List, [2, 2, 7, 7, 5, 5, 8, 8, 9, 9, 5, 15, 16, 16]);
 
     updateCardDeck(blackSorceress1List, [2, 2, 7, 7, 5, 5, 9, 9, 8, 8, 5, 15, 16, 16]);
 
-    updateCardDeck(testPlayerCardList, [2, 14, 7, 10, 13, 17, 4, 3, 24, 24, 24]);
+    updateCardDeck(testPlayerCardList, [6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7]);
+
+    updateCardDeck(battleTestCardList, [5, 5, 5, 6, 7, 8, 9, 15, 2, 1, 1, 14, 24, 13, 12, 3, 4, 21, 17, 11]);
+
+    // Battle Test player deck: spells first so they show up in the opening hand and early draws.
+    updateCardDeck(battleTestPlayerCardList, [1, 14, 6, 10, 17, 24, 7, 13, 12, 11, 4, 3, 21, 5, 8, 9, 2, 15]);
 
 }
 

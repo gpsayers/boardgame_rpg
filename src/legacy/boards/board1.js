@@ -28,10 +28,8 @@ board1.specialSquares.push({ squareId: 31, type: "bluefountain", looted: 0, resu
 board1.specialSquares.push({ squareId: 1, type: "start", looted: 0, result: 0, alt: "start" });
 
 // Computer players for board1
-board1.computerPlayers.push(new gamePlayer(1, board1.boardStart, "Fancis", "wizard", "red", 8, 1, false, redWizard1List, 3,100,0));
+board1.computerPlayers.push(new gamePlayer(1, board1.boardStart, "Fancis", "wizard", "yellow", 8, 1, false, battleTestCardList, 3,100,0));
 board1.computerPlayers[board1.computerPlayers.length - 1].aiProfile = "aggressor";
-board1.computerPlayers.push(new gamePlayer(2, board1.boardStart, "Ginny", "sorceress", "purple", 10, 1, false, blackSorceress1List, 3,100,0));
+board1.computerPlayers.push(new gamePlayer(2, board1.boardStart, "Ginny", "sorceress", "purple", 10, 1, false, battleTestCardList, 3,100,0));
 board1.computerPlayers[board1.computerPlayers.length - 1].aiProfile = "guardian";
 //board1.computerPlayers.push(new gamePlayer(3, board1.boardStart, "Fred", "cavalier", "yellow", 12, 1, false, redWizard1List, 3,100,0));
-
-

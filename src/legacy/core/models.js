@@ -1,3 +1,36 @@
+// Card "special" ability ids as stored in the card data.
+var SPECIAL_EFFECT = Object.freeze({
+    NONE: 0,
+    STEAL_GOLD: 1,
+    SLOW_MOVEMENT: 2,
+    HEAL: 3,
+    MOVE_FORWARD: 4,
+    DRAW_CARDS: 5,
+    GAIN_GOLD: 6,
+    MOVE_BACK: 7,
+    BUFF_CREATURE: 8,
+    SELF_DAMAGE: 9,
+    BOOST_MANA: 10,
+    BOOST_MAX_MANA: 11
+});
+
+var SPECIAL_EFFECT_NAMES = Object.freeze((function () {
+    var names = {};
+    names[SPECIAL_EFFECT.STEAL_GOLD] = "Steals gold";
+    names[SPECIAL_EFFECT.SLOW_MOVEMENT] = "Slows movement";
+    names[SPECIAL_EFFECT.HEAL] = "Heals";
+    names[SPECIAL_EFFECT.MOVE_FORWARD] = "Moves forward";
+    names[SPECIAL_EFFECT.DRAW_CARDS] = "Draws cards";
+    names[SPECIAL_EFFECT.GAIN_GOLD] = "Grants gold";
+    names[SPECIAL_EFFECT.MOVE_BACK] = "Moves back";
+    names[SPECIAL_EFFECT.BUFF_CREATURE] = "Buffs creature";
+    names[SPECIAL_EFFECT.SELF_DAMAGE] = "Self damage";
+    names[SPECIAL_EFFECT.BOOST_MANA] = "Boosts mana";
+    names[SPECIAL_EFFECT.BOOST_MAX_MANA] = "Boosts max mana";
+    names[SPECIAL_EFFECT.CAST_SPELL] = "Casts a spell";
+    return names;
+})());
+
 var gameVariables = {
     playerTurnArray: [],
     playerName: "",
@@ -78,7 +111,17 @@ function gameSquareCreature(cardId, squareId, sprite, hitpoints, maxhitpoints, a
     this.playerOwnedId = player;
 }
 
-function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense, damage, image, armor, threat, tarlocation, tartype, tarcount, special, school) {
+function grantStartMana(player) {
+    player.maxmana++;
+    player.mana++;
+}
+
+function card(id, name, desc, cost, rare, gold, creature, spell, attack, defense, damage, image, armor, threat, tarlocation, tartype, tarcount, special, school, flying, blitz, deadly, secondSpell, specialDesc) {
+    this.flying = flying || 0;
+    this.blitz = blitz || 0;
+    this.deadly = deadly || 0;
+    this.secondSpell = secondSpell || 0;
+    this.specialDesc = specialDesc || "";
     this.id = id;
     this.name = name;
     this.desc = desc;

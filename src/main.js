@@ -6,6 +6,7 @@ const legacyScriptFiles = [
     "core/models.js",
     "core/cards.js",
     "core/ai_profiles.js",
+    "core/event_log.js",
     "boards/board1.js",
     "boards/board2.js",
     "game.js",

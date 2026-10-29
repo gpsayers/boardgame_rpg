@@ -30,11 +30,12 @@ var computerAI = (function () {
         if (card.creature) {
             return "summonCreatures";
         }
-        if (card.special === 3) {
+        if (card.special === SPECIAL_EFFECT.HEAL) {
             return "healSelf";
         }
-        if (card.special === 1 || card.special === 5 || card.special === 6 ||
-            card.special === 10 || card.special === 11) {
+        if (card.special === SPECIAL_EFFECT.STEAL_GOLD || card.special === SPECIAL_EFFECT.DRAW_CARDS ||
+            card.special === SPECIAL_EFFECT.GAIN_GOLD || card.special === SPECIAL_EFFECT.BOOST_MANA ||
+            card.special === SPECIAL_EFFECT.BOOST_MAX_MANA) {
             return "gainResources";
         }
         return "damageOpponents";
@@ -45,11 +46,11 @@ var computerAI = (function () {
         var targetCreature = target.type === "creature" ? target.model : null;
         var square = getBoardSquare(target.targetSquare);
 
-        if (card.special === 4) {
+        if (card.special === SPECIAL_EFFECT.MOVE_FORWARD) {
             return 0;
         }
 
-        if (card.special === 3) {
+        if (card.special === SPECIAL_EFFECT.HEAL) {
             if (targetCreature) {
                 if (!isFriendlyCreature(targetCreature, player)) {
                     return 0;
@@ -63,15 +64,15 @@ var computerAI = (function () {
             }
         }
 
-        if (card.special === 8) {
+        if (card.special === SPECIAL_EFFECT.BUFF_CREATURE) {
             return targetCreature && isFriendlyCreature(targetCreature, player)
                 ? card.defense + card.attack + card.armor
                 : 0;
         }
 
-        if (card.special === 1) {
-            return targetPlayer && targetPlayer.id !== player.id && targetPlayer.gold >= card.damage
-                ? card.damage
+        if (card.special === SPECIAL_EFFECT.STEAL_GOLD) {
+            return targetPlayer && targetPlayer.id !== player.id && targetPlayer.gold > 0
+                ? Math.min(card.damage, targetPlayer.gold)
                 : 0;
         }
 
@@ -169,16 +170,16 @@ var computerAI = (function () {
             return groundValue;
         }
 
-        if (card.special === 5) {
+        if (card.special === SPECIAL_EFFECT.DRAW_CARDS) {
             return card.damage;
         }
-        if (card.special === 6) {
+        if (card.special === SPECIAL_EFFECT.GAIN_GOLD) {
             return card.damage;
         }
-        if (card.special === 10) {
+        if (card.special === SPECIAL_EFFECT.BOOST_MANA) {
             return Math.min(card.damage, player.maxmana - player.mana);
         }
-        if (card.special === 11) {
+        if (card.special === SPECIAL_EFFECT.BOOST_MAX_MANA) {
             return card.damage;
         }
 
@@ -207,8 +208,8 @@ var computerAI = (function () {
         return targets;
     }
 
-    function scoreCard(card, player) {
-        if (card.cost > player.mana || card.special === 4) {
+    function scoreCard(card, player, targetProvider) {
+        if (card.cost > player.mana || card.special === SPECIAL_EFFECT.MOVE_FORWARD) {
             return null;
         }
 
@@ -220,7 +221,7 @@ var computerAI = (function () {
 
         var profile = getProfile(player);
         var action = getActionName(card);
-        var candidates = previewTargets(card, player);
+        var candidates = targetProvider ? targetProvider(card, player) : previewTargets(card, player);
         if (candidates.length === 0) {
             return null;
         }
@@ -241,9 +242,9 @@ var computerAI = (function () {
             });
         }
 
-        if (card.special === 5) {
+        if (card.special === SPECIAL_EFFECT.DRAW_CARDS) {
             utility = Math.min(card.damage, player.deck.length + player.discard.length + player.hand.length);
-        } else if (card.special === 6 || card.special === 11) {
+        } else if (card.special === SPECIAL_EFFECT.GAIN_GOLD || card.special === SPECIAL_EFFECT.BOOST_MAX_MANA) {
             utility = card.damage;
         }
         if (utility <= 0) {
@@ -257,13 +258,15 @@ var computerAI = (function () {
         return {
             card: card,
             targetIndex: bestTargetIndex,
+            targets: candidates,
             score: profile.priorities[action] * utility + card.threat - card.cost * 0.25
         };
     }
 
-    function getBestCard(player) {
+    // targetProvider lets a scene supply its own target list; omitted for the main board.
+    function getBestCard(player, targetProvider) {
         return player.hand.reduce(function (best, card) {
-            var candidate = scoreCard(card, player);
+            var candidate = scoreCard(card, player, targetProvider);
             return candidate && (!best || candidate.score > best.score) ? candidate : best;
         }, null);
     }
@@ -294,7 +297,8 @@ var computerAI = (function () {
         var square = getBoardSquare(target.targetSquare);
         var model = target.model || player;
 
-        if (card.special === 3 || card.special === 8 || card.special === 1) {
+        if (card.special === SPECIAL_EFFECT.HEAL || card.special === SPECIAL_EFFECT.BUFF_CREATURE ||
+            card.special === SPECIAL_EFFECT.STEAL_GOLD) {
             processSpecialSpell(
                 card,
                 model,
@@ -305,8 +309,8 @@ var computerAI = (function () {
             return;
         }
 
-        if (card.special === 5 || card.special === 6 ||
-            card.special === 10 || card.special === 11) {
+        if (card.special === SPECIAL_EFFECT.DRAW_CARDS || card.special === SPECIAL_EFFECT.GAIN_GOLD ||
+            card.special === SPECIAL_EFFECT.BOOST_MANA || card.special === SPECIAL_EFFECT.BOOST_MAX_MANA) {
             processSpecialSpell(card, player, player.sprite.gameSquareId, "player", player.class);
             return;
         }
@@ -326,8 +330,8 @@ var computerAI = (function () {
             return;
         }
 
-        if (card.special === 5 || card.special === 6 ||
-            card.special === 10 || card.special === 11) {
+        if (card.special === SPECIAL_EFFECT.DRAW_CARDS || card.special === SPECIAL_EFFECT.GAIN_GOLD ||
+            card.special === SPECIAL_EFFECT.BOOST_MANA || card.special === SPECIAL_EFFECT.BOOST_MAX_MANA) {
             applyTargetEffect(card, {
                 type: "player",
                 targetSquare: player.sprite.gameSquareId,
@@ -427,15 +431,17 @@ var computerAI = (function () {
         } else if (player.hand.length < 2) {
             computerDrawCard(gameVariables.currentPlayer);
             computerDrawCard(gameVariables.currentPlayer);
-        } else if (player.maxmana < 5) {
-            player.maxmana++;
         } else {
             player.gold += 100;
         }
     }
 
-    function choosePath(pathIds) {
-        var player = gameVariables.gamePlayerArray[gameVariables.currentPlayer];
+    function choosePath(pathIds, player) {
+        player = player || gameVariables.gamePlayerArray[gameVariables.currentPlayer];
+        if (!player) {
+            throw new Error("Cannot choose a movement path without an active player.");
+        }
+
         var profile = getProfile(player);
         var bestScore = -Infinity;
         var bestPaths = [];
@@ -489,6 +495,235 @@ var computerAI = (function () {
         return bestPaths[Math.floor(Math.random() * bestPaths.length)];
     }
 
+    function getNextPathIdsFrom(currentSquareId, forward) {
+        var currentSquare = getBoardSquare(currentSquareId);
+        if (!currentSquare || !currentSquare.sprite) {
+            throw new Error("Cannot move player from missing board square " + currentSquareId);
+        }
+
+        var neighbors = Array2D.orthogonals(
+            gameVariables.boardInfo.squares,
+            currentSquare.sprite.gridY,
+            currentSquare.sprite.gridX
+        );
+        var boardInfo = gameVariables.boardInfo;
+        var nextPathIds;
+
+        if (forward) {
+            if (currentSquareId === boardInfo.boardEnd) {
+                nextPathIds = neighbors.filter(function (squareId) {
+                    return squareId === boardInfo.boardStart;
+                });
+            } else if (currentSquareId === boardInfo.boardStart) {
+                nextPathIds = neighbors.filter(function (squareId) {
+                    return squareId > currentSquareId && squareId !== boardInfo.boardEnd;
+                });
+            } else {
+                nextPathIds = neighbors.filter(function (squareId) {
+                    return squareId > currentSquareId;
+                });
+            }
+        } else if (currentSquareId === boardInfo.boardStart) {
+            nextPathIds = neighbors.filter(function (squareId) {
+                return squareId === boardInfo.boardEnd;
+            });
+        } else if (currentSquareId === boardInfo.boardEnd) {
+            nextPathIds = neighbors.filter(function (squareId) {
+                return squareId < currentSquareId && squareId !== boardInfo.boardStart && squareId !== 0;
+            });
+        } else {
+            nextPathIds = neighbors.filter(function (squareId) {
+                return squareId < currentSquareId && squareId !== 0;
+            });
+        }
+
+        nextPathIds = nextPathIds.filter(function (squareId) {
+            return getBoardSquare(squareId);
+        });
+        if (nextPathIds.length === 0) {
+            throw new Error("No valid movement path from board square " + currentSquareId);
+        }
+        return nextPathIds;
+    }
+
+    function getNextPathIds(player, forward) {
+        return getNextPathIdsFrom(player.sprite.gameSquareId, forward);
+    }
+
+    function getPossibleMovementRoutes(firstPathIds, stepsRemaining) {
+        var routes = [];
+
+        function collectRoutes(squareId, stepsLeft, path) {
+            if (stepsLeft === 0) {
+                routes.push(path);
+                return;
+            }
+
+            getNextPathIdsFrom(squareId, true).forEach(function (nextSquareId) {
+                collectRoutes(nextSquareId, stepsLeft - 1, path.concat(nextSquareId));
+            });
+        }
+
+        firstPathIds.forEach(function (squareId) {
+            collectRoutes(squareId, stepsRemaining - 1, [squareId]);
+        });
+        return routes;
+    }
+
+    function movePlayer(player, roll, onFork, onComplete, onStartCrossed) {
+        if (!player || !player.sprite) {
+            throw new Error("Cannot move a player without a board sprite.");
+        }
+        if (!Number.isInteger(roll) || roll < 0) {
+            throw new Error("Movement roll must be a non-negative integer.");
+        }
+
+        computerMoving = true;
+        var crossedStart = false;
+
+        function moveStep(stepsRemaining) {
+            if (stepsRemaining === 0) {
+                player.square = player.sprite.gameSquareId;
+                computerMoving = false;
+                if (crossedStart && !onStartCrossed) {
+                    playerCrossStartMenu = true;
+                }
+                if (onComplete) {
+                    onComplete();
+                }
+                return;
+            }
+
+            var pathIds = getNextPathIds(player, true);
+            function animateTo(squareId, onStepComplete) {
+                var validPathIds = getNextPathIds(player, true);
+                if (validPathIds.indexOf(squareId) === -1) {
+                    throw new Error("Selected movement path is not a valid adjacent square.");
+                }
+
+                var destination = getBoardSquare(squareId);
+                if (!destination || !destination.sprite) {
+                    throw new Error("Cannot move player to missing board square " + squareId);
+                }
+
+                if (player.sprite.gameSquareId === gameVariables.boardInfo.boardEnd &&
+                    squareId === gameVariables.boardInfo.boardStart) {
+                    crossedStart = true;
+                    grantStartMana(player);
+                    if (onStartCrossed) {
+                        onStartCrossed(player);
+                    }
+                }
+
+                var tween = game.add.tween(player.sprite).to(
+                    { x: destination.sprite.x, y: destination.sprite.y },
+                    400,
+                    Phaser.Easing.Linear.None,
+                    true
+                );
+                tween.onComplete.add(function () {
+                    player.sprite.gameSquareId = squareId;
+                    onStepComplete();
+                });
+            }
+
+            function moveTo(squareId) {
+                animateTo(squareId, function () {
+                    moveStep(stepsRemaining - 1);
+                });
+            }
+
+            function moveAlongRoute(routeIds, routeIndex) {
+                if (routeIndex >= routeIds.length) {
+                    moveStep(stepsRemaining - routeIds.length);
+                    return;
+                }
+
+                animateTo(routeIds[routeIndex], function () {
+                    moveAlongRoute(routeIds, routeIndex + 1);
+                });
+            }
+
+            if (pathIds.length > 1 && player.human && onFork) {
+                onFork(
+                    pathIds.slice(),
+                    moveTo,
+                    getPossibleMovementRoutes(pathIds, stepsRemaining),
+                    function (routeIds) {
+                        if (!Array.isArray(routeIds) || routeIds.length !== stepsRemaining) {
+                            throw new Error("Selected movement route must cover the remaining roll.");
+                        }
+                        moveAlongRoute(routeIds, 0);
+                    }
+                );
+                return;
+            }
+            moveTo(choosePath(pathIds, player));
+        }
+
+        moveStep(roll);
+    }
+
+    function runBattleTestTurns(players, callbacks) {
+        callbacks = callbacks || {};
+        var playerIndex = 1;
+
+        function runNextTurn() {
+            while (playerIndex < players.length && players[playerIndex].hp <= 0) {
+                playerIndex++;
+            }
+
+            if (playerIndex >= players.length) {
+                gameVariables.currentPlayer = 0;
+                if (callbacks.onComplete) {
+                    callbacks.onComplete();
+                }
+                return;
+            }
+
+            var index = playerIndex++;
+            var player = players[index];
+            gameVariables.currentPlayer = index;
+            player.mana = player.maxmana;
+            if (callbacks.onTurnBegin) {
+                callbacks.onTurnBegin(player);
+            }
+            while (player.hand.length < player.maxhand && player.deck.length > 0) {
+                computerDrawCard(index);
+                if (callbacks.onDrawCard) {
+                    callbacks.onDrawCard(player);
+                }
+            }
+            player.playerRollDice = true;
+            var roll = 1 + Math.floor(Math.random() * 6);
+            if (callbacks.onTurnStart) {
+                callbacks.onTurnStart(player, roll);
+            }
+
+            movePlayer(
+                player,
+                roll,
+                null,
+                function () {
+                    if (callbacks.playCards) {
+                        callbacks.playCards(player);
+                    }
+                    if (callbacks.onTurnComplete) {
+                        callbacks.onTurnComplete(player);
+                    }
+                    window.setTimeout(runNextTurn, 500);
+                },
+                function (player) {
+                    if (callbacks.onStartCrossed) {
+                        callbacks.onStartCrossed(player);
+                    }
+                }
+            );
+        }
+
+        runNextTurn();
+    }
+
     function update() {
         var playerIndex = gameVariables.currentPlayer;
         var player = gameVariables.gamePlayerArray[playerIndex];
@@ -527,13 +762,14 @@ var computerAI = (function () {
             case "rollAndMove":
                 var roll = 1 + Math.floor(Math.random() * 6);
                 player.playerRollDice = true;
-                computerMoving = true;
+                turnState.roll = roll;
+                if (typeof dice !== "undefined" && dice.loadTexture) {
+                    dice.loadTexture(String(roll), 0);
+                }
                 cursor1.visible = false;
                 cursor2.visible = false;
                 playerDestinations.length = 0;
-                calculateDestinations(player.sprite.gameSquareId, roll);
-                playerDestinations.length = 0;
-                playerMove(player.sprite, roll);
+                movePlayer(player, roll);
                 turnState.phase = "waitForMove";
                 break;
             case "waitForMove":
@@ -572,6 +808,9 @@ var computerAI = (function () {
 
     return {
         update: update,
-        choosePath: choosePath
+        choosePath: choosePath,
+        chooseBattleTestCard: getBestCard,
+        movePlayer: movePlayer,
+        runBattleTestTurns: runBattleTestTurns
     };
 })();

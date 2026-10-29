@@ -165,13 +165,14 @@ gameMain.prototype = {
 
         //Create layers for sprite z levels
         back_layer = game.add.group();
-        board_layer = game.add.group();
-        player_layer = game.add.group();
-        player_layer['1'] = game.add.group();
-        player_layer['2'] = game.add.group();
-        player_layer['3'] = game.add.group();
+        board_square_layer = game.add.group();
+        board_special_layer = game.add.group();
+        creature_layer = game.add.group();
+        ai_player_layer = game.add.group();
+        human_player_layer = game.add.group();
+        spell_effect_layer = game.add.group();
         cursor_layer = game.add.group();
-        target_layer = game.add.group();
+        target_layer = spell_effect_layer;
         pop_layer = game.add.group();
 
 
@@ -227,11 +228,11 @@ gameMain.prototype = {
             gameVariables.gamePlayerArray[i].sprite.x = gameBoardResult.x;
             gameVariables.gamePlayerArray[i].sprite.y = gameBoardResult.y;
             gameVariables.gamePlayerArray[i].sprite.gameSquareId = gameBoardResult.id;
-            if (i == 0) {
-                player_layer.add(gameVariables.gamePlayerArray[i].sprite);
+            if (gameVariables.gamePlayerArray[i].human) {
+                human_player_layer.add(gameVariables.gamePlayerArray[i].sprite);
             }
             else {
-                player_layer[i.toString()].add(gameVariables.gamePlayerArray[i].sprite);
+                ai_player_layer.add(gameVariables.gamePlayerArray[i].sprite);
             }
 
             gameVariables.gamePlayerArray[i].turnSprite = null;
@@ -387,11 +388,6 @@ gameMain.prototype = {
 
 
         //Cross start menu
-        manaText = game.add.text((game.width / 2) - 60, (game.height / 2) + 40, "Mana", style);
-        manaText.inputEnabled = true;
-        manaText.visible = false;
-        manaText.events.onInputUp.add(menuStartClick, this);
-
         cardText = game.add.text((game.width / 2) -60, (game.height / 2) + 10, "Card", style);
         cardText.inputEnabled = true;
         cardText.visible = false;
@@ -437,7 +433,6 @@ gameMain.prototype = {
         pop_layer.add(upButt);
         pop_layer.add(rightButt);
         pop_layer.add(downButt);
-        pop_layer.add(manaText);
         pop_layer.add(cardText);
         pop_layer.add(healthText);
         pop_layer.add(goldText);
@@ -533,14 +528,10 @@ gameMain.prototype = {
                 qText.setText("Your turn!");
                 qText.visible = true;
 
-                game.world.bringToTop(player_layer);
-
-
             }
 
         }
         else {
-            game.world.bringToTop(player_layer[gameVariables.currentPlayer]);
             computerAI.update();
         }
 
@@ -583,7 +574,6 @@ gameMain.prototype = {
                 cur.inputEnabled = true;
                 cur.events.onInputDown.add(targetClicked, this);
                 target_layer.add(cur);
-                game.world.bringToTop(target_layer);
                 targetArray[i].sprite = cur;
                 game.add.tween(targetArray[i].sprite).to({ alpha: 0 }, 500, Phaser.Easing.Linear.NONE, true,0,1000);
             }
@@ -624,7 +614,6 @@ gameMain.prototype = {
             menu.visible = true;
             qText.setText("Please choose a reward.");
             qText.visible = true;
-            manaText.visible = true;
             cardText.visible = true;
             healthText.visible = true;
             goldText.visible = true;
@@ -755,9 +744,11 @@ gameMain.prototype = {
 function getPlayerSchoolTheme(player) {
     var schoolAliases = {
         red: "Fire",
-        purple: "Death",
-        yellow: "Life",
         blue: "Water",
+        white: "Life",
+        yellow: "Life",
+        black: "Death",
+        purple: "Death",
         green: "Earth"
     };
     var school = schoolAliases[player.color] || player.color;
@@ -1042,10 +1033,12 @@ function addGameSquare(type, x, y, squareId, gridX, gridY) {
     sprite.anchor.y = 0.5;
     sprite.inputEnabled = true;
     sprite.events.onInputDown.add(boardSquareClicked, this);
+    sprite.events.onInputOver.add(showSquareDetails, this);
+    sprite.events.onInputOut.add(hideSquareDetails, this);
     sprite.gameSquareId = squareId;
     sprite.gridX = gridX;
     sprite.gridY = gridY;
-    board_layer.add(sprite);
+    board_square_layer.add(sprite);
 
     var gs = new gameSquare(squareId, x, y, sprite);
 
@@ -1064,7 +1057,7 @@ function addGameSquare(type, x, y, squareId, gridX, gridY) {
             gs.special.anchor.x = 0.5;
             gs.special.anchor.y = 0.5;
 
-            board_layer.add(gs.special);
+            board_special_layer.add(gs.special);
         }
 
     }
@@ -1414,7 +1407,7 @@ function targetClicked(target) {
 
         game.camera.flash(0xff0000, 500);
 
-        if (card.special == 0) {
+        if (card.special == SPECIAL_EFFECT.NONE) {
 
             if (result[0].type == "ground") {
 
@@ -1478,7 +1471,7 @@ function targetMenuClicked(item) {
 
     game.camera.flash(0xff0000, 500);
 
-    if (targetResult.card.special == 0) {
+    if (targetResult.card.special == SPECIAL_EFFECT.NONE) {
         if (targetResult.type == "creature") {
             damageCreatureOnSquare(boardResult, targetResult.card, targetResult.player);
         }
@@ -1509,6 +1502,17 @@ function targetMenuClicked(item) {
 }
 
 
+function updateCreatureHealthBar(creature) {
+    var maxHealth = Math.max(creature.maxhitpoints, 1);
+    var healthRatio = Math.max(0, Math.min(creature.hitpoints / maxHealth, 1));
+    var damageWidth = creature.hitspritegreen.width * (1 - healthRatio);
+
+    creature.hitspritered.width = damageWidth;
+    creature.hitspritered.x = creature.hitspritegreen.x +
+        creature.hitspritegreen.width - damageWidth;
+}
+
+
 function damageCreatureOnSquare(boardSquareDetail, cardDetails, player) {
     boardSquareDetail.creature.hitpoints = (boardSquareDetail.creature.hitpoints -
         Math.max((cardDetails.damage - boardSquareDetail.creature.armor), 0));
@@ -1521,10 +1525,7 @@ function damageCreatureOnSquare(boardSquareDetail, cardDetails, player) {
         boardSquareDetail.creature = null;
     } else {
         //Defender takes damage but lives.
-        var percent = (boardSquareDetail.creature.hitpoints / boardSquareDetail.creature.maxhitpoints);
-        var pixelWidth = 20 - Math.round(percent * 20);
-
-        boardSquareDetail.creature.hitspritered.width = pixelWidth;
+        updateCreatureHealthBar(boardSquareDetail.creature);
     }
 }
 
@@ -1541,6 +1542,8 @@ function damagePlayerOnSquare(boardSquareDetail, cardDetails, player, playerClas
 
 
 function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
+    var healthBarWidth = boardSquareDetail.sprite.width * 0.8;
+    var healthBarX = boardSquareDetail.sprite.x - healthBarWidth / 2;
 
     //Check if square already has a creature
     if (boardSquareDetail.creature != null) {
@@ -1568,23 +1571,24 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
             creatureSprite.height = 45;
             creatureSprite.anchor.x = 0.5;
             creatureSprite.anchor.y = 0.5;
-            board_layer.add(creatureSprite);
+            creature_layer.add(creatureSprite);
             boardSquareDetail.creature.sprite = creatureSprite;
 
             var creatureHitpointsG =
-                game.add.sprite(boardSquareDetail.sprite.x - 10, boardSquareDetail.sprite.y + 17, 'gpix');
-            creatureHitpointsG.width = 20;
+                game.add.sprite(healthBarX, boardSquareDetail.sprite.y + 17, 'gpix');
+            creatureHitpointsG.width = healthBarWidth;
             creatureHitpointsG.height = 3;
             var creatureHitpointsR =
-                game.add.sprite(boardSquareDetail.sprite.x - 10, boardSquareDetail.sprite.y + 17, 'rpix');
+                game.add.sprite(healthBarX, boardSquareDetail.sprite.y + 17, 'rpix');
             creatureHitpointsR.width = 0;
             creatureHitpointsR.height = 3;
 
-            board_layer.add(creatureHitpointsG);
-            board_layer.add(creatureHitpointsR);
+            creature_layer.add(creatureHitpointsG);
+            creature_layer.add(creatureHitpointsR);
 
             boardSquareDetail.creature.hitspritegreen = creatureHitpointsG;
             boardSquareDetail.creature.hitspritered = creatureHitpointsR;
+            updateCreatureHealthBar(boardSquareDetail.creature);
 
             captureSquare(boardSquareDetail.id);
 
@@ -1624,28 +1628,25 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
                 creatureSprite.height = 45;
                 creatureSprite.anchor.x = 0.5;
                 creatureSprite.anchor.y = 0.5;
-                board_layer.add(creatureSprite);
+                creature_layer.add(creatureSprite);
                 boardSquareDetail.creature.sprite = creatureSprite;
 
-                var percent = (attackerHP / cardDetails.defense);
-                var pixelWidth = 20 - Math.round(percent * 20);
-
-                var creatureHitpointsG = game.add.sprite(boardSquareDetail.sprite.x - 10,
+                var creatureHitpointsG = game.add.sprite(healthBarX,
                     boardSquareDetail.sprite.y + 17,
                     'gpix');
-                creatureHitpointsG.width = 20;
+                creatureHitpointsG.width = healthBarWidth;
                 creatureHitpointsG.height = 3;
-                var creatureHitpointsR = game.add.sprite(boardSquareDetail.sprite.x - 10,
+                var creatureHitpointsR = game.add.sprite(healthBarX,
                     boardSquareDetail.sprite.y + 17,
                     'rpix');
-                creatureHitpointsR.width = pixelWidth;
                 creatureHitpointsR.height = 3;
 
-                board_layer.add(creatureHitpointsG);
-                board_layer.add(creatureSprite);
+                creature_layer.add(creatureHitpointsG);
+                creature_layer.add(creatureHitpointsR);
 
                 boardSquareDetail.creature.hitspritegreen = creatureHitpointsG;
                 boardSquareDetail.creature.hitspritered = creatureHitpointsR;
+                updateCreatureHealthBar(boardSquareDetail.creature);
 
 
                 captureSquare(boardSquareDetail.id);
@@ -1655,10 +1656,7 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
         } else {
             boardCreature.hitpoints = defHp;
             //Defender takes damage but lives. Attacker is discarded
-            var percent = (defHp / boardCreature.maxhitpoints);
-            var pixelWidth = 20 - Math.round(percent * 20);
-
-            boardSquareDetail.creature.hitspritered.width = pixelWidth;
+            updateCreatureHealthBar(boardSquareDetail.creature);
 
         }
 
@@ -1680,23 +1678,24 @@ function playCreatureOnSquare(boardSquareDetail, cardDetails, player) {
         creatureSprite.height = 45;
         creatureSprite.anchor.x = 0.5;
         creatureSprite.anchor.y = 0.5;
-        board_layer.add(creatureSprite);
+        creature_layer.add(creatureSprite);
         boardSquareDetail.creature.sprite = creatureSprite;
 
         var creatureHitpointsG =
-            game.add.sprite(boardSquareDetail.sprite.x - 10, boardSquareDetail.sprite.y + 17, 'gpix');
-        creatureHitpointsG.width = 20;
+            game.add.sprite(healthBarX, boardSquareDetail.sprite.y + 17, 'gpix');
+        creatureHitpointsG.width = healthBarWidth;
         creatureHitpointsG.height = 3;
         var creatureHitpointsR =
-            game.add.sprite(boardSquareDetail.sprite.x - 10, boardSquareDetail.sprite.y + 17, 'rpix');
+            game.add.sprite(healthBarX, boardSquareDetail.sprite.y + 17, 'rpix');
         creatureHitpointsR.width = 0;
         creatureHitpointsR.height = 3;
 
-        board_layer.add(creatureHitpointsG);
-        board_layer.add(creatureHitpointsR);
+        creature_layer.add(creatureHitpointsG);
+        creature_layer.add(creatureHitpointsR);
 
         boardSquareDetail.creature.hitspritegreen = creatureHitpointsG;
         boardSquareDetail.creature.hitspritered = creatureHitpointsR;
+        updateCreatureHealthBar(boardSquareDetail.creature);
 
         captureSquare(boardSquareDetail.id);
     }
@@ -1712,24 +1711,25 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
         return item.id == targetSquare;
     });
 
-    if (card.special == 1) {
-        var result = gameVariables.gamePlayerArray.find(function (item) {
+    if (card.special == SPECIAL_EFFECT.STEAL_GOLD) {
+        var victim = gameVariables.gamePlayerArray.find(function (item) {
             return item.class == targetImage;
         });
 
-
-        if (result.gold >= card.damage) {
-            currentPlayer.gold = currentPlayer.gold + card.damage;
+        if (victim && victim !== currentPlayer) {
+            var stolenGold = Math.min(card.damage, Math.max(victim.gold, 0));
+            victim.gold -= stolenGold;
+            currentPlayer.gold += stolenGold;
         }
 
     }
 
-    if (card.special == 2) {
+    if (card.special == SPECIAL_EFFECT.SLOW_MOVEMENT) {
         //Slow movement
 
     }
 
-    if (card.special == 3) {
+    if (card.special == SPECIAL_EFFECT.HEAL) {
         //Heal
         if (targetType == "creature") {
             boardSquareDetail.creature.hitpoints = boardSquareDetail.creature.hitpoints + card.damage;
@@ -1737,10 +1737,7 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
             if (boardSquareDetail.creature.hitpoints > boardSquareDetail.creature.maxhitpoints) {
                 boardSquareDetail.creature.hitpoints = boardSquareDetail.creature.maxhitpoints;
             }
-            var percent = (boardSquareDetail.creature.hitpoints / boardSquareDetail.creature.maxhitpoints);
-            var pixelWidth = 20 - Math.round(percent * 20);
-
-            boardSquareDetail.creature.hitspritered.width = pixelWidth;
+            updateCreatureHealthBar(boardSquareDetail.creature);
         } else {
             player.hp = player.hp + card.damage;
             if (player.hp > player.maxhp) {
@@ -1751,13 +1748,13 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
 
     }
 
-    if (card.special == 4) {
+    if (card.special == SPECIAL_EFFECT.MOVE_FORWARD) {
         //Move player
         calculateDestinations(player.gameSquareId, card.damage);
         playerMove(player, card.damage);
     }
 
-    if (card.special == 5) {
+    if (card.special == SPECIAL_EFFECT.DRAW_CARDS) {
         for (i = 0; i < card.damage; i++) {
             if (currentPlayer.human) {
                 drawCard();
@@ -1767,28 +1764,25 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
         }
     }
 
-    if (card.special == 6) {
+    if (card.special == SPECIAL_EFFECT.GAIN_GOLD) {
         currentPlayer.gold = currentPlayer.gold + card.damage;
     }
 
-    if (card.special == 8) {
+    if (card.special == SPECIAL_EFFECT.BUFF_CREATURE) {
         boardSquareDetail.creature.hitpoints = boardSquareDetail.creature.hitpoints + card.defense;
         boardSquareDetail.creature.maxhitpoints = boardSquareDetail.creature.maxhitpoints + card.defense;
         boardSquareDetail.creature.armor = boardSquareDetail.creature.armor + card.armor;
         boardSquareDetail.creature.attack = boardSquareDetail.creature.attack + card.attack;
 
         //redraw defender health bar.
-        var percent = (boardSquareDetail.creature.hitpoints / boardSquareDetail.creature.maxhitpoints);
-        var pixelWidth = 20 - Math.round(percent * 20);
-
-        boardSquareDetail.creature.hitspritered.width = pixelWidth;
+        updateCreatureHealthBar(boardSquareDetail.creature);
     }
 
-    if (card.special == 10) {
+    if (card.special == SPECIAL_EFFECT.BOOST_MANA) {
         currentPlayer.mana = currentPlayer.mana + card.damage;
     }
 
-    if (card.special == 11) {
+    if (card.special == SPECIAL_EFFECT.BOOST_MAX_MANA) {
         currentPlayer.maxmana = currentPlayer.maxmana + card.damage;
     }
 }
@@ -1814,7 +1808,7 @@ function processSpecialLoot(type, looted, result, boardSquareDetail) {
                 special.anchor.x = 0.5;
                 special.anchor.y = 0.5;
                 boardSquareDetail.special = special;
-                board_layer.add(special);
+                board_special_layer.add(special);
             }
             break;
         case "magictrap":
@@ -1845,7 +1839,7 @@ function processSpecialLoot(type, looted, result, boardSquareDetail) {
                 special.anchor.x = 0.5;
                 special.anchor.y = 0.5;
                 boardSquareDetail.special = special;
-                board_layer.add(special);
+                board_special_layer.add(special);
             }
             break;
         case "start":
@@ -1922,10 +1916,6 @@ function menuStartClick(choice) {
         case "Gold":
             gameVariables.playerGold = gameVariables.playerGold + 100;
             break;
-        case "Mana":
-            gameVariables.gamePlayerArray[0].maxmana++;
-            gameVariables.gamePlayerArray[0].mana++;
-            break;
         case "Card":
             drawCard();
             drawCard();
@@ -1942,7 +1932,6 @@ function menuStartClick(choice) {
     menu.visible = false;
     qText.setText("Please choose a reward.");
     qText.visible = false;
-    manaText.visible = false;
     cardText.visible = false;
     healthText.visible = false;
     goldText.visible = false;
@@ -2270,9 +2259,10 @@ function playerMove(playerSprite, roll) {
             return element.sprite.gameSquareId == nextPathIdArray[0];
         });
 
-        if (nextPathIdArray[0] == gameVariables.boardInfo.boardStart)
-        {
+        if (playerSprite.gameSquareId === gameVariables.boardInfo.boardEnd &&
+            nextPathIdArray[0] === gameVariables.boardInfo.boardStart) {
             playerCrossStart = true;
+            grantStartMana(gameVariables.gamePlayerArray[gameVariables.currentPlayer]);
         }
 
 
@@ -2487,6 +2477,92 @@ function boardSquareClicked(item) {
 
 }
 
+
+var squareDetailPanel = null;
+
+var specialEffectNames = SPECIAL_EFFECT_NAMES;
+
+function buildSquareDetailText(squareId) {
+    var square = gameVariables.gameBoard.find(function (s) {
+        return s.id == squareId;
+    });
+    if (!square) {
+        return "";
+    }
+
+    var players = gameVariables.gamePlayerArray;
+    var lines = ["Square " + squareId];
+
+    var owner = players.find(function (p) {
+        return p.color == square.sprite.key;
+    });
+    lines.push("Owner: " + (owner ? owner.name : "None"));
+
+    var onSquare = players.filter(function (p) {
+        return p.sprite && p.sprite.gameSquareId == squareId;
+    });
+    lines.push("Players: " + (onSquare.length ?
+        onSquare.map(function (p) { return p.name + " (HP " + p.hp + "/" + p.maxhp + ")"; }).join(", ") : "None"));
+
+    var creature = square.creature;
+    if (creature) {
+        var card = masterCardList.find(function (c) {
+            return c.id == creature.cardId;
+        });
+        var creatureOwner = players.find(function (p) {
+            return p.id == creature.playerOwnedId;
+        });
+        var effects = [];
+        if (card) {
+            if (card.special && specialEffectNames[card.special]) {
+                effects.push(specialEffectNames[card.special]);
+            }
+            if (card.desc) {
+                effects.push(card.desc);
+            }
+        }
+        lines.push("Creatures: " + (card ? card.name : "Unknown"));
+        lines.push("  Owner: " + (creatureOwner ? creatureOwner.name : "None"));
+        lines.push("  HP: " + creature.hitpoints + "/" + creature.maxhitpoints);
+        lines.push("  Attack: " + creature.attack + "  Armor: " + creature.armor);
+        lines.push("  Effects: " + (effects.length ? effects.join("; ") : "None"));
+    } else {
+        lines.push("Creatures: None");
+    }
+
+    return lines.join("\n");
+}
+
+function showSquareDetails(item) {
+    hideSquareDetails();
+
+    var text = game.add.text(0, 0, buildSquareDetailText(item.gameSquareId),
+        { font: "bold 13px Arial", fill: "#ffffff", wordWrap: true, wordWrapWidth: 260 });
+    var pad = 6;
+    var bg = game.add.sprite(0, 0, 'bpix');
+    bg.alpha = 0.85;
+    bg.width = text.width + pad * 2;
+    bg.height = text.height + pad * 2;
+
+    var x = Math.min(item.x + 30, game.width - bg.width - 4);
+    var y = Math.min(Math.max(item.y - bg.height / 2, 4), game.height - bg.height - 4);
+    bg.x = x;
+    bg.y = y;
+    text.x = x + pad;
+    text.y = y + pad;
+
+    pop_layer.add(bg);
+    pop_layer.add(text);
+    squareDetailPanel = { bg: bg, text: text };
+}
+
+function hideSquareDetails() {
+    if (squareDetailPanel) {
+        squareDetailPanel.bg.destroy();
+        squareDetailPanel.text.destroy();
+        squareDetailPanel = null;
+    }
+}
 
 function makeInfoInvis(visible) {
     infoText1.visible = visible;

@@ -1,19 +1,27 @@
-ID,Name,Description,Mana Cost,Rarity,Gold Cost,Creature,Spell,Attack,Defense,Damage,Image,Armor,Threat,Target Location,Target Type,Target Count,Special,School
-1,Fire Bolt,Deal 2 damage to any creature or player,1,common,10,FALSE,TRUE,0,0,2,bolt,0,2,any,both,1,0,Fire
-2,Ogre Zombie,Summon Zombie,3,common,10,TRUE,FALSE,3,3,0,zombie,0,3,,,,0,Death
-3,Summon Abyssal,Summon and abyssal to an adjacent square,1,common,10,TRUE,TRUE,1,1,0,summon,0,2,adj,ground,1,0,All
-4,Vigilant Centaur,Summon Centaur,3,common,10,TRUE,TRUE,2,4,2,centaur,0,3,square,both,1,0,All
-5,Rat,Summon Rat,1,common,10,TRUE,FALSE,1,1,0,rat,0,1,,,,0,Any
-6,Turtle,Summon Turtle,1,uncommon,50,TRUE,FALSE,1,1,0,turtle,1,1,,,,0,Earth
-7,Bear,Summon Bear,2,common,10,TRUE,FALSE,2,2,0,bear,0,2,,,,0,Any
-8,Spider,Summon Spider,2,common,10,TRUE,FALSE,2,1,0,spider,0,1,,,,0,Any
-9,Wasp,Summon Wasp,1,common,10,TRUE,FALSE,1,2,0,yellow_wasp,0,1,,,,0,Any
-10,Disengage,Move 1 square backward,1,uncommon,50,FALSE,TRUE,0,0,-1,disengage,0,1,self,player,1,4,Any
-11,Death Curse,Destroy target creature,2,uncommon,50,FALSE,TRUE,0,0,100,death,0,3,any,creature,1,0,Death
-12,Blizzard,Deal 1 damage to all creatures and players,4,rare,300,FALSE,TRUE,0,0,1,blizzard,0,4,all,both,all,2,Water
-13,Pickpocket,Steal 50 gold from a player,1,uncommon,50,FALSE,TRUE,0,0,50,steal,0,2,any,player,1,1,Any
-14,Healing Word,Heal a creature or player for 2 HP,1,rare,300,FALSE,TRUE,0,0,2,heal,0,2,any,both,1,3,Life
-15,Fun-guy,Summon Fungus,2,uncommon,50,TRUE,FALSE,1,3,0,mushroom,0,2,,,,0,Earth
-17,Research,Draw 1 card,1,uncommon,50,FALSE,TRUE,0,0,1,research,0,1,self,player,1,5,Fire
-21,Hungry Ghoul,Summon a Ghoul and take 3 damage,2,rare,300,TRUE,TRUE,4,4,3,zombie,0,4,self,player,1,0,Death
-24,Defensive Stance,Give target creature +0/+2,1,uncommon,50,FALSE,TRUE,0,2,0,defense,0,2,any,creature,1,8,Any
+ID,Name,Description,Mana Cost,Rarity,Gold Cost,Creature,Spell,Attack,Defense,Damage,Image,Armor,Threat,Target Location,Target Type,Target Count,Special,School,Flying,Blitz,Deadly,SecondSpell,Special Desc
+1,Fire Bolt,Deal 2 damage to any creature or player,1,common,10,FALSE,TRUE,0,0,2,bolt,0,2,any,both,1,0,Fire,0,0,0,,
+2,Ogre Zombie,Summon Zombie,3,common,10,TRUE,FALSE,3,3,0,zombie,0,3,,,,0,Death,0,0,0,,
+3,Summon Abyssal,Summon an abyssal to an adjacent square,1,common,10,TRUE,TRUE,1,1,0,summon,0,2,adj,ground,1,0,Any,0,0,0,,
+4,Vigilant Centaur,Summon Centaur and shoot an arrow,3,common,10,TRUE,FALSE,2,3,0,centaur,0,3,,,,0,Any,0,0,0,23,Deals 1 damange to the creature in the square
+5,Rat,Summon Rat,1,common,10,TRUE,FALSE,1,1,0,rat,0,1,,,,0,Any,0,0,0,,
+6,Turtle,Summon Turtle,1,uncommon,50,TRUE,FALSE,1,1,0,turtle,1,1,,,,0,Earth,0,0,0,,
+7,Bear,Summon Bear,2,common,10,TRUE,FALSE,2,2,0,bear,0,2,,,,0,Any,0,0,0,,
+8,Spider,Summon Spider,2,common,10,TRUE,FALSE,2,1,0,spider,0,1,,,,0,Any,0,0,1,,Deadly
+9,Wasp,Summon Wasp,1,common,10,TRUE,FALSE,1,2,0,yellow_wasp,0,1,,,,0,Any,1,0,1,,Flying; Deadly
+10,Disengage,Move to an adjacent square,1,uncommon,50,FALSE,TRUE,0,0,0,disengage,0,1,adj,ground,1,4,Any,0,0,0,,
+11,Death Curse,Destroy target creature,2,uncommon,50,FALSE,TRUE,0,0,100,death,0,3,any,creature,1,0,Death,0,0,0,,
+12,Blizzard,Deal 1 damage to all creatures and players,4,rare,300,FALSE,TRUE,0,0,1,blizzard,0,4,all,both,all,2,Water,0,0,0,,
+13,Pickpocket,Steal 50 gold from a player,1,uncommon,50,FALSE,TRUE,0,0,50,steal,0,2,any,player,1,1,Any,0,0,0,,
+14,Healing Word,Heal a creature or player for 2 HP,1,rare,300,FALSE,TRUE,0,0,2,heal,0,2,any,both,1,3,Life,0,0,0,,
+15,Fun-guy,Summon Fungus,2,uncommon,50,TRUE,FALSE,1,3,0,mushroom,0,2,,,,0,Earth,0,0,0,,
+17,Research,Draw 1 card,1,uncommon,50,FALSE,TRUE,0,0,1,research,0,1,self,player,1,5,Fire,0,0,0,,
+21,Hungry Ghoul,Summon a Ghoul and take 3 damage,2,rare,300,TRUE,FALSE,4,4,0,zombie,0,4,,,,,Death,0,0,0,20,
+24,Defensive Stance,Give target creature +0/+2,2,uncommon,50,FALSE,TRUE,0,2,0,defense,0,2,any,creature,1,8,Any,0,0,0,,
+16,Research,Draw 1 card,1,common,10,FALSE,TRUE,0,0,1,magic_mapping,0,1,self,player,1,5,Wizard,0,0,0,,
+18,Lose1,Lose 1 life,0,common,0,FALSE,TRUE,0,0,1,borgnjors_revivification_old,0,0,self,player,1,9,Death,0,0,0,,
+19,Lose2,Lose 2 life,0,common,0,FALSE,TRUE,0,0,2,borgnjors_revivification_old,0,0,self,player,1,9,Death,0,0,0,,
+20,Lose3,Lose 3 life,0,common,0,FALSE,TRUE,0,0,3,borgnjors_revivification_old,0,0,self,player,1,9,Death,0,0,0,,
+22,Manipulate,Lose 1 life and Draw 1 card,1,common,10,FALSE,TRUE,0,0,1,lethal_infusion,0,0,self,player,1,9,Death,0,0,0,16,
+23,Arrow,Deal 1 damange to the creature in the square,1,common,10,FALSE,TRUE,0,0,2,arrow,0,1,square,creature,1,0,Trickster,0,0,0,,
+25,Research II,Draw 2 cards,3,uncommon,50,FALSE,TRUE,0,0,2,research,0,1,self,player,1,5,Water,0,0,0,,
+26,Fire Bat,Summon Fire Bat,3,uncommon,50,TRUE,FALSE,2,2,,fire_bat,0,2,,,,0,Fire,1,0,0,,Flying
