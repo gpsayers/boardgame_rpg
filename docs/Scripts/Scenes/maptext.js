@@ -1,7 +1,7 @@
-var maptext = function () { };
 
-maptext.prototype = {
+var maptext = defineScene("maptext", {
     create: function () {
+        var self = this;
         var root = document.createElement("main");
         root.className = "game-menu-overlay";
         root.setAttribute("aria-label", "Choose your destination");
@@ -37,10 +37,10 @@ maptext.prototype = {
                 '<button class="game-menu-back" type="button" data-destination="menu">‹ <span>Back to main menu</span></button>' +
             '</section>';
 
-        game.add.overlay(root);
+        mountOverlay(self, root);
 
         root.querySelector('[data-destination="shop"]').addEventListener("click", function () {
-            game.state.start("shop");
+            self.scene.start("shop");
         });
 
         root.querySelector('[data-destination="castle"]').addEventListener("click", function () {
@@ -52,17 +52,17 @@ maptext.prototype = {
         }.bind(this));
 
         root.querySelector('[data-destination="cards"]').addEventListener("click", function () {
-            game.state.start("cardmanager");
+            self.scene.start("cardmanager");
         });
 
         root.querySelector('[data-destination="menu"]').addEventListener("click", function () {
-            game.state.start("mainMenu");
+            self.scene.start("mainMenu");
         });
     },
 
     startBoard: function (board) {
         gameVariables.currentBoard = board;
         gameVariables.gameContinue = false;
-        game.state.start("battle");
+        this.scene.start("battle");
     }
-};
+});

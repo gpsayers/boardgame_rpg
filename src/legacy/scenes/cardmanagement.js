@@ -1,7 +1,7 @@
-var cardmanager = function () { };
 
-cardmanager.prototype = {
+var cardmanager = defineScene("cardmanager", {
     create: function () {
+        var self = this;
         var root = document.createElement("main");
         root.className = "game-menu-overlay";
         root.setAttribute("aria-label", "Card collection");
@@ -21,7 +21,7 @@ cardmanager.prototype = {
                 '</nav>' +
             '</section>';
 
-        game.add.overlay(root);
+        mountOverlay(self, root);
 
         var deck = gameVariables.playerDeck && gameVariables.playerDeck.length
             ? gameVariables.playerDeck
@@ -69,10 +69,10 @@ cardmanager.prototype = {
         }
 
         root.querySelector('[data-action="destinations"]').addEventListener("click", function () {
-            game.state.start("maptext");
+            self.scene.start("maptext");
         });
         root.querySelector('[data-action="home"]').addEventListener("click", function () {
-            game.state.start("mainMenu");
+            self.scene.start("mainMenu");
         });
     }
-};
+});

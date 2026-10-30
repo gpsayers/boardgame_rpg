@@ -1,6 +1,6 @@
-var battle = function () { };
+var BATTLE_DEPTH = { boardSquare: 0, boardSpecial: 1, creature: 2, aiPlayer: 3, humanPlayer: 4, spellEffect: 5 };
 
-battle.prototype = {
+var battle = defineScene("battle", {
     init: function () {
         gameVariables.boardInfo = gameVariables.currentBoard === "board2" ? board2 : board1;
         this.computerPlayers = gameVariables.boardInfo.computerPlayers.filter(function (player) {
@@ -38,21 +38,23 @@ battle.prototype = {
     },
 
     preload: function () {
-        game.load.image("battle-pressure", "assets/board-elements/pressure_plate.png");
-        game.load.image("battle-chest", "assets/board-elements/chest_2_closed.png");
-        game.load.image("battle-chest-open", "assets/board-elements/chest_2_open.png");
-        game.load.image("battle-trap", "assets/board-elements/trap_blade.png");
-        game.load.image("battle-magictrap", "assets/board-elements/trap_magical.png");
-        game.load.image("battle-fountain", "assets/board-elements/blue_fountain.png");
-        game.load.image("battle-start", "assets/board-elements/stone_stairs_up.png");
-        game.load.image("battle-target", "assets/gui/silenced.png");
-        game.load.image("gpix", "assets/gui/greenPixel.png");
-        game.load.image("rpix", "assets/gui/redPixel.png");
+        var scene = this;
+        scene.load.setPath(gameAssetUrl(""));
+        scene.load.image("battle-pressure", "board-elements/pressure_plate.png");
+        scene.load.image("battle-chest", "board-elements/chest_2_closed.png");
+        scene.load.image("battle-chest-open", "board-elements/chest_2_open.png");
+        scene.load.image("battle-trap", "board-elements/trap_blade.png");
+        scene.load.image("battle-magictrap", "board-elements/trap_magical.png");
+        scene.load.image("battle-fountain", "board-elements/blue_fountain.png");
+        scene.load.image("battle-start", "board-elements/stone_stairs_up.png");
+        scene.load.image("battle-target", "gui/silenced.png");
+        scene.load.image("gpix", "gui/greenPixel.png");
+        scene.load.image("rpix", "gui/redPixel.png");
         var humanPlayer = gameVariables.gamePlayerArray.find(function (player) {
             return player.human;
         });
         var humanClass = humanPlayer ? humanPlayer.class : (gameVariables.playerClass || "cavalier");
-        game.load.image("battle-player-human", "assets/players/" + humanClass + ".png");
+        scene.load.image("battle-player-human", "players/" + humanClass + ".png");
         var creatureImageFiles = {
             zombie: "zombie_ogre",
             summon: "summon_ugly_thing",
@@ -75,7 +77,7 @@ battle.prototype = {
             }
             loadedCreatureImages.add(cardInfo.image);
             var imageName = creatureImageFiles[cardInfo.image] || cardInfo.image;
-            game.load.image(cardInfo.image, "assets/cards/" + imageName + ".png");
+            scene.load.image(cardInfo.image, "cards/" + imageName + ".png");
         });
         var boardColorFiles = {
             red: "fire",
@@ -92,16 +94,16 @@ battle.prototype = {
             earth: "poison"
         };
         this.computerPlayers.forEach(function (player) {
-            game.load.image("battle-player-" + player.class, "assets/players/" + player.class + ".png");
+            scene.load.image("battle-player-" + player.class, "players/" + player.class + ".png");
             var colorFile = boardColorFiles[String(player.color).toLowerCase()];
             if (colorFile) {
-                game.load.image(player.color, "assets/" + colorFile + ".png");
+                scene.load.image(player.color, "" + colorFile + ".png");
             }
         });
         var humanColor = humanPlayer ? humanPlayer.color : (gameVariables.playerColor || "Fire");
         var humanColorFile = boardColorFiles[String(humanColor).toLowerCase()];
         if (humanColorFile) {
-            game.load.image(humanColor, "assets/" + humanColorFile + ".png");
+            scene.load.image(humanColor, "" + humanColorFile + ".png");
         }
     },
 
@@ -110,11 +112,11 @@ battle.prototype = {
         var rows = boardInfo.squares;
         var rowCount = rows.length;
         var columnCount = Math.max.apply(null, rows.map(function (row) { return row.length; }));
-        var tileSize = Math.min(50, (game.width - 40) / columnCount, (game.height - 40) / rowCount);
+        var tileSize = Math.min(50, (this.scale.width - 40) / columnCount, (this.scale.height - 40) / rowCount);
         var boardWidth = tileSize * columnCount;
         var boardHeight = tileSize * rowCount;
-        var originX = (game.width - boardWidth) / 2 + tileSize / 2;
-        var originY = (game.height - boardHeight) / 2 + tileSize / 2;
+        var originX = (this.scale.width - boardWidth) / 2 + tileSize / 2;
+        var originY = (this.scale.height - boardHeight) / 2 + tileSize / 2;
         var squarePositions = new Map();
         var specialItems = new Map(boardInfo.specialSquares.map(function (special) {
             return [special.squareId, special.type];
@@ -133,12 +135,6 @@ battle.prototype = {
         boardInfo.specialSquares.forEach(function (special) {
             special.looted = 0;
         });
-        this.boardSquareLayer = game.add.group();
-        this.boardSpecialLayer = game.add.group();
-        this.creatureLayer = game.add.group();
-        this.aiPlayerLayer = game.add.group();
-        this.humanPlayerLayer = game.add.group();
-        this.spellEffectLayer = game.add.group();
         this.squarePositions = squarePositions;
         this.tileSize = tileSize;
         gameVariables.gameBoard.length = 0;
@@ -152,21 +148,18 @@ battle.prototype = {
                 var x = originX + gridX * tileSize;
                 var y = originY + gridY * tileSize;
                 squarePositions.set(squareId, { x: x, y: y });
-                var tile = game.add.sprite(x, y, "neutral");
-                tile.width = tileSize;
-                tile.height = tileSize;
-                tile.anchor.set(0.5);
+                var tile = addFittedSprite(this, x, y, "neutral", tileSize);
                 tile.gridX = gridX;
                 tile.gridY = gridY;
                 tile.gameSquareId = squareId;
-                tile.inputEnabled = true;
-                tile.events.onInputOver.add(function () {
+                tile.setInteractive();
+                tile.on("pointerover", function () {
                     this.showSquareDetails(squareId);
                 }, this);
-                tile.events.onInputOut.add(function () {
+                tile.on("pointerout", function () {
                     this.showSquareDetails(null);
                 }, this);
-                this.boardSquareLayer.add(tile);
+                tile.setDepth(BATTLE_DEPTH.boardSquare);
                 this.boardSquares.push(tile);
                 gameVariables.gameBoard.push({
                     id: squareId,
@@ -177,11 +170,8 @@ battle.prototype = {
                 var specialType = specialItems.get(squareId);
                 var specialTexture = specialTextures[specialType];
                 if (specialTexture) {
-                    var marker = game.add.sprite(x, y, specialTexture);
-                    marker.width = tileSize * 0.8;
-                    marker.height = tileSize * 0.8;
-                    marker.anchor.set(0.5);
-                    this.boardSpecialLayer.add(marker);
+                    var marker = addFittedSprite(this, x, y, specialTexture, tileSize * 0.8);
+                    marker.setDepth(BATTLE_DEPTH.boardSpecial);
                     this.boardSquares.push(marker);
                     this.specialMarkers.set(squareId, marker);
                 }
@@ -194,26 +184,23 @@ battle.prototype = {
                 throw new Error("Computer player " + player.name + " is assigned to missing board square " + player.square);
             }
 
-            var sprite = game.add.sprite(position.x, position.y, "battle-player-" + player.class);
             var spriteSize = tileSize * 0.9;
-            sprite.width = spriteSize;
-            sprite.height = spriteSize;
-            sprite.anchor.set(0.5);
+            var sprite = addFittedSprite(this, position.x, position.y, "battle-player-" + player.class, spriteSize);
             sprite.x += (index - (players.length - 1) / 2) * tileSize * 0.3;
             sprite.y -= Math.abs(index - (players.length - 1) / 2) * tileSize * 0.08;
             sprite.gameSquareId = player.square;
             player.sprite = sprite;
-            this.aiPlayerLayer.add(sprite);
+            sprite.setDepth(BATTLE_DEPTH.aiPlayer);
             this.boardSquares.push(sprite);
         }, this);
 
         this.createStatusOverlay(originX);
 
-        var scene = game.engine.scene.getScene("legacy-game");
+        var scene = this;
         scene.cameras.main.setBackgroundColor("#161a1f");
 
         scene.input.keyboard.on("keydown-ESC", function () {
-            game.state.start("mainMenu");
+            scene.scene.start("mainMenu");
         });
     },
 
@@ -268,16 +255,14 @@ battle.prototype = {
         if (!humanPosition) {
             throw new Error("Human player is assigned to missing board square " + humanSquareId);
         }
-        var humanSprite = game.add.sprite(humanPosition.x, humanPosition.y, "battle-player-human");
-        humanSprite.width = this.tileSize * 0.9;
-        humanSprite.height = this.tileSize * 0.9;
-        humanSprite.anchor.set(0.5);
+        var humanSprite = addFittedSprite(this, humanPosition.x, humanPosition.y, "battle-player-human",
+            this.tileSize * 0.9);
         humanSprite.x -= this.tileSize * 0.35;
         humanSprite.gameSquareId = humanSquareId;
         humanPlayer.sprite = humanSprite;
         humanPlayer.battleGold = 0;
         humanPlayer.square = humanSquareId;
-        this.humanPlayerLayer.add(humanSprite);
+        humanSprite.setDepth(BATTLE_DEPTH.humanPlayer);
         this.battleTestHuman = humanPlayer;
         this.boardSquares.push(humanSprite);
         this.humanMaxHand = humanPlayer.maxhand || gameVariables.playerMaxHand || 4;
@@ -462,7 +447,7 @@ battle.prototype = {
         this.createSquareDetailPanel(root);
         this.eventLog = new BattleEventLog();
         root.appendChild(this.eventLog.element);
-        game.add.overlay(root);
+        mountOverlay(this, root);
         this.startBattleTurn();
     },
 
@@ -507,7 +492,7 @@ battle.prototype = {
             list.appendChild(row);
         }
 
-        var textureScene = game.engine.scene.getScene("legacy-game");
+        var textureScene = this;
         function picture(textureKey, className) {
             if (!textureKey || !textureScene.textures.exists(textureKey)) {
                 return null;
@@ -552,7 +537,7 @@ battle.prototype = {
         });
 
         var titleRow = element("div", "battle-square-title");
-        var tileImage = picture(square.sprite.key, "battle-square-tile");
+        var tileImage = picture(square.sprite.texture.key, "battle-square-tile");
         if (tileImage) {
             titleRow.appendChild(tileImage);
         }
@@ -876,12 +861,13 @@ battle.prototype = {
         }
         player.sprite.gameSquareId = squareId;
         player.square = squareId;
-        game.add.tween(player.sprite).to(
-            { x: destination.sprite.x, y: destination.sprite.y },
-            300,
-            Phaser.Easing.Linear.None,
-            true
-        );
+        this.tweens.add({
+            targets: player.sprite,
+            x: destination.sprite.x,
+            y: destination.sprite.y,
+            duration: 300,
+            ease: "Linear"
+        });
         this.logBattleEvent(player.name + " moves to square " + squareId, player);
     },
 
@@ -1498,28 +1484,24 @@ battle.prototype = {
         });
         squareIds.forEach(function (squareId) {
             var position = scene.squarePositions.get(squareId);
-            var marker = game.add.sprite(position.x, position.y, "battle-target");
-            marker.width = scene.tileSize * 0.58;
-            marker.height = scene.tileSize * 0.58;
-            marker.anchor.set(0.5);
-            marker.__legacyVisual.setTint(0xff7a59);
+            var marker = addFittedSprite(scene, position.x, position.y, "battle-target", scene.tileSize * 0.58);
+            marker.setTint(0xff7a59);
             marker.alpha = 0.95;
-            marker.inputEnabled = true;
-            marker.useHandCursor = true;
-            marker.events.onInputOver.add(function () {
-                marker.setScale(1.2);
-                marker.__legacyVisual.setTint(0xffb199);
+            marker.setInteractive({ useHandCursor: true });
+            marker.on("pointerover", function () {
+                setSpriteZoom(marker, 1.2);
+                marker.setTint(0xffb199);
                 scene.showSquareDetails(squareId);
             });
-            marker.events.onInputOut.add(function () {
-                marker.setScale(1);
-                marker.__legacyVisual.setTint(0xff7a59);
+            marker.on("pointerout", function () {
+                setSpriteZoom(marker, 1);
+                marker.setTint(0xff7a59);
                 scene.showSquareDetails(null);
             });
-            marker.events.onInputDown.add(function () {
+            marker.on("pointerdown", function () {
                 chooseSquare(squareId);
             });
-            scene.spellEffectLayer.add(marker);
+            marker.setDepth(BATTLE_DEPTH.spellEffect);
             scene.boardSquares.push(marker);
             targeting.markers.push(marker);
         });
@@ -1738,23 +1720,17 @@ battle.prototype = {
 
     createBattleCreature: function (square, cardInfo, player, hitpoints) {
         var position = this.squarePositions.get(square.id);
-        var creatureSprite = game.add.sprite(position.x, position.y, cardInfo.image);
-        creatureSprite.width = this.tileSize * 0.8;
-        creatureSprite.height = this.tileSize * 0.8;
-        creatureSprite.anchor.set(0.5);
-        this.creatureLayer.add(creatureSprite);
+        var creatureSprite = addFittedSprite(this, position.x, position.y, cardInfo.image, this.tileSize * 0.8);
+        creatureSprite.setDepth(BATTLE_DEPTH.creature);
         this.boardSquares.push(creatureSprite);
 
         var barWidth = this.tileSize * 0.8;
         var barX = position.x - barWidth / 2;
         var barY = position.y + this.tileSize * 0.36;
-        var healthBackground = game.add.sprite(barX, barY, "gpix");
-        healthBackground.width = barWidth;
-        healthBackground.height = 3;
-        var healthDamage = game.add.sprite(barX, barY, "rpix");
-        healthDamage.height = 3;
-        this.creatureLayer.add(healthBackground);
-        this.creatureLayer.add(healthDamage);
+        var healthBackground = this.add.sprite(barX, barY, "gpix").setOrigin(0, 0).setDisplaySize(barWidth, 3);
+        var healthDamage = this.add.sprite(barX, barY, "rpix").setOrigin(0, 0).setDisplaySize(0, 3);
+        healthBackground.setDepth(BATTLE_DEPTH.creature);
+        healthDamage.setDepth(BATTLE_DEPTH.creature);
         this.boardSquares.push(healthBackground, healthDamage);
 
         square.creature = new gameSquareCreature(
@@ -1782,10 +1758,10 @@ battle.prototype = {
     updateBattleCreatureHealth: function (creature) {
         var maxHealth = Math.max(creature.maxhitpoints, 1);
         var healthRatio = Math.max(0, Math.min(creature.hitpoints / maxHealth, 1));
-        var damageWidth = creature.hitspritegreen.width * (1 - healthRatio);
-        creature.hitspritered.width = damageWidth;
+        var damageWidth = creature.hitspritegreen.displayWidth * (1 - healthRatio);
+        creature.hitspritered.displayWidth = damageWidth;
         creature.hitspritered.x = creature.hitspritegreen.x +
-            creature.hitspritegreen.width - damageWidth;
+            creature.hitspritegreen.displayWidth - damageWidth;
     },
 
     removeBattleCreature: function (creature) {
@@ -1845,9 +1821,7 @@ battle.prototype = {
         }
         square.ownerPlayerId = player.id;
         player.capturedSquares++;
-        square.sprite.loadTexture(player.color);
-        square.sprite.width = this.tileSize;
-        square.sprite.height = this.tileSize;
+        fitSprite(square.sprite.setTexture(player.color), this.tileSize);
     },
 
     createTurnControls: function (panel) {
@@ -2061,9 +2035,7 @@ battle.prototype = {
         var marker = this.specialMarkers.get(squareId);
         var swapMarker = function (texture) {
             if (marker) {
-                marker.loadTexture(texture);
-                marker.width = this.tileSize * 0.8;
-                marker.height = this.tileSize * 0.8;
+                fitSprite(marker.setTexture(texture), this.tileSize * 0.8);
             }
         }.bind(this);
 
@@ -2093,7 +2065,7 @@ battle.prototype = {
 
     afterBattleHazard: function (player) {
         if (player === this.battleTestHuman) {
-            game.camera.flash(0xff0000, 500);
+            this.cameras.main.flash(500, 255, 0, 0);
         }
         if (player.hp <= 0) {
             this.logBattleEvent(player.name + " is defeated", player);
@@ -2159,7 +2131,7 @@ battle.prototype = {
         });
         panel.appendChild(actions);
         root.appendChild(panel);
-        game.add.overlay(root);
+        mountOverlay(this, root);
         actions.firstChild.focus();
     },
 
@@ -2178,6 +2150,7 @@ battle.prototype = {
     },
 
     endBattle: function (outcome) {
+        var scene = this;
         this.battleEnded = true;
         this.humanTurnActive = false;
         this.cancelBattleTargeting();
@@ -2226,13 +2199,13 @@ battle.prototype = {
         button.type = "button";
         button.textContent = "Continue";
         button.addEventListener("click", function () {
-            game.state.start(isCampaignBattle ? "maptext" : "mainMenu");
+            scene.scene.start(isCampaignBattle ? "maptext" : "mainMenu");
         });
         panel.appendChild(heading);
         panel.appendChild(message);
         panel.appendChild(button);
         root.appendChild(panel);
-        game.add.overlay(root);
+        mountOverlay(this, root);
         button.focus();
     },
 
@@ -2408,28 +2381,24 @@ battle.prototype = {
 
         routesByTargetSquare.forEach(function (route, targetSquareId) {
             var destination = scene.squarePositions.get(targetSquareId);
-            var target = game.add.sprite(destination.x, destination.y, "battle-target");
-            target.width = scene.tileSize * 0.58;
-            target.height = scene.tileSize * 0.58;
-            target.anchor.set(0.5);
-            target.__legacyVisual.setTint(0xffd84d);
+            var target = addFittedSprite(scene, destination.x, destination.y, "battle-target", scene.tileSize * 0.58);
+            target.setTint(0xffd84d);
             target.alpha = 0.95;
-            target.inputEnabled = true;
-            target.useHandCursor = true;
-            target.events.onInputOver.add(function () {
-                target.setScale(1.2);
-                target.__legacyVisual.setTint(0xffffa8);
+            target.setInteractive({ useHandCursor: true });
+            target.on("pointerover", function () {
+                setSpriteZoom(target, 1.2);
+                target.setTint(0xffffa8);
             });
-            target.events.onInputOut.add(function () {
-                target.setScale(1);
-                target.__legacyVisual.setTint(0xffd84d);
+            target.on("pointerout", function () {
+                setSpriteZoom(target, 1);
+                target.setTint(0xffd84d);
             });
-            target.events.onInputDown.add(function () {
+            target.on("pointerdown", function () {
                 scene.clearMovementTargets();
                 choices.remove();
                 continueRoute(route);
             });
-            scene.spellEffectLayer.add(target);
+            target.setDepth(BATTLE_DEPTH.spellEffect);
             scene.movementTargetSprites.set(targetSquareId, target);
             scene.boardSquares.push(target);
         });
@@ -2459,7 +2428,7 @@ battle.prototype = {
                     var target = scene.movementTargetSprites.get(route[route.length - 1]);
                     if (target) {
                         target.alpha = 1;
-                        target.setScale(scale);
+                        setSpriteZoom(target, scale);
                     }
                 });
             }
@@ -2496,4 +2465,4 @@ battle.prototype = {
         });
         this.movementTargetSprites.clear();
     }
-};
+});

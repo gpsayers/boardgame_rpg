@@ -1,7 +1,7 @@
-var new_character = function () { };
 
-new_character.prototype = {
-    init: function() {
+var new_character = defineScene("new", {
+    init: function () {
+        var self = this;
         var classes = [
             { key: "cavalier", label: "Cavalier" },
             { key: "wizard", label: "Wizard" },
@@ -46,7 +46,7 @@ new_character.prototype = {
                     '<button class="character-submit" type="submit">Begin adventure</button>' +
                 '</footer>' +
             '</form>';
-        game.add.overlay(root);
+        mountOverlay(self, root);
 
         var form = root.querySelector("form");
         var error = root.querySelector(".character-form-error");
@@ -101,7 +101,7 @@ new_character.prototype = {
         });
 
         root.querySelector(".character-cancel").addEventListener("click", function () {
-            game.state.start("mainMenu");
+            self.scene.start("mainMenu");
         });
 
         form.addEventListener("submit", function (event) {
@@ -170,10 +170,10 @@ new_character.prototype = {
                     break;
             }
 
-            game.state.start("maptext");
+            self.scene.start("maptext");
         });
     }
-};
+});
 
 //Cavalier
 //handsize - 3

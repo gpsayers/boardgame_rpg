@@ -1,14 +1,13 @@
 // Spell and card helpers shared by the battle scene and the AI.
-// These used to live in game.js; keeping them here lets game.js be removed without touching battle.js.
 
 function updateCreatureHealthBar(creature) {
     var maxHealth = Math.max(creature.maxhitpoints, 1);
     var healthRatio = Math.max(0, Math.min(creature.hitpoints / maxHealth, 1));
-    var damageWidth = creature.hitspritegreen.width * (1 - healthRatio);
+    var damageWidth = creature.hitspritegreen.displayWidth * (1 - healthRatio);
 
-    creature.hitspritered.width = damageWidth;
+    creature.hitspritered.displayWidth = damageWidth;
     creature.hitspritered.x = creature.hitspritegreen.x +
-        creature.hitspritegreen.width - damageWidth;
+        creature.hitspritegreen.displayWidth - damageWidth;
 }
 
 
@@ -48,7 +47,7 @@ function chooseAITeleportDestination(subjectType, subject, owner, destinations) 
         if (subjectType === "creature") {
             var unowned = square.ownerPlayerId !== undefined
                 ? square.ownerPlayerId !== owner.id
-                : square.sprite.key !== owner.color;
+                : square.sprite.texture.key !== owner.color;
             if (!square.creature) {
                 score += 2;
             } else if (Math.max(subject.attack - square.creature.armor, 0) >= square.creature.hitpoints) {
@@ -97,7 +96,7 @@ function chooseAISummonSquare(creatureCard, owner, destinations) {
         }
         var unowned = square.ownerPlayerId !== undefined
             ? square.ownerPlayerId !== owner.id
-            : square.sprite.key !== owner.color;
+            : square.sprite.texture.key !== owner.color;
         if (unowned) {
             score += 1;
         }

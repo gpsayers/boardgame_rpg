@@ -9,66 +9,40 @@ var gameProperties = {
 };
 
 
-
-var mainState = function (game) { };
-
-mainState.prototype = {
-    init: function () {
-    },
+// Loads the textures shared by every screen, then opens the main menu.
+var bootScene = defineScene("boot", {
     preload: function () {
-        game.load.image('bpix', 'assets/gui/blackPixel.png');
-        game.load.image('wpix', 'assets/gui/whitePixel.png');
-
-        //Load player images
-        game.load.image('cavalier', 'assets/players/cavalier.png');
-        game.load.image('wizard', 'assets/players/wizard.png');
-        game.load.image('sorceress', 'assets/players/sorceress.png');
-        game.load.image('trickster', 'assets/players/trickster.png');
-        game.load.image('dwarf', 'assets/players/dwarf_new.png');
-        game.load.image('vampire', 'assets/players/vampire_old.png');
-        game.load.image('convoker', 'assets/players/convoker.png');
-        game.load.image('blademaster', 'assets/players/blademaster.png');
+        this.load.setPath(gameAssetUrl("assets/"));
 
         //board squares
-        game.load.image('Fire', 'assets/fire.png');
-        game.load.image('Water', 'assets/ice.png');
-        game.load.image('neutral', 'assets/summoning.png');
-        game.load.image('Life', 'assets/divination.png');
-        game.load.image('Death', 'assets/necromancy.png');
-        game.load.image('Earth', 'assets/poison.png');
-        game.load.image('red', 'assets/fire.png');
-        game.load.image('blue', 'assets/ice.png');
-        game.load.image('white', 'assets/divination.png');
-        game.load.image('yellow', 'assets/divination.png');
-        game.load.image('black', 'assets/necromancy.png');
-        game.load.image('purple', 'assets/necromancy.png');
-        game.load.image('green', 'assets/poison.png');
-
-        //load gui elements
-        game.load.spritesheet('confirmButton', 'assets/gui/confirmButtonSpritesheet.png', 215, 229);
-        game.load.spritesheet('cancelButton', 'assets/gui/cancelButtonSpritesheet.png', 215, 229);
-
+        this.load.image('Fire', 'fire.png');
+        this.load.image('Water', 'ice.png');
+        this.load.image('neutral', 'summoning.png');
+        this.load.image('Life', 'divination.png');
+        this.load.image('Death', 'necromancy.png');
+        this.load.image('Earth', 'poison.png');
+        this.load.image('red', 'fire.png');
+        this.load.image('blue', 'ice.png');
+        this.load.image('white', 'divination.png');
+        this.load.image('yellow', 'divination.png');
+        this.load.image('black', 'necromancy.png');
+        this.load.image('purple', 'necromancy.png');
+        this.load.image('green', 'poison.png');
     },
     create: function () {
-        game.state.add('mainMenu', mainMenu);
-        game.state.add('battle', battle);
-        game.state.add('credits', credits);
-        game.state.add('new', new_character);
-        game.state.add('maptext', maptext);
-        game.state.add('cardmanager', cardmanager);
-        game.state.add('cutscene', cutscene);
-        game.state.add('shop', shop);
-
-        game.state.start('mainMenu');
-
-    },
-    update: function () {
-
+        this.scene.start('mainMenu');
     }
-};
+});
 
-var game = Phaser2Compat.create({
+var phaserGame = new Phaser.Game({
+    type: Phaser.AUTO,
+    parent: 'gameDiv',
     width: gameProperties.screenWidth,
     height: gameProperties.screenHeight,
-    parent: 'gameDiv'
+    backgroundColor: "#000000",
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH
+    },
+    scene: [bootScene, mainMenu, battle, credits, new_character, maptext, cardmanager, cutscene, shop]
 });

@@ -1,7 +1,7 @@
-var cutscene = function () { };
 
 
-cutscene.prototype = {
+
+var cutscene = defineScene("cutscene", {
 
     preload: function () {
 
@@ -20,4 +20,4 @@ cutscene.prototype = {
     }
 
 
-};
+});

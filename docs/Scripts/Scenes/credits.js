@@ -1,7 +1,7 @@
-var credits = function () { };
 
-credits.prototype = {
+var credits = defineScene("credits", {
     create: function () {
+        var self = this;
         var root = document.createElement("main");
         root.className = "game-menu-overlay";
         root.setAttribute("aria-label", "Credits");
@@ -16,9 +16,9 @@ credits.prototype = {
                 '<button class="game-menu-back" type="button" data-action="back">‹ Back to Main Menu</button>' +
             '</section>';
 
-        game.add.overlay(root);
+        mountOverlay(self, root);
         root.querySelector('[data-action="back"]').addEventListener("click", function () {
-            game.state.start("mainMenu");
+            self.scene.start("mainMenu");
         });
     }
-};
+});

@@ -1,7 +1,7 @@
-var mainMenu = function () { };
 
-mainMenu.prototype = {
+var mainMenu = defineScene("mainMenu", {
     create: function () {
+        var self = this;
         var root = document.createElement("main");
         root.className = "game-menu-overlay";
         root.setAttribute("aria-label", "Main menu");
@@ -37,23 +37,23 @@ mainMenu.prototype = {
                 '<footer class="game-menu-footer">Build your legend, one turn at a time.</footer>' +
             '</section>';
 
-        game.add.overlay(root);
+        mountOverlay(self, root);
 
         root.querySelector('[data-action="new"]').addEventListener("click", function () {
             this.newGame();
-            game.state.start("new");
+            self.scene.start("new");
         }.bind(this));
 
         root.querySelector('[data-action="credits"]').addEventListener("click", function () {
-            game.state.start("credits");
+            self.scene.start("credits");
         });
 
         root.querySelector('[data-action="battle-test"]').addEventListener("click", function () {
-            game.state.start("battle");
+            self.scene.start("battle");
         });
     },
 
     newGame: function () {
         // localStorage.removeItem("gameVariables");
     }
-};
+});

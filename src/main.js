@@ -1,7 +1,7 @@
 const viteEnvironment = import.meta.env || {};
 
 const legacyScriptFiles = [
-    "core/phaser2-compat.js",
+    "core/engine.js",
     "core/array2d.min.js",
     "core/models.js",
     "core/cards.js",

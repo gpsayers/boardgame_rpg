@@ -144,7 +144,7 @@ var computerAI = (function () {
         if (card.creature) {
             if (target.type === "ground" && square) {
                 if (!square.creature) {
-                    return 2 + (square.sprite.key === player.color ? 0 : getVictoryPriority(player, "captureSquares"));
+                    return 2 + (square.sprite.texture.key === player.color ? 0 : getVictoryPriority(player, "captureSquares"));
                 }
                 if (isFriendlyCreature(square.creature, player)) {
                     return 0;
@@ -156,7 +156,7 @@ var computerAI = (function () {
                 var defenderHp = defender.hitpoints - damageToDefender;
                 var attackerHp = card.defense - damageToAttacker;
                 return damageToDefender + (defenderHp <= 0 && attackerHp > 0 &&
-                    square.sprite.key !== player.color
+                    square.sprite.texture.key !== player.color
                     ? 2 + getVictoryPriority(player, "captureSquares")
                     : 0);
             }
@@ -166,7 +166,7 @@ var computerAI = (function () {
                     ? isFriendlyCreature(square.creature, player)
                         ? card.attack + card.defense / 2
                         : Math.max(card.attack - square.creature.armor, 0)
-                    : 2 + (square.sprite.key === player.color ? 0 : getVictoryPriority(player, "captureSquares"));
+                    : 2 + (square.sprite.texture.key === player.color ? 0 : getVictoryPriority(player, "captureSquares"));
                 gameVariables.gamePlayerArray.forEach(function (occupant) {
                     if (occupant.sprite.gameSquareId === square.id && occupant.id !== player.id) {
                         summonValue += Math.max(card.damage - occupant.armor, 0);
@@ -340,7 +340,7 @@ var computerAI = (function () {
             }
 
             var score = 0;
-            if (square.sprite.key !== player.color) {
+            if (square.sprite.texture.key !== player.color) {
                 score += profile.priorities.captureSquares;
             }
 
@@ -497,15 +497,16 @@ var computerAI = (function () {
                     }
                 }
 
-                var tween = game.add.tween(player.sprite).to(
-                    { x: destination.sprite.x, y: destination.sprite.y },
-                    400,
-                    Phaser.Easing.Linear.None,
-                    true
-                );
-                tween.onComplete.add(function () {
-                    player.sprite.gameSquareId = squareId;
-                    onStepComplete();
+                player.sprite.scene.tweens.add({
+                    targets: player.sprite,
+                    x: destination.sprite.x,
+                    y: destination.sprite.y,
+                    duration: 400,
+                    ease: "Linear",
+                    onComplete: function () {
+                        player.sprite.gameSquareId = squareId;
+                        onStepComplete();
+                    }
                 });
             }
 

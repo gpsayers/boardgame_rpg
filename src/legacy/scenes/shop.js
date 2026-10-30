@@ -1,7 +1,7 @@
-var shop = function () { };
 
-shop.prototype = {
+var shop = defineScene("shop", {
     create: function () {
+        var self = this;
         var root = document.createElement("main");
         root.className = "game-menu-overlay";
         root.setAttribute("aria-label", "The shop");
@@ -31,13 +31,13 @@ shop.prototype = {
                 '</nav>' +
             '</section>';
 
-        game.add.overlay(root);
+        mountOverlay(self, root);
         root.querySelector(".shop-gold").textContent = String(gameVariables.playerGold || 0);
         root.querySelector('[data-action="destinations"]').addEventListener("click", function () {
-            game.state.start("maptext");
+            self.scene.start("maptext");
         });
         root.querySelector('[data-action="home"]').addEventListener("click", function () {
-            game.state.start("mainMenu");
+            self.scene.start("mainMenu");
         });
     }
-};
+});
