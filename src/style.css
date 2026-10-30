@@ -1017,6 +1017,15 @@
             color: #e0e3e9;
             font-size: 0.82rem;
         }
+        .battle-card-description:has(+ .battle-card-additional) {
+            margin-bottom: 4px;
+        }
+        .battle-card-additional {
+            margin: 0 0 11px;
+            color: #f0cf83;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
         .battle-card-detail-stats {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));

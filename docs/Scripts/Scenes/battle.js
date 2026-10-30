@@ -735,6 +735,14 @@ var battle = defineScene("battle", {
                 description.className = "battle-card-description";
                 description.textContent = cardInfo.desc || "No description available.";
 
+                // The data's Additional Description (abilities and bonus effects) sits right under the description.
+                var additional = null;
+                if (cardInfo.additionalDescription) {
+                    additional = document.createElement("p");
+                    additional.className = "battle-card-additional";
+                    additional.textContent = cardInfo.additionalDescription;
+                }
+
                 var detailsList = document.createElement("dl");
                 detailsList.className = "battle-card-detail-stats";
                 [
@@ -745,8 +753,6 @@ var battle = defineScene("battle", {
                     ["Health", cardInfo.defense],
                     ["Damage / effect", cardInfo.damage],
                     ["Armor", cardInfo.armor],
-                    ["Threat", cardInfo.threat],
-                    ["Special effect", cardInfo.special],
                     ["Target", [cardInfo.targetlocation, cardInfo.targettype, cardInfo.targetcount]
                         .filter(function (value) { return value !== undefined && value !== ""; })
                         .join(" · ") || "None"],
@@ -764,6 +770,9 @@ var battle = defineScene("battle", {
 
                 details.appendChild(detailHeader);
                 details.appendChild(description);
+                if (additional) {
+                    details.appendChild(additional);
+                }
                 details.appendChild(detailsList);
                 card.appendChild(preview);
                 card.appendChild(details);
