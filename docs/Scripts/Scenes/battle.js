@@ -40,6 +40,9 @@ battle.prototype = {
     preload: function () {
         game.load.image("battle-pressure", "assets/board-elements/pressure_plate.png");
         game.load.image("battle-chest", "assets/board-elements/chest_2_closed.png");
+        game.load.image("battle-chest-open", "assets/board-elements/chest_2_open.png");
+        game.load.image("battle-trap", "assets/board-elements/trap_blade.png");
+        game.load.image("battle-magictrap", "assets/board-elements/trap_magical.png");
         game.load.image("battle-fountain", "assets/board-elements/blue_fountain.png");
         game.load.image("battle-start", "assets/board-elements/stone_stairs_up.png");
         game.load.image("battle-target", "assets/gui/silenced.png");
@@ -119,11 +122,17 @@ battle.prototype = {
         var specialTextures = {
             pressure: "battle-pressure",
             chest: "battle-chest",
+            magictrap: "battle-magictrap",
             bluefountain: "battle-fountain",
             start: "battle-start"
         };
 
         this.specialTextures = specialTextures;
+        this.specialMarkers = new Map();
+        // Board definitions are shared between battles, so loot starts fresh each time.
+        boardInfo.specialSquares.forEach(function (special) {
+            special.looted = 0;
+        });
         this.boardSquareLayer = game.add.group();
         this.boardSpecialLayer = game.add.group();
         this.creatureLayer = game.add.group();
@@ -174,6 +183,7 @@ battle.prototype = {
                     marker.anchor.set(0.5);
                     this.boardSpecialLayer.add(marker);
                     this.boardSquares.push(marker);
+                    this.specialMarkers.set(squareId, marker);
                 }
             }, this);
         }, this);
@@ -300,6 +310,8 @@ battle.prototype = {
                 player.hand.push(player.deck.pop());
             }
         }, this);
+        this.battleEnded = false;
+        this.pendingStartReward = false;
         this.battleTestPlayers = players;
         gameVariables.gamePlayerArray = players;
         gameVariables.currentPlayer = 0;
@@ -780,7 +792,7 @@ battle.prototype = {
     },
 
     playHumanCard: function (cardInfo) {
-        if (!this.humanTurnActive) {
+        if (!this.humanTurnActive || this.battleEnded) {
             return;
         }
         if (this.pendingBattleDuplicate) {
@@ -976,7 +988,7 @@ battle.prototype = {
 
     castBattleCard: function (player, cardInfo, hand, targets, isAI) {
         var handIndex = hand.indexOf(cardInfo);
-        if (handIndex < 0 || cardInfo.cost > player.mana) {
+        if (this.battleEnded || handIndex < 0 || cardInfo.cost > player.mana) {
             return false;
         }
 
@@ -1239,6 +1251,14 @@ battle.prototype = {
                 this.logBattleEvent(spellName + " gives " + this.describeBattleTarget(target) +
                     " +" + cardInfo.attack + "/+" + cardInfo.defense +
                     (cardInfo.armor ? " and +" + cardInfo.armor + " armor" : ""), player);
+            } else if (special === SPECIAL_EFFECT.SLOW_MOVEMENT) {
+                if (target.type === "player" && model) {
+                    processSpecialSpell(cardInfo, model, target.targetSquare, "player", model.class);
+                    this.logBattleEvent(spellName + " slows " + model.name + " by " + cardInfo.damage +
+                        " on their next roll", player);
+                } else {
+                    this.logBattleEvent(spellName + " has no player to slow", player);
+                }
             } else if (special === SPECIAL_EFFECT.STEAL_GOLD) {
                 var goldBefore = player.gold;
                 processSpecialSpell(cardInfo, model, target.targetSquare, target.type, model.class);
@@ -1356,6 +1376,11 @@ battle.prototype = {
     },
 
     refreshBattlePlayerStatus: function () {
+        this.refreshBattlePlayerStatusLabels();
+        this.checkBattleEnd();
+    },
+
+    refreshBattlePlayerStatusLabels: function () {
         var captureRequirement = gameVariables.boardInfo.captureRequirement || gameVariables.boardInfo.boardTotal;
         this.battleTestPlayers.forEach(function (player) {
             var hand = player === this.battleTestHuman ? this.humanCards : player.hand;
@@ -1931,7 +1956,8 @@ battle.prototype = {
 
         var scene = this;
         var diceRoll = rollMovementDice();
-        var result = diceRoll.total;
+        var penalty = Math.max(0, scene.battleTestHuman.movementPenalty || 0);
+        var result = applyMovementPenalty(scene.battleTestHuman, diceRoll.total);
         var rollTimer = window.setInterval(function () {
             scene.battleDie.textContent = String(rollMovementDice().total);
         }, 75);
@@ -1943,7 +1969,12 @@ battle.prototype = {
             scene.battleDie.setAttribute("aria-label", "Dice result " + result);
             scene.logBattleEvent(scene.battleTestHuman.name + " rolled " + describeDiceRoll(diceRoll.dice),
                 scene.battleTestHuman);
-            scene.battleTurnStatus.textContent = "You rolled " + describeDiceRoll(diceRoll.dice) + ". Moving…";
+            if (penalty > 0) {
+                scene.logBattleEvent(scene.battleTestHuman.name + " is slowed by " + penalty +
+                    " and moves " + result, scene.battleTestHuman);
+            }
+            scene.battleTurnStatus.textContent = "You rolled " + describeDiceRoll(diceRoll.dice) +
+                (penalty > 0 ? ", slowed by " + penalty + " to " + result : "") + ". Moving…";
             scene.battleRollButton.textContent = "Moving…";
             computerAI.movePlayer(
                 scene.battleTestHuman,
@@ -1955,9 +1986,19 @@ battle.prototype = {
                     scene.battleTurnStatus.textContent =
                         "Movement complete. You are on square " + scene.battleTestHuman.sprite.gameSquareId + ".";
                     scene.battleRollButton.textContent = "Move complete";
-                    scene.battlePassButton.disabled = false;
+                    scene.resolveBattleSquareLoot(scene.battleTestHuman);
+                    if (scene.checkBattleEnd()) {
+                        return;
+                    }
+                    if (scene.pendingStartReward) {
+                        scene.pendingStartReward = false;
+                        scene.showStartRewardChoice(scene.battleTestHuman);
+                    } else {
+                        scene.battlePassButton.disabled = false;
+                    }
                 },
                 function (player) {
+                    scene.pendingStartReward = true;
                     var manaCount = scene.playerManaLabels.get(player);
                     if (manaCount) {
                         manaCount.textContent = player.mana + "/" + player.maxmana;
@@ -2005,6 +2046,196 @@ battle.prototype = {
         }, this);
     },
 
+    // Loot and hazards on the square a player has just landed on.
+    resolveBattleSquareLoot: function (player) {
+        var squareId = player.sprite.gameSquareId;
+        var special = (gameVariables.boardInfo.specialSquares || []).find(function (item) {
+            return item.squareId === squareId;
+        });
+        if (!special) {
+            return;
+        }
+        var firstVisit = special.looted === 0;
+        special.looted++;
+
+        var marker = this.specialMarkers.get(squareId);
+        var swapMarker = function (texture) {
+            if (marker) {
+                marker.loadTexture(texture);
+                marker.width = this.tileSize * 0.8;
+                marker.height = this.tileSize * 0.8;
+            }
+        }.bind(this);
+
+        if (special.type === "pressure" && firstVisit) {
+            var trapDamage = Math.max(special.result - (player.armor || 0), 0);
+            player.hp = Math.max(player.hp - trapDamage, 0);
+            this.logBattleEvent(player.name + " triggers a pit trap and takes " + trapDamage + " damage", player);
+            swapMarker("battle-trap");
+            this.afterBattleHazard(player);
+        } else if (special.type === "magictrap") {
+            // The magical trap rearms every time and ignores armor.
+            player.hp = Math.max(player.hp - special.result, 0);
+            this.logBattleEvent(player.name + " is hit by a magical trap for " + special.result + " damage", player);
+            this.afterBattleHazard(player);
+        } else if (special.type === "chest" && firstVisit) {
+            if (special.result === "relic") {
+                return;
+            }
+            // Random chests have no reward table yet and pay a flat 110 gold.
+            var chestGold = special.result === "rand" ? 110 : special.result;
+            player.gold += chestGold;
+            this.logBattleEvent(player.name + " finds " + chestGold + " gold in a chest", player);
+            swapMarker("battle-chest-open");
+            this.refreshBattlePlayerStatus();
+        }
+    },
+
+    afterBattleHazard: function (player) {
+        if (player === this.battleTestHuman) {
+            game.camera.flash(0xff0000, 500);
+        }
+        if (player.hp <= 0) {
+            this.logBattleEvent(player.name + " is defeated", player);
+            this.forfeitBattleGoldLogged(player);
+        }
+        this.refreshBattlePlayerStatus();
+    },
+
+    // Crossing the start square lets a player pick one of three rewards.
+    grantStartReward: function (player, choice) {
+        if (choice === "gold") {
+            player.gold += 100;
+            this.logBattleEvent(player.name + " takes 100 gold for crossing start", player);
+        } else if (choice === "cards") {
+            this.drawBattleCard(player);
+            this.drawBattleCard(player);
+            this.logBattleEvent(player.name + " takes two cards for crossing start", player);
+        } else if (choice === "health") {
+            player.hp = Math.min(player.hp + 2, player.maxhp);
+            this.logBattleEvent(player.name + " recovers 2 health for crossing start", player);
+        }
+        this.refreshBattlePlayerStatus();
+    },
+
+    chooseAIStartReward: function (player) {
+        if (player.hp <= 2) {
+            return "health";
+        }
+        return player.hand.length < 2 ? "cards" : "gold";
+    },
+
+    showStartRewardChoice: function (player) {
+        var scene = this;
+        this.battleTurnStatus.textContent = "You crossed the start square. Choose a reward.";
+
+        var root = document.createElement("main");
+        root.className = "game-menu-overlay battle-result-overlay";
+        root.setAttribute("aria-label", "Start square reward");
+        var panel = document.createElement("section");
+        panel.className = "game-menu-panel battle-result-panel";
+        var heading = document.createElement("h1");
+        heading.textContent = "Start square reward";
+        panel.appendChild(heading);
+        var actions = document.createElement("div");
+        actions.className = "game-menu-actions";
+        [
+            ["gold", "+100 gold"],
+            ["cards", "Draw 2 cards"],
+            ["health", "+2 health"]
+        ].forEach(function (option) {
+            var button = document.createElement("button");
+            button.className = "game-menu-button battle-result-continue";
+            button.type = "button";
+            button.textContent = option[1];
+            button.addEventListener("click", function () {
+                root.remove();
+                scene.grantStartReward(player, option[0]);
+                scene.createHumanCardHand(scene.humanHandRoot, scene.humanCards);
+                scene.battleTurnStatus.textContent = "Reward taken. Pass the turn when ready.";
+                scene.battlePassButton.disabled = false;
+            });
+            actions.appendChild(button);
+        });
+        panel.appendChild(actions);
+        root.appendChild(panel);
+        game.add.overlay(root);
+        actions.firstChild.focus();
+    },
+
+    // Ends the battle once the shared outcome rules say it is over. Returns true if the battle has ended.
+    checkBattleEnd: function () {
+        if (this.battleEnded) {
+            return true;
+        }
+        var captureRequirement = gameVariables.boardInfo.captureRequirement || gameVariables.boardInfo.boardTotal;
+        var outcome = getBattleOutcome(this.battleTestPlayers, captureRequirement);
+        if (!outcome) {
+            return false;
+        }
+        this.endBattle(outcome);
+        return true;
+    },
+
+    endBattle: function (outcome) {
+        this.battleEnded = true;
+        this.humanTurnActive = false;
+        this.cancelBattleTargeting();
+        this.pendingBattleDuplicate = false;
+        this.pendingBattleDiscard = false;
+        this.battleRollButton.disabled = true;
+        this.battlePassButton.disabled = true;
+        this.battleDie.classList.remove("is-rolling");
+        this.clearMovementTargets();
+
+        // Battle gold only joins the winner's total; everyone else forfeits it.
+        var human = this.battleTestHuman;
+        this.battleTestPlayers.forEach(function (player) {
+            if (player === human && outcome.humanWon && player.hp > 0) {
+                var awardedGold = awardBattleGold(player);
+                if (awardedGold > 0) {
+                    outcome.message += " You gain " + awardedGold + " gold.";
+                }
+            } else {
+                forfeitBattleGold(player);
+            }
+        });
+
+        var isCampaignBattle = !!(gameVariables.playerName && gameVariables.playerClass &&
+            gameVariables.playerDeck && gameVariables.playerDeck.length > 0);
+        if (isCampaignBattle) {
+            gameVariables.playerGold = human.gold;
+        }
+
+        this.logBattleEvent(outcome.humanWon ? "Victory! " + outcome.message : "Defeat. " + outcome.message, human);
+        this.battleTurnStatus.textContent = outcome.humanWon ? "Victory!" : "Battle lost.";
+        this.refreshBattlePlayerStatusLabels();
+
+        var root = document.createElement("main");
+        root.className = "game-menu-overlay battle-result-overlay";
+        root.setAttribute("aria-label", "Battle result");
+        var panel = document.createElement("section");
+        panel.className = "game-menu-panel battle-result-panel";
+        var heading = document.createElement("h1");
+        heading.textContent = outcome.humanWon ? "Victory!" : "Battle lost";
+        var message = document.createElement("p");
+        message.className = "battle-result-message";
+        message.textContent = outcome.message;
+        var button = document.createElement("button");
+        button.className = "game-menu-button battle-result-continue";
+        button.type = "button";
+        button.textContent = "Continue";
+        button.addEventListener("click", function () {
+            game.state.start(isCampaignBattle ? "maptext" : "mainMenu");
+        });
+        panel.appendChild(heading);
+        panel.appendChild(message);
+        panel.appendChild(button);
+        root.appendChild(panel);
+        game.add.overlay(root);
+        button.focus();
+    },
+
     forfeitBattleGoldLogged: function (player) {
         var lost = forfeitBattleGold(player);
         if (lost > 0) {
@@ -2028,6 +2259,9 @@ battle.prototype = {
         this.logBattleEvent(this.battleTestHuman.name + " passes the turn", this.battleTestHuman);
         this.applyEndOfTurnCreatureDamage(this.battleTestHuman);
         this.applyEndOfTurnRegen(this.battleTestHuman);
+        if (this.checkBattleEnd()) {
+            return;
+        }
         this.humanTurnActive = false;
         this.battlePassButton.disabled = true;
         this.battlePassButton.textContent = "AI turns…";
@@ -2036,6 +2270,9 @@ battle.prototype = {
 
         var scene = this;
         computerAI.runBattleTestTurns(this.battleTestPlayers, {
+            isBattleOver: function () {
+                return scene.checkBattleEnd();
+            },
             onTurnBegin: function (player) {
                 scene.logBattleEvent(player.name + "'s turn begins", player);
             },
@@ -2063,12 +2300,14 @@ battle.prototype = {
                 scene.playBattleTestAICards(player);
             },
             onStartCrossed: function (player) {
+                scene.grantStartReward(player, scene.chooseAIStartReward(player));
                 var manaCount = scene.playerManaLabels.get(player);
                 if (manaCount) {
                     manaCount.textContent = player.mana + "/" + player.maxmana;
                 }
             },
             onTurnComplete: function (player) {
+                scene.resolveBattleSquareLoot(player);
                 scene.applyEndOfTurnCreatureDamage(player);
                 scene.applyEndOfTurnRegen(player);
                 scene.battleDie.classList.remove("is-rolling");
@@ -2080,6 +2319,9 @@ battle.prototype = {
                     player.name + " finished on square " + player.sprite.gameSquareId + ".";
             },
             onComplete: function () {
+                if (scene.checkBattleEnd()) {
+                    return;
+                }
                 scene.setBattleTestActivePlayer(scene.battleTestHuman);
                 scene.humanTurnActive = true;
                 scene.battleDie.classList.remove("is-rolling");

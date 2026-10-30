@@ -166,6 +166,41 @@ function awardBattleGold(player) {
     return awarded;
 }
 
+// Decides whether the battle is over: the human is eliminated, a living player has captured enough
+// squares, or only one player is left standing. Returns null while the battle continues.
+function getBattleOutcome(players, captureRequirement) {
+    var humanPlayer = players.find(function (player) {
+        return player.human;
+    });
+    if (!humanPlayer || humanPlayer.hp <= 0) {
+        return { humanWon: false, message: "You have been eliminated." };
+    }
+
+    if (captureRequirement > 0) {
+        var captureWinner = players.find(function (player) {
+            return player.hp > 0 && player.capturedSquares >= captureRequirement;
+        });
+        if (captureWinner) {
+            return {
+                humanWon: captureWinner === humanPlayer,
+                message: captureWinner.name + " captured enough squares to win."
+            };
+        }
+    }
+
+    var livingPlayers = players.filter(function (player) {
+        return player.hp > 0;
+    });
+    if (livingPlayers.length === 1) {
+        return {
+            humanWon: livingPlayers[0] === humanPlayer,
+            message: livingPlayers[0].name + " is the last player standing."
+        };
+    }
+
+    return null;
+}
+
 // Damage a striker deals to a target in creature combat. Only Flying or Reach creatures can hurt a Flying creature.
 function combatDamage(striker, target) {
     if (target.flying && !(striker.flying || striker.reach)) {
