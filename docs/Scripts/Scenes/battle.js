@@ -54,7 +54,7 @@ var battle = defineScene("battle", {
             return player.human;
         });
         var humanClass = humanPlayer ? humanPlayer.class : (gameVariables.playerClass || "cavalier");
-        scene.load.image("battle-player-human", "players/" + humanClass + ".png");
+        scene.load.image("battle-player-human", "players/" + playerPortraitFile(humanClass));
         var creatureImageFiles = {
             zombie: "zombie_ogre",
             summon: "summon_ugly_thing",
@@ -94,7 +94,7 @@ var battle = defineScene("battle", {
             earth: "poison"
         };
         this.computerPlayers.forEach(function (player) {
-            scene.load.image("battle-player-" + player.class, "players/" + player.class + ".png");
+            scene.load.image("battle-player-" + player.class, "players/" + playerPortraitFile(player.class));
             var colorFile = boardColorFiles[String(player.color).toLowerCase()];
             if (colorFile) {
                 scene.load.image(player.color, "" + colorFile + ".png");
@@ -359,7 +359,7 @@ var battle = defineScene("battle", {
             identity.className = "battle-player-identity";
             var avatar = document.createElement("img");
             avatar.className = "battle-player-avatar";
-            avatar.src = gameAssetUrl("assets/players/" + player.class + ".png");
+            avatar.src = gameAssetUrl("assets/players/" + playerPortraitFile(player.class));
             avatar.alt = "";
             avatar.width = 48;
             avatar.height = 48;

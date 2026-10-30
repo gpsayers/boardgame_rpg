@@ -122,6 +122,16 @@ function describeDiceRoll(dice) {
         : String(dice[0]);
 }
 
+// Portrait image for a player class, in assets/players. Most classes use <class>.png.
+var PLAYER_PORTRAIT_FILES = {
+    dwarf: "dwarf_new.png",
+    vampire: "vampire_old.png"
+};
+
+function playerPortraitFile(playerClass) {
+    return PLAYER_PORTRAIT_FILES[playerClass] || playerClass + ".png";
+}
+
 function applyMovementPenalty(player, roll) {
     var penalty = Math.max(0, player.movementPenalty || 0);
     player.movementPenalty = 0;

@@ -7,8 +7,8 @@ var new_character = defineScene("new", {
             { key: "wizard", label: "Wizard" },
             { key: "sorceress", label: "Sorceress" },
             { key: "trickster", label: "Trickster" },
-            { key: "dwarf", label: "Dwarf", file: "dwarf_new.png" },
-            { key: "vampire", label: "Vampire", file: "vampire_old.png" }
+            { key: "dwarf", label: "Dwarf" },
+            { key: "vampire", label: "Vampire" }
         ];
         var schools = [
             { key: "Fire", label: "Fire", image: "fire.png" },
@@ -65,7 +65,7 @@ var new_character = defineScene("new", {
             button.setAttribute("aria-pressed", choice.key === selectedKey ? "true" : "false");
             button.setAttribute("aria-label", choice.label + (isClass ? " class" : " school of magic"));
             image.src = isClass
-                ? gameAssetUrl("assets/players/" + (choice.file || choice.key + ".png"))
+                ? gameAssetUrl("assets/players/" + playerPortraitFile(choice.key))
                 : gameAssetUrl("assets/" + choice.image);
             image.alt = "";
             image.width = 50;
@@ -127,86 +127,11 @@ var new_character = defineScene("new", {
             gameVariables.playerMaxHand = 6;
             gameVariables.playerGold = 50;
             gameVariables.playerArmor = 0;
-            //gameVariables.playerDeck = testPlayerCardList.slice();
             gameVariables.gameContinue = false;
-
-            switch (selectedClass) {
-                case "cavalier":
-                    gameVariables.playerDeck = gameVariables.playerDeck.concat(cavalierCardList);
-                    break;
-                case "wizard":
-                    gameVariables.playerDeck = gameVariables.playerDeck.concat(wizardCardList);
-                    break;
-                case "sorceress":
-                    gameVariables.playerDeck = gameVariables.playerDeck.concat(sorceressCardList);
-                    break;
-                case "trickster":
-                    gameVariables.playerDeck = gameVariables.playerDeck.concat(tricksterCardList);
-                    break;
-                case "convoker":
-                    gameVariables.playerDeck = gameVariables.playerDeck.concat(convokerCardList);
-                    break;
-                case "blademaster":
-                    gameVariables.playerDeck = gameVariables.playerDeck.concat(blademasterCardList);
-                    break;
-            }
-
-            switch (selectedSchool) {
-                case "fire":
-                    // Apply fire school bonuses here
-                    gameVariables.playerDeck = gameVariables.playerDeck.concat(fireSchoolCardList);
-                    break;
-                case "water":
-                    // Apply water school bonuses here
-                    gameVariables.playerDeck = gameVariables.playerDeck.concat(waterSchoolCardList);
-                    break;
-                case "earth":
-                    // Apply earth school bonuses here
-                    gameVariables.playerDeck = gameVariables.playerDeck.concat(earthSchoolCardList);
-                    break;
-                case "air":
-                    // Apply air school bonuses here
-                    gameVariables.playerDeck = gameVariables.playerDeck.concat(airSchoolCardList);
-                    break;
-            }
+            gameVariables.playerDeck = buildStartingDeck(selectedClass, selectedSchool);
 
             self.scene.start("maptext");
         });
     }
 });
 
-//Cavalier
-//handsize - 3
-//armor++ 2
-
-//Wizard
-//handsize + 5
-//hitpoints - 8
-//starting spells+ 4
-
-//sorceress
-//handsize + 5
-//starting spells- 2
-//bonus cards+ (2 packs)
-
-//trickster
-//gold + 300
-//hitpoints - 8
-//starting spells+ 4
-
-//convoker
-//hitpoints + 12
-//armor + 1
-//handsize - 3
-
-//blademaster
-//hitpoints + 12
-//starting spells- 2
-//gold + 300
-
-//armor 0
-//hitpoints 10
-//mana 1
-//handsize 4
-//gold 200
-//starting spells 3

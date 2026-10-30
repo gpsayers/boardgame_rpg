@@ -9,9 +9,9 @@ wizardCardList = [];
 
 sorceressCardList = [];
 
-convokerCardList = [];
+dwarvenCardList = [];
 
-blademasterCardList = [];
+vampireCardList = [];
 
 fireCardList = [];
 
@@ -174,8 +174,8 @@ function processData(allText) {
     }
 
     // Starting card lists are written as card IDs; convert them to card objects.
-    [cavalierCardList, tricksterCardList,wizardCardList, sorceressCardList, convokerCardList,
-        blademasterCardList, fireCardList, deathCardList, waterCardList, earthCardList, lifeCardList
+    [cavalierCardList, tricksterCardList, wizardCardList, sorceressCardList, dwarvenCardList,
+        vampireCardList, fireCardList, deathCardList, waterCardList, earthCardList, lifeCardList
     ].forEach(function (list) {
         if (!list.cardIds) {
             Object.defineProperty(list, "cardIds", { value: list.slice() });
@@ -260,6 +260,27 @@ function populateCardArray(array) {
         }
     }
     return result;
+}
+
+// A new character's starting deck: their class cards plus their school cards.
+// Keys match the class and school choices on the character creation screen.
+function buildStartingDeck(playerClass, school) {
+    var classDecks = {
+        cavalier: cavalierCardList,
+        wizard: wizardCardList,
+        sorceress: sorceressCardList,
+        trickster: tricksterCardList,
+        dwarf: dwarvenCardList,
+        vampire: vampireCardList
+    };
+    var schoolDecks = {
+        Fire: fireCardList,
+        Water: waterCardList,
+        Life: lifeCardList,
+        Death: deathCardList,
+        Earth: earthCardList
+    };
+    return [].concat(classDecks[playerClass] || [], schoolDecks[school] || []);
 }
 
 function updateCardDeck(deck, cardIds) {
