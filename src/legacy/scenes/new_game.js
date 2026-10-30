@@ -124,11 +124,51 @@ new_character.prototype = {
             gameVariables.playerHealth = 10;
             gameVariables.playerMaxHealth = 10;
             gameVariables.playerStartingMana = 1;
-            gameVariables.playerMaxHand = 4;
-            gameVariables.playerGold = 200;
+            gameVariables.playerMaxHand = 6;
+            gameVariables.playerGold = 50;
             gameVariables.playerArmor = 0;
-            gameVariables.playerDeck = testPlayerCardList.slice();
+            //gameVariables.playerDeck = testPlayerCardList.slice();
             gameVariables.gameContinue = false;
+
+            switch (selectedClass) {
+                case "cavalier":
+                    gameVariables.playerDeck = gameVariables.playerDeck.concat(cavalierCardList);
+                    break;
+                case "wizard":
+                    gameVariables.playerDeck = gameVariables.playerDeck.concat(wizardCardList);
+                    break;
+                case "sorceress":
+                    gameVariables.playerDeck = gameVariables.playerDeck.concat(sorceressCardList);
+                    break;
+                case "trickster":
+                    gameVariables.playerDeck = gameVariables.playerDeck.concat(tricksterCardList);
+                    break;
+                case "convoker":
+                    gameVariables.playerDeck = gameVariables.playerDeck.concat(convokerCardList);
+                    break;
+                case "blademaster":
+                    gameVariables.playerDeck = gameVariables.playerDeck.concat(blademasterCardList);
+                    break;
+            }
+
+            switch (selectedSchool) {
+                case "fire":
+                    // Apply fire school bonuses here
+                    gameVariables.playerDeck = gameVariables.playerDeck.concat(fireSchoolCardList);
+                    break;
+                case "water":
+                    // Apply water school bonuses here
+                    gameVariables.playerDeck = gameVariables.playerDeck.concat(waterSchoolCardList);
+                    break;
+                case "earth":
+                    // Apply earth school bonuses here
+                    gameVariables.playerDeck = gameVariables.playerDeck.concat(earthSchoolCardList);
+                    break;
+                case "air":
+                    // Apply air school bonuses here
+                    gameVariables.playerDeck = gameVariables.playerDeck.concat(airSchoolCardList);
+                    break;
+            }
 
             game.state.start("maptext");
         });
