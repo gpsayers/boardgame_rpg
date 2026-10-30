@@ -2143,10 +2143,17 @@ function processSpecialSpell(card, player, targetSquare, targetType, targetImage
                 if (card.special === SPECIAL_EFFECT.SET_CREATURE_STATS) {
                     // Sets the stat (never raising it), including to 0. Max HP is kept at 1 or more
                     // so HP only drops to the new max and this never kills a creature.
-                    var newMaxHp = Math.max(Math.min(targetCreature.maxhitpoints, card.defense), 1);
-                    targetCreature.maxhitpoints = newMaxHp;
-                    targetCreature.hitpoints = Math.min(targetCreature.hitpoints, newMaxHp);
-                    targetCreature.attack = Math.min(targetCreature.attack, Math.max(card.attack, 0));
+                    // If value is -1 it will not change that stat
+                    if (card.defense !== -1) {
+                        var newMaxHp = Math.max(Math.min(targetCreature.maxhitpoints, card.defense), 1);
+                        targetCreature.maxhitpoints = newMaxHp;
+                        targetCreature.hitpoints = Math.min(targetCreature.hitpoints, newMaxHp);
+                    }
+                    if (card.attack !== -1) {
+                        targetCreature.attack = Math.max(0, Math.min(targetCreature.attack, card.attack));
+                    }
+
+
                 } else {
                     targetCreature.hitpoints -= Math.max(0, card.defense);
                     targetCreature.maxhitpoints = Math.max(

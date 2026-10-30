@@ -63,6 +63,6 @@ maptext.prototype = {
     startBoard: function (board) {
         gameVariables.currentBoard = board;
         gameVariables.gameContinue = false;
-        game.state.start("game");
+        game.state.start("battle");
     }
 };

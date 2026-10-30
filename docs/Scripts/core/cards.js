@@ -1,54 +1,36 @@
-//Master list of all cards. 
+
 masterCardList = [];
 
-//Cavalier starting card list.
-cavalierCardList = [];
+cavalierCardList = [6, 6, 31, 31, 21, 23, 23, 17, 17, 36];
 
-//Trickster starting card list.
-tricksterCardList = [];
+thiefCardList = [];
 
-//Wizard starting card list.
 wizardCardList = [];
 
-//Sorceress starting card list.
 sorceressCardList = [];
 
-//Dwarf starting card list.
-dwarfCardList = [];
+convokerCardList = [];
 
-//Vampire starting card list.
-vampireCardList = [];
+blademasterCardList = [];
 
-CardList = [];
-
-//Fire school starting card list.
 fireCardList = [];
 
-//Death school starting card list.
 deathCardList = [];
 
-//Water school starting card list.
-waterCardList = [];
+waterCardList = [2, 2, 8, 8, 12, 25, 27, 27, 28, 32];
 
-//Earth school starting card list.
 earthCardList = [];
 
-//Life school starting card list.
 lifeCardList = [];
 
-//temp enemy 1
 redWizard1List = [];
 
-//temp enemy 2
 blackSorceress1List = [];
 
-//test deck?
 testPlayerCardList = [];
 
-//battle test deck?
 battleTestCardList = [];
 
-//battle test player deck?
 battleTestPlayerCardList = [];
 
 function loadCardList() {

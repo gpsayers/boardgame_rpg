@@ -2,8 +2,38 @@ var battle = function () { };
 
 battle.prototype = {
     init: function () {
-        gameVariables.currentBoard = "board1";
-        gameVariables.boardInfo = board1;
+        gameVariables.boardInfo = gameVariables.currentBoard === "board2" ? board2 : board1;
+        this.computerPlayers = gameVariables.boardInfo.computerPlayers.filter(function (player) {
+            return player.class !== gameVariables.playerClass && player.color !== gameVariables.playerColor;
+        });
+        gameVariables.gamePlayerArray.length = 0;
+        gameVariables.gameBoard.length = 0;
+        if (gameVariables.playerName && gameVariables.playerClass &&
+            gameVariables.playerDeck && gameVariables.playerDeck.length > 0) {
+            var deck = shuffle(gameVariables.playerDeck.slice());
+            var maxHand = gameVariables.playerMaxHand || 4;
+            var hand = deck.splice(0, Math.max(0, maxHand - 1));
+            var humanPlayer = new gamePlayer(
+                99,
+                gameVariables.boardInfo.boardStart,
+                gameVariables.playerName,
+                gameVariables.playerClass,
+                gameVariables.playerColor,
+                gameVariables.playerHealth,
+                gameVariables.playerStartingMana,
+                true,
+                deck,
+                maxHand,
+                gameVariables.playerGold,
+                gameVariables.playerArmor
+            );
+            humanPlayer.hand = hand;
+            gameVariables.gamePlayerArray.push(humanPlayer);
+            this.computerPlayers.forEach(function (player) {
+                gameVariables.gamePlayerArray.push(player);
+            });
+        }
+        gameVariables.currentPlayer = 0;
         this.boardSquares = [];
     },
 
@@ -58,7 +88,7 @@ battle.prototype = {
             death: "necromancy",
             earth: "poison"
         };
-        gameVariables.boardInfo.computerPlayers.forEach(function (player) {
+        this.computerPlayers.forEach(function (player) {
             game.load.image("battle-player-" + player.class, "assets/players/" + player.class + ".png");
             var colorFile = boardColorFiles[String(player.color).toLowerCase()];
             if (colorFile) {
@@ -148,7 +178,7 @@ battle.prototype = {
             }, this);
         }, this);
 
-        boardInfo.computerPlayers.forEach(function (player, index, players) {
+        this.computerPlayers.forEach(function (player, index, players) {
             var position = squarePositions.get(player.square);
             if (!position) {
                 throw new Error("Computer player " + player.name + " is assigned to missing board square " + player.square);
@@ -244,7 +274,7 @@ battle.prototype = {
         this.humanCards = humanCards;
         humanPlayer.hand = humanCards;
         humanPlayer.deck = this.previewDeck;
-        var players = [humanPlayer].concat(gameVariables.boardInfo.computerPlayers);
+        var players = [humanPlayer].concat(this.computerPlayers);
         players.slice(1).forEach(function (player) {
             var summonCards = (player.deck || []).filter(function (cardInfo) {
                 return this.isBattleCardSupported(cardInfo);
