@@ -23,11 +23,6 @@ mainMenu.prototype = {
                         '<span class="game-menu-button-copy"><strong>Continue</strong><small>No saved adventure yet</small></span>' +
                         '<span class="game-menu-arrow" aria-hidden="true">›</span>' +
                     '</button>' +
-                    '<button class="game-menu-button" type="button" data-action="quick-play">' +
-                        '<span class="game-menu-button-icon" aria-hidden="true">⚔</span>' +
-                        '<span class="game-menu-button-copy"><strong>Quick play</strong><small>Jump straight into a sample match</small></span>' +
-                        '<span class="game-menu-arrow" aria-hidden="true">›</span>' +
-                    '</button>' +
                     '<button class="game-menu-button" type="button" data-action="battle-test">' +
                         '<span class="game-menu-button-icon" aria-hidden="true">⚔</span>' +
                         '<span class="game-menu-button-copy"><strong>Battle Test</strong><small>Open the battle development scene</small></span>' +
@@ -55,30 +50,6 @@ mainMenu.prototype = {
 
         root.querySelector('[data-action="battle-test"]').addEventListener("click", function () {
             game.state.start("battle");
-        });
-
-        root.querySelector('[data-action="quick-play"]').addEventListener("click", function () {
-            if (!testPlayerCardList || testPlayerCardList.length === 0) {
-                root.querySelector(".game-menu-feedback").textContent =
-                    "The card library is still loading. Please try again in a moment.";
-                return;
-            }
-
-            gameVariables.playerDeck = testPlayerCardList.slice();
-            gameVariables.playerName = "Gorath";
-            gameVariables.playerGold = 100;
-            gameVariables.playerStartingMana = 1;
-            gameVariables.playerImg = "wizard";
-            gameVariables.currentBoard = "board2";
-            gameVariables.playerColor = "Water";
-            gameVariables.playerClass = "wizard";
-            gameVariables.playerMaxHealth = 10;
-            gameVariables.playerHealth = 10;
-            gameVariables.playerMaxHand = 4;
-            gameVariables.playerArmor = 0;
-            gameVariables.gameContinue = false;
-
-            game.state.start("game");
         });
     },
 

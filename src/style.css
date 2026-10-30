@@ -1040,6 +1040,23 @@
             font-size: 0.76rem;
             font-weight: 700;
         }
+        .battle-result-panel {
+            width: min(420px, 100%);
+            text-align: center;
+        }
+        .battle-result-panel h1 {
+            margin: 0 0 10px;
+            color: #f0cf83;
+        }
+        .battle-result-message {
+            margin: 0 0 20px;
+            color: #d6dbe6;
+            line-height: 1.5;
+        }
+        .battle-result-continue {
+            justify-content: center;
+            text-align: center;
+        }
         .game-menu-actions,
         .game-destination-grid {
             display: grid;
