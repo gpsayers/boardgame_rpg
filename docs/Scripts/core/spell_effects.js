@@ -87,25 +87,7 @@ function getSummonDestinations(owner) {
 
 
 function chooseAISummonSquare(creatureCard, owner, destinations) {
-    var scored = destinations.map(function (square) {
-        var score = Math.random();
-        if (!square.creature) {
-            score += 2;
-        } else if (Math.max(creatureCard.attack - square.creature.armor, 0) >= square.creature.hitpoints) {
-            score += 2;
-        }
-        var unowned = square.ownerPlayerId !== undefined
-            ? square.ownerPlayerId !== owner.id
-            : square.sprite.texture.key !== owner.color;
-        if (unowned) {
-            score += 1;
-        }
-        return { square: square, score: score };
-    });
-    scored.sort(function (a, b) {
-        return b.score - a.score;
-    });
-    return scored.length ? scored[0].square : null;
+    return computerAI.chooseSummonSquare(creatureCard, owner, destinations);
 }
 
 

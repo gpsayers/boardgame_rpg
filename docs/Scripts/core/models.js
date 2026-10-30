@@ -211,12 +211,14 @@ function getBattleOutcome(players, captureRequirement) {
     return null;
 }
 
-// Damage a striker deals to a target in creature combat. Only Flying or Reach creatures can hurt a Flying creature.
+// Damage a striker deals to a target in creature combat. Only Flying or Reach creatures can hurt a Flying creature,
+// and a Deadly striker destroys any target it damages.
 function combatDamage(striker, target) {
     if (target.flying && !(striker.flying || striker.reach)) {
         return 0;
     }
-    return Math.max(striker.attack - target.armor, 0);
+    var damage = Math.max(striker.attack - target.armor, 0);
+    return striker.deadly && damage > 0 ? Math.max(damage, target.hitpoints) : damage;
 }
 
 // One simultaneous combat round between { attack, armor, hitpoints, flying, reach, blitz } fighters.
@@ -234,6 +236,31 @@ function resolveCombatRound(attacker, defender, firstRound) {
         }
     }
     return { toDefender: toDefender, toAttacker: toAttacker };
+}
+
+// Plays a creature fight to the end without touching the board. Fighters are card or creature stats:
+// { attack, armor, hitpoints (or defense), flying, reach, blitz, deadly }.
+function simulateCombat(attacker, defender) {
+    function fighter(stats) {
+        return {
+            attack: stats.attack || 0,
+            armor: stats.armor || 0,
+            hitpoints: stats.hitpoints !== undefined ? stats.hitpoints : stats.defense,
+            flying: stats.flying, reach: stats.reach, blitz: stats.blitz, deadly: stats.deadly
+        };
+    }
+    var a = fighter(attacker);
+    var d = fighter(defender);
+    var round = 0;
+    var stalemate = false;
+    do {
+        round++;
+        var result = resolveCombatRound(a, d, round === 1);
+        d.hitpoints -= result.toDefender;
+        a.hitpoints -= result.toAttacker;
+        stalemate = result.toDefender === 0 && result.toAttacker === 0;
+    } while (!stalemate && a.hitpoints > 0 && d.hitpoints > 0 && round < 50);
+    return { attackerHp: a.hitpoints, defenderHp: d.hitpoints, stalemate: stalemate };
 }
 
 function gameSquare(id, x, y, sprite) {
@@ -275,11 +302,6 @@ function applyCreatureRegen(creature) {
     var healed = Math.min(creature.regen, creature.maxhitpoints - creature.hitpoints);
     creature.hitpoints += Math.max(healed, 0);
     return Math.max(healed, 0);
-}
-
-function grantStartMana(player) {
-    player.maxmana++;
-    player.mana++;
 }
 
 function card(fields) {

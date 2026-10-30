@@ -48,11 +48,9 @@ var computerAI = (function () {
         return card.special === SPECIAL_EFFECT.BOOST_MAX_MANA && card.damage < 0;
     }
 
-    // Cards the AI never plays: movement and duplication need choices the AI does not make.
+    // Cards the AI never plays: duplicating a card needs a choice the AI does not make.
     function isPlayableByAI(card) {
-        return card.special !== SPECIAL_EFFECT.MOVE_FORWARD &&
-            card.special !== SPECIAL_EFFECT.MOVE_BACK &&
-            card.special !== SPECIAL_EFFECT.DUPLICATE_CARD;
+        return card.special !== SPECIAL_EFFECT.DUPLICATE_CARD;
     }
 
     // Cards that can never help the AI and only take up a hand slot.
@@ -182,10 +180,18 @@ var computerAI = (function () {
         var isAll = card.targetlocation === "all";
 
         switch (card.special) {
-            case SPECIAL_EFFECT.MOVE_FORWARD:
-            case SPECIAL_EFFECT.MOVE_BACK:
             case SPECIAL_EFFECT.DUPLICATE_CARD:
                 return 0;
+
+            case SPECIAL_EFFECT.MOVE_FORWARD:
+            case SPECIAL_EFFECT.MOVE_BACK:
+                // Worth what the new square offers (crossing start, loot, a capture) over staying put.
+                if (target.type !== "ground") {
+                    return 0;
+                }
+                var currentSquare = getBoardSquare(player.sprite.gameSquareId);
+                return Math.max(scoreRoute([target.targetSquare], player) -
+                    (currentSquare ? landingValue(currentSquare, player, 0) : 0), 0);
 
             case SPECIAL_EFFECT.STEAL_GOLD:
                 if (!targetPlayer || isSelf || targetPlayer.gold <= 0) {
@@ -745,6 +751,7 @@ var computerAI = (function () {
         choosePath: choosePath,
         chooseSecondarySpellTargets: chooseSecondarySpellTargets,
         chooseSummonSquare: chooseSummonSquare,
+        getNextPathIds: getNextPathIds,
         chooseStartReward: chooseStartReward,
         movePlayer: movePlayer,
         runBattleTestTurns: runBattleTestTurns

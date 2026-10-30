@@ -839,19 +839,28 @@ var battle = defineScene("battle", {
     },
 
     isBattleCardSupported: function (cardInfo) {
-        return !!cardInfo && (cardInfo.creature || cardInfo.spell) &&
-            !this.isBattleMoveCard(cardInfo) &&
-            cardInfo.special !== SPECIAL_EFFECT.MOVE_BACK;
+        return !!cardInfo && (cardInfo.creature || cardInfo.spell);
     },
 
-    // Movement cards (special 4) are human-only and need an adjacent ground target.
+    // Dash and Move Back step the caster along the board path.
     isBattleMoveCard: function (cardInfo) {
-        return cardInfo.special === SPECIAL_EFFECT.MOVE_FORWARD;
+        return cardInfo.special === SPECIAL_EFFECT.MOVE_FORWARD || cardInfo.special === SPECIAL_EFFECT.MOVE_BACK;
     },
 
-    isBattleMoveCardPlayable: function (cardInfo) {
-        return this.isBattleMoveCard(cardInfo) && !!cardInfo.spell &&
-            cardInfo.targetlocation === "adj" && cardInfo.targettype === "ground";
+    // Forward-movement cards (Dash). Stepping from the last square onto start pays the start reward,
+    // exactly like crossing it with a dice roll.
+    dashBattlePlayer: function (player, squareId) {
+        var board = gameVariables.boardInfo;
+        var crossesStart = player.sprite.gameSquareId === board.boardEnd && squareId === board.boardStart;
+        this.moveBattlePlayer(player, squareId);
+        if (crossesStart) {
+            this.logBattleEvent(player.name + " crosses the start square", player);
+            if (player === this.battleTestHuman) {
+                this.dashStartReward = true;
+            } else {
+                this.grantStartReward(player, this.chooseAIStartReward(player));
+            }
+        }
     },
 
     moveBattlePlayer: function (player, squareId) {
@@ -894,6 +903,19 @@ var battle = defineScene("battle", {
         var location = cardInfo.targetlocation;
         var type = cardInfo.targettype;
         var targets = [];
+
+        if (this.isBattleMoveCard(cardInfo)) {
+            // One step along the board path: forward for Dash, back for Move Back.
+            var pathIds;
+            try {
+                pathIds = computerAI.getNextPathIds(player, cardInfo.special === SPECIAL_EFFECT.MOVE_FORWARD);
+            } catch (error) {
+                pathIds = [];
+            }
+            return pathIds.map(function (squareId) {
+                return { type: "ground", targetSquare: squareId };
+            });
+        }
 
         if (cardInfo.spell && location) {
             var squareIds;
@@ -944,13 +966,7 @@ var battle = defineScene("battle", {
             this.battleTurnStatus.textContent = "Not enough mana to play " + cardInfo.name + ".";
             return false;
         }
-        if (this.isBattleMoveCard(cardInfo) && (isAI || !this.isBattleMoveCardPlayable(cardInfo))) {
-            this.battleTurnStatus.textContent = isAI
-                ? ""
-                : cardInfo.name + " needs target adj / ground in data.csv to work in the Battle Test.";
-            return false;
-        }
-        if (!this.isBattleMoveCard(cardInfo) && !this.isBattleCardSupported(cardInfo)) {
+        if (!this.isBattleCardSupported(cardInfo)) {
             this.battleTurnStatus.textContent =
                 cardInfo.name + " isn't supported in the Battle Test yet.";
             return false;
@@ -963,16 +979,54 @@ var battle = defineScene("battle", {
         }
 
         // Cards that hit everything or only the caster never need a choice.
-        var needsChoice = targets.length > 1 &&
-            cardInfo.targetlocation !== "all" && cardInfo.targetlocation !== "self";
-        if (needsChoice) {
-            this.showBattleTargetChooser(player, cardInfo, hand, targets);
+        var needsChoice = targets.length > 1 && (this.isBattleMoveCard(cardInfo) ||
+            (cardInfo.targetlocation !== "all" && cardInfo.targetlocation !== "self"));
+        var scene = this;
+        // The human also picks the target of a second spell (Fire Bat's Fire Bolt) before the card is spent.
+        function cast(chosenTargets) {
+            if (isAI) {
+                return scene.castBattleCard(player, cardInfo, hand, chosenTargets, isAI);
+            }
+            scene.chooseSecondSpellTargets(player, cardInfo, hand, function (secondTargets) {
+                scene.castBattleCard(player, cardInfo, hand, chosenTargets, isAI, secondTargets);
+            });
             return true;
         }
-        return this.castBattleCard(player, cardInfo, hand, targets, isAI);
+        if (needsChoice) {
+            this.showBattleTargetChooser(player, cardInfo, hand, targets, function (chosen) {
+                cast([chosen]);
+            });
+            return true;
+        }
+        return cast(targets);
     },
 
-    castBattleCard: function (player, cardInfo, hand, targets, isAI) {
+    // The spell a card casts in addition to itself. Transform and Summon use secondSpell for a creature.
+    getBattleSecondSpell: function (cardInfo) {
+        if (!cardInfo.secondSpell || cardInfo.special === SPECIAL_EFFECT.TRANSFORM ||
+            cardInfo.special === SPECIAL_EFFECT.SUMMON) {
+            return null;
+        }
+        return masterCardList.find(function (item) {
+            return item.id === cardInfo.secondSpell;
+        }) || null;
+    },
+
+    // Works out the human's targets for a card's second spell, asking which one when there is a real choice.
+    chooseSecondSpellTargets: function (player, cardInfo, hand, done) {
+        var secondCard = this.getBattleSecondSpell(cardInfo);
+        var targets = secondCard ? this.getBattleCardTargets(secondCard, player) : [];
+        if (!secondCard || targets.length <= 1 || secondCard.targetlocation === "all" ||
+            secondCard.targetlocation === "self") {
+            done(targets);
+            return;
+        }
+        this.showBattleTargetChooser(player, secondCard, hand, targets, function (chosen) {
+            done([chosen]);
+        });
+    },
+
+    castBattleCard: function (player, cardInfo, hand, targets, isAI, secondTargets) {
         var handIndex = hand.indexOf(cardInfo);
         if (this.battleEnded || handIndex < 0 || cardInfo.cost > player.mana) {
             return false;
@@ -994,7 +1048,7 @@ var battle = defineScene("battle", {
             outcome = "cast";
         }
         // The second spell resolves before the summon so damage lands before combat.
-        this.castBattleSecondSpell(cardInfo, player);
+        this.castBattleSecondSpell(cardInfo, player, secondTargets);
         if (cardInfo.creature) {
             var summonTarget = targets[0];
             var square = this.getBattleSquare(summonTarget ? summonTarget.targetSquare : player.sprite.gameSquareId);
@@ -1012,6 +1066,14 @@ var battle = defineScene("battle", {
             this.battleTurnStatus.textContent = "Played " + cardInfo.name + ": " + outcome;
             this.promptBattleTeleportDestination(player, cardInfo);
             this.promptBattleSummonSquare(player, cardInfo);
+            if (this.isBattleMoveCard(cardInfo) && this.humanMovedThisTurn) {
+                // The dice move is over, so the square the card lands on is where the turn will end.
+                this.resolveBattleSquareLoot(player);
+            }
+            if (this.dashStartReward) {
+                this.dashStartReward = false;
+                this.showStartRewardChoice(player, false);
+            }
             if (this.pendingBattleDuplicate) {
                 this.battleTurnStatus.textContent = "Choose a card in your hand to duplicate.";
             }
@@ -1021,26 +1083,34 @@ var battle = defineScene("battle", {
         return true;
     },
 
-    castBattleSecondSpell: function (cardInfo, player) {
+    castBattleSecondSpell: function (cardInfo, player, chosenTargets) {
         if (!cardInfo.secondSpell) {
             if (cardInfo.special === SPECIAL_EFFECT.CAST_SPELL) {
                 this.logBattleEvent(cardInfo.name + " has no second spell ID", player);
             }
             return;
         }
-        var secondCard = masterCardList.find(function (item) {
-            return item.id === cardInfo.secondSpell;
-        });
+        var secondCard = this.getBattleSecondSpell(cardInfo);
         if (!secondCard) {
-            this.logBattleEvent(cardInfo.name + " references missing second spell " +
-                cardInfo.secondSpell, player);
+            if (cardInfo.special !== SPECIAL_EFFECT.TRANSFORM && cardInfo.special !== SPECIAL_EFFECT.SUMMON) {
+                this.logBattleEvent(cardInfo.name + " references missing second spell " +
+                    cardInfo.secondSpell, player);
+            }
             return;
         }
 
-        var targets = this.getBattleCardTargets(secondCard, player);
-        if (secondCard.targetlocation !== "all") {
-            // Without a chooser for secondary spells, hit the first valid target.
-            targets = targets.slice(0, 1);
+        var targets;
+        if (chosenTargets) {
+            targets = chosenTargets;
+        } else if (player === this.battleTestHuman) {
+            targets = this.getBattleCardTargets(secondCard, player);
+            if (secondCard.targetlocation !== "all") {
+                targets = targets.slice(0, 1);
+            }
+        } else {
+            // The AI only casts a second spell where it helps, and picks the best target for it.
+            targets = computerAI.chooseSecondarySpellTargets(secondCard, player,
+                this.getBattleCardTargets.bind(this));
         }
         if (targets.length === 0) {
             this.logBattleEvent(cardInfo.name + "'s " + secondCard.name + " has no target", player);
@@ -1120,8 +1190,10 @@ var battle = defineScene("battle", {
             var special = cardInfo.special;
             var model = target.model;
 
-            if (special === SPECIAL_EFFECT.MOVE_FORWARD) {
+            if (special === SPECIAL_EFFECT.MOVE_BACK) {
                 this.moveBattlePlayer(player, target.targetSquare);
+            } else if (special === SPECIAL_EFFECT.MOVE_FORWARD) {
+                this.dashBattlePlayer(player, target.targetSquare);
             } else if (special === SPECIAL_EFFECT.DEBUFF_CREATURE || special === SPECIAL_EFFECT.SET_CREATURE_STATS) {
                 var creatureName = this.describeBattleTarget(target);
                 processSpecialSpell(cardInfo, model, target.targetSquare, target.type, model);
@@ -1547,12 +1619,12 @@ var battle = defineScene("battle", {
         } else {
             var attackerFighter = {
                 attack: cardInfo.attack, armor: cardInfo.armor, hitpoints: cardInfo.defense,
-                flying: cardInfo.flying, reach: cardInfo.reach, blitz: cardInfo.blitz
+                flying: cardInfo.flying, reach: cardInfo.reach, blitz: cardInfo.blitz, deadly: cardInfo.deadly
             };
             var defenderFighter = {
                 attack: previousCreature.attack, armor: previousCreature.armor,
                 hitpoints: previousCreature.hitpoints, flying: previousCreature.flying,
-                reach: previousCreature.reach, blitz: previousCreature.blitz
+                reach: previousCreature.reach, blitz: previousCreature.blitz, deadly: previousCreature.deadly
             };
             var defenderOwner = this.findBattlePlayer(previousCreature.playerOwnedId);
             var attackerName = player.name + "'s " + cardInfo.name;
@@ -1883,6 +1955,7 @@ var battle = defineScene("battle", {
         if (manaCount) {
             manaCount.textContent = this.battleTestHuman.mana + "/" + this.battleTestHuman.maxmana;
         }
+        this.humanMovedThisTurn = false;
         this.battleTurnStatus.textContent = "Drawing a card…";
         this.logBattleEvent(this.battleTestHuman.name + "'s turn begins", this.battleTestHuman);
 
@@ -1960,13 +2033,14 @@ var battle = defineScene("battle", {
                     scene.battleTurnStatus.textContent =
                         "Movement complete. You are on square " + scene.battleTestHuman.sprite.gameSquareId + ".";
                     scene.battleRollButton.textContent = "Move complete";
+                    scene.humanMovedThisTurn = true;
                     scene.resolveBattleSquareLoot(scene.battleTestHuman);
                     if (scene.checkBattleEnd()) {
                         return;
                     }
                     if (scene.pendingStartReward) {
                         scene.pendingStartReward = false;
-                        scene.showStartRewardChoice(scene.battleTestHuman);
+                        scene.showStartRewardChoice(scene.battleTestHuman, true);
                     } else {
                         scene.battlePassButton.disabled = false;
                     }
@@ -2076,28 +2150,28 @@ var battle = defineScene("battle", {
 
     // Crossing the start square lets a player pick one of three rewards.
     grantStartReward: function (player, choice) {
-        if (choice === "gold") {
-            player.gold += 100;
-            this.logBattleEvent(player.name + " takes 100 gold for crossing start", player);
+        if (choice === "mana") {
+            player.maxmana++;
+            player.mana++;
+            this.logBattleEvent(player.name + " gains 1 max mana for crossing start", player);
         } else if (choice === "cards") {
             this.drawBattleCard(player);
-            this.drawBattleCard(player);
-            this.logBattleEvent(player.name + " takes two cards for crossing start", player);
+            this.logBattleEvent(player.name + " draws a card for crossing start", player);
         } else if (choice === "health") {
-            player.hp = Math.min(player.hp + 2, player.maxhp);
-            this.logBattleEvent(player.name + " recovers 2 health for crossing start", player);
+            player.hp = Math.min(player.hp + 1, player.maxhp);
+            this.logBattleEvent(player.name + " recovers 1 health for crossing start", player);
+        } else if (choice === "gold") {
+            player.gold += 5;
+            this.logBattleEvent(player.name + " takes 5 gold for crossing start", player);
         }
         this.refreshBattlePlayerStatus();
     },
 
     chooseAIStartReward: function (player) {
-        if (player.hp <= 2) {
-            return "health";
-        }
-        return player.hand.length < 2 ? "cards" : "gold";
+        return computerAI.chooseStartReward(player);
     },
 
-    showStartRewardChoice: function (player) {
+    showStartRewardChoice: function (player, enablePassAfter) {
         var scene = this;
         this.battleTurnStatus.textContent = "You crossed the start square. Choose a reward.";
 
@@ -2112,9 +2186,10 @@ var battle = defineScene("battle", {
         var actions = document.createElement("div");
         actions.className = "game-menu-actions";
         [
-            ["gold", "+100 gold"],
-            ["cards", "Draw 2 cards"],
-            ["health", "+2 health"]
+            ["mana", "+1 max mana"],
+            ["cards", "Draw 1 card"],
+            ["health", "Heal 1 life"],
+            ["gold", "+5 gold"]
         ].forEach(function (option) {
             var button = document.createElement("button");
             button.className = "game-menu-button battle-result-continue";
@@ -2124,8 +2199,12 @@ var battle = defineScene("battle", {
                 root.remove();
                 scene.grantStartReward(player, option[0]);
                 scene.createHumanCardHand(scene.humanHandRoot, scene.humanCards);
-                scene.battleTurnStatus.textContent = "Reward taken. Pass the turn when ready.";
-                scene.battlePassButton.disabled = false;
+                if (enablePassAfter) {
+                    scene.battleTurnStatus.textContent = "Reward taken. Pass the turn when ready.";
+                    scene.battlePassButton.disabled = false;
+                } else {
+                    scene.battleTurnStatus.textContent = "Reward taken.";
+                }
             });
             actions.appendChild(button);
         });
@@ -2248,6 +2327,9 @@ var battle = defineScene("battle", {
             },
             onTurnBegin: function (player) {
                 scene.logBattleEvent(player.name + "'s turn begins", player);
+            },
+            onDiscardCard: function (player, card) {
+                scene.logBattleEvent(player.name + " discards " + card.name, player);
             },
             onDrawCard: function (player) {
                 scene.logBattleEvent(player.name + " draws a card", player);
