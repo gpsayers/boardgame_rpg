@@ -103,6 +103,25 @@ function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human,
 
 //location: sprite.gameSquareId
 
+// Movement is rolled with two six-sided dice. Change MOVEMENT_DICE_COUNT to try other dice pools.
+var MOVEMENT_DICE_COUNT = 2;
+
+function rollMovementDice() {
+    var dice = [];
+    for (var i = 0; i < MOVEMENT_DICE_COUNT; i++) {
+        dice.push(1 + Math.floor(Math.random() * 6));
+    }
+    return {
+        dice: dice,
+        total: dice.reduce(function (sum, die) { return sum + die; }, 0)
+    };
+}
+
+function describeDiceRoll(dice) {
+    return dice.length > 1 ? dice.join(" + ") + " = " + dice.reduce(function (sum, die) { return sum + die; }, 0)
+        : String(dice[0]);
+}
+
 function applyMovementPenalty(player, roll) {
     var penalty = Math.max(0, player.movementPenalty || 0);
     player.movementPenalty = 0;

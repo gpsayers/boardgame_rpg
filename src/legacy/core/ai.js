@@ -829,9 +829,10 @@ var computerAI = (function () {
                 }
             }
             player.playerRollDice = true;
-            var roll = applyMovementPenalty(player, 1 + Math.floor(Math.random() * 6));
+            var diceRoll = rollMovementDice();
+            var roll = applyMovementPenalty(player, diceRoll.total);
             if (callbacks.onTurnStart) {
-                callbacks.onTurnStart(player, roll);
+                callbacks.onTurnStart(player, roll, diceRoll.dice);
             }
 
             movePlayer(

@@ -3,9 +3,7 @@ masterCardList = [];
 
 cavalierCardList = [6, 6, 21, 21, 23, 23, 17, 17, 21, 36];
 
-thiefCardList = [];
-
-tricksterCardList = thiefCardList;
+tricksterCardList = [];
 
 wizardCardList = [];
 
@@ -176,7 +174,7 @@ function processData(allText) {
     }
 
     // Starting card lists are written as card IDs; convert them to card objects.
-    [cavalierCardList, thiefCardList, tricksterCardList, wizardCardList, sorceressCardList, convokerCardList,
+    [cavalierCardList, tricksterCardList,wizardCardList, sorceressCardList, convokerCardList,
         blademasterCardList, fireCardList, deathCardList, waterCardList, earthCardList, lifeCardList
     ].forEach(function (list) {
         if (!list.cardIds) {

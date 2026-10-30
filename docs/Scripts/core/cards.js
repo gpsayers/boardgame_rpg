@@ -1,9 +1,9 @@
 
-masterCardList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36];
+masterCardList = [];
 
 cavalierCardList = [6, 6, 21, 21, 23, 23, 17, 17, 21, 36];
 
-thiefCardList = [];
+tricksterCardList = [];
 
 wizardCardList = [];
 
@@ -172,6 +172,16 @@ function processData(allText) {
             additionalDescription: valueFor("additionalDescription")
         }));
     }
+
+    // Starting card lists are written as card IDs; convert them to card objects.
+    [cavalierCardList, tricksterCardList,wizardCardList, sorceressCardList, convokerCardList,
+        blademasterCardList, fireCardList, deathCardList, waterCardList, earthCardList, lifeCardList
+    ].forEach(function (list) {
+        if (!list.cardIds) {
+            Object.defineProperty(list, "cardIds", { value: list.slice() });
+        }
+        updateCardDeck(list, list.cardIds);
+    });
 
     updateCardDeck(redWizard1List, [2, 2, 7, 7, 5, 5, 8, 8, 9, 9, 5, 15, 16, 16]);
 

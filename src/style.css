@@ -561,8 +561,21 @@
             white-space: nowrap;
         }
         .battle-player-school {
+            display: flex;
+            align-items: center;
+            gap: 6px;
             color: #c4cbd7;
             font-size: 0.76rem;
+        }
+        .battle-player-square {
+            flex: 0 0 auto;
+            width: 16px;
+            height: 16px;
+            border: 1px solid var(--school-accent);
+            border-radius: 3px;
+            background-color: var(--school-accent);
+            background-position: center;
+            background-size: cover;
         }
         .battle-turn-badge {
             flex: 0 0 auto;

@@ -336,6 +336,13 @@ battle.prototype = {
             green: "Earth"
         };
         var validSchools = ["Fire", "Water", "Life", "Death", "Earth"];
+        var schoolSquareFiles = {
+            Fire: "fire",
+            Water: "ice",
+            Life: "divination",
+            Death: "necromancy",
+            Earth: "poison"
+        };
 
         players.forEach(function (player, index) {
             var school = schoolAliases[player.color] || player.color;
@@ -366,7 +373,13 @@ battle.prototype = {
             name.textContent = player.name;
             var schoolLabel = document.createElement("span");
             schoolLabel.className = "battle-player-school";
-            schoolLabel.textContent = school;
+            var squareSwatch = document.createElement("span");
+            squareSwatch.className = "battle-player-square";
+            squareSwatch.style.backgroundImage = "url(" + gameAssetUrl("assets/" + schoolSquareFiles[school] + ".png") + ")";
+            squareSwatch.title = school + " squares";
+            schoolLabel.appendChild(squareSwatch);
+            schoolLabel.appendChild(document.createTextNode(school + " · " +
+                player.class.charAt(0).toUpperCase() + player.class.slice(1)));
             heading.appendChild(name);
             heading.appendChild(schoolLabel);
             identity.appendChild(avatar);
@@ -772,20 +785,45 @@ battle.prototype = {
         }
         if (this.pendingBattleDuplicate) {
             this.pendingBattleDuplicate = false;
-            var copied = this.humanCards.indexOf(cardInfo) >= 0 &&
-                this.humanCards.length < this.humanMaxHand;
+            var copied = this.humanCards.indexOf(cardInfo) >= 0;
             if (copied) {
                 this.humanCards.push(createTemporaryCard(cardInfo));
             }
             this.logBattleEvent(this.battleTestHuman.name + (copied
                 ? " duplicates " + cardInfo.name
-                : " cannot duplicate " + cardInfo.name + " (hand full)"), this.battleTestHuman);
+                : " cannot duplicate " + cardInfo.name), this.battleTestHuman);
             this.createHumanCardHand(this.humanHandRoot, this.humanCards);
             this.refreshBattlePlayerStatus();
-            this.battleTurnStatus.textContent = copied ? "Duplicated " + cardInfo.name + "." : "Hand is full.";
+            this.battleTurnStatus.textContent = copied ? "Duplicated " + cardInfo.name + "." : "Card not found.";
+            return;
+        }
+        if (this.pendingBattleDiscard) {
+            this.discardHumanCard(cardInfo);
             return;
         }
         this.playBattleTestCard(this.battleTestHuman, cardInfo, this.humanCards);
+    },
+
+    // The human may exceed the hand limit during their turn; ending the turn forces a discard down to it.
+    discardHumanCard: function (cardInfo) {
+        var index = this.humanCards.indexOf(cardInfo);
+        if (index < 0) {
+            return;
+        }
+        this.humanCards.splice(index, 1);
+        discardCard(this.battleTestHuman, cardInfo);
+        this.logBattleEvent(this.battleTestHuman.name + " discards " + cardInfo.name, this.battleTestHuman);
+        this.createHumanCardHand(this.humanHandRoot, this.humanCards);
+        this.refreshBattlePlayerStatus();
+
+        var excess = this.humanCards.length - this.humanMaxHand;
+        if (excess > 0) {
+            this.battleTurnStatus.textContent = "Hand limit exceeded. Discard " + excess +
+                " more card" + (excess === 1 ? "" : "s") + ".";
+            return;
+        }
+        this.pendingBattleDiscard = false;
+        this.passBattleTestTurn();
     },
 
     playBattleTestAICards: function (player) {
@@ -1102,12 +1140,11 @@ battle.prototype = {
                     this.logBattleEvent(spellName + " weakens " + creatureName, player);
                 }
             } else if (special === SPECIAL_EFFECT.DUPLICATE_CARD) {
-                if (player === this.battleTestHuman && this.humanCards.length < this.humanMaxHand &&
-                    this.humanCards.length > 0) {
+                if (player === this.battleTestHuman && this.humanCards.length > 0) {
                     this.pendingBattleDuplicate = true;
                     this.logBattleEvent(spellName + " lets you duplicate a card", player);
                 } else {
-                    this.logBattleEvent(spellName + " has nothing to duplicate (hand full)", player);
+                    this.logBattleEvent(spellName + " has nothing to duplicate", player);
                 }
             } else if (special === SPECIAL_EFFECT.TRANSFORM) {
                 var transformCard = getSummonCreatureCard(cardInfo);
@@ -1145,7 +1182,7 @@ battle.prototype = {
                     var ownerIsHuman = unsummonOwner === this.battleTestHuman;
                     var ownerHand = ownerIsHuman ? this.humanCards : unsummonOwner.hand;
                     var ownerMax = ownerIsHuman ? this.humanMaxHand : unsummonOwner.maxhand;
-                    if (ownerHand.length < ownerMax) {
+                    if (ownerIsHuman || ownerHand.length < ownerMax) {
                         ownerHand.push(createTemporaryCard(unsummonCard));
                         returned = true;
                     }
@@ -1298,9 +1335,6 @@ battle.prototype = {
 
     drawBattleCard: function (player) {
         if (player === this.battleTestHuman) {
-            if (this.humanCards.length >= this.humanMaxHand) {
-                return false;
-            }
             var card = this.previewDeck.shift();
             if (!card) {
                 return false;
@@ -1854,12 +1888,6 @@ battle.prototype = {
         this.logBattleEvent(this.battleTestHuman.name + "'s turn begins", this.battleTestHuman);
 
         window.setTimeout(function () {
-            if (scene.humanCards.length >= scene.humanMaxHand) {
-                scene.battleTurnStatus.textContent = "Your hand is full. Roll when ready.";
-                scene.battleRollButton.disabled = false;
-                return;
-            }
-
             var card = scene.previewDeck.shift();
             if (!card) {
                 scene.battleTurnStatus.textContent = "No cards left to draw. Roll when ready.";
@@ -1873,7 +1901,9 @@ battle.prototype = {
             scene.createHumanCardHand(scene.humanHandRoot, scene.humanCards);
             scene.humanCardCountLabel.textContent =
                 scene.humanCards.length + "/" + scene.humanMaxHand;
-            scene.battleTurnStatus.textContent = "Drew " + card.name + ". Roll when ready.";
+            scene.battleTurnStatus.textContent = "Drew " + card.name + ". Roll when ready." +
+                (scene.humanCards.length > scene.humanMaxHand
+                    ? " You are over the hand limit and must discard before passing." : "");
 
             window.setTimeout(function () {
                 scene.battleRollButton.disabled = false;
@@ -1900,9 +1930,10 @@ battle.prototype = {
         this.battleTurnStatus.textContent = "Rolling the dice…";
 
         var scene = this;
-        var result = 1 + Math.floor(Math.random() * 6);
+        var diceRoll = rollMovementDice();
+        var result = diceRoll.total;
         var rollTimer = window.setInterval(function () {
-            scene.battleDie.textContent = String(1 + Math.floor(Math.random() * 6));
+            scene.battleDie.textContent = String(rollMovementDice().total);
         }, 75);
 
         window.setTimeout(function () {
@@ -1910,8 +1941,9 @@ battle.prototype = {
             scene.battleDie.classList.remove("is-rolling");
             scene.battleDie.textContent = String(result);
             scene.battleDie.setAttribute("aria-label", "Dice result " + result);
-            scene.logBattleEvent(scene.battleTestHuman.name + " rolled a " + result, scene.battleTestHuman);
-            scene.battleTurnStatus.textContent = "You rolled a " + result + ". Moving…";
+            scene.logBattleEvent(scene.battleTestHuman.name + " rolled " + describeDiceRoll(diceRoll.dice),
+                scene.battleTestHuman);
+            scene.battleTurnStatus.textContent = "You rolled " + describeDiceRoll(diceRoll.dice) + ". Moving…";
             scene.battleRollButton.textContent = "Moving…";
             computerAI.movePlayer(
                 scene.battleTestHuman,
@@ -1986,6 +2018,13 @@ battle.prototype = {
         }
 
         this.cancelBattleTargeting();
+        var excess = this.humanCards.length - this.humanMaxHand;
+        if (excess > 0) {
+            this.pendingBattleDiscard = true;
+            this.battleTurnStatus.textContent = "Hand limit exceeded. Click a card to discard (" +
+                excess + " to go).";
+            return;
+        }
         this.logBattleEvent(this.battleTestHuman.name + " passes the turn", this.battleTestHuman);
         this.applyEndOfTurnCreatureDamage(this.battleTestHuman);
         this.applyEndOfTurnRegen(this.battleTestHuman);
@@ -2003,8 +2042,9 @@ battle.prototype = {
             onDrawCard: function (player) {
                 scene.logBattleEvent(player.name + " draws a card", player);
             },
-            onTurnStart: function (player, roll) {
-                scene.logBattleEvent(player.name + " rolled a " + roll, player);
+            onTurnStart: function (player, roll, dice) {
+                var rollText = dice ? describeDiceRoll(dice) : String(roll);
+                scene.logBattleEvent(player.name + " rolled " + rollText, player);
                 scene.setBattleTestActivePlayer(player);
                 var cardCount = scene.playerCardCountLabels.get(player);
                 if (cardCount) {
@@ -2014,7 +2054,7 @@ battle.prototype = {
                 if (manaCount) {
                     manaCount.textContent = player.mana + "/" + player.maxmana;
                 }
-                scene.battleTurnStatus.textContent = player.name + " rolled a " + roll + ".";
+                scene.battleTurnStatus.textContent = player.name + " rolled " + rollText + ".";
                 scene.battleDie.textContent = String(roll);
                 scene.battleDie.setAttribute("aria-label", player.name + " rolled " + roll);
                 scene.battleDie.classList.add("is-rolling");
