@@ -1037,10 +1037,17 @@ var battle = defineScene("battle", {
             return;
         }
 
-        var targets = this.getBattleCardTargets(secondCard, player);
-        if (secondCard.targetlocation !== "all") {
-            // Without a chooser for secondary spells, hit the first valid target.
-            targets = targets.slice(0, 1);
+        var targets;
+        if (player === this.battleTestHuman) {
+            targets = this.getBattleCardTargets(secondCard, player);
+            if (secondCard.targetlocation !== "all") {
+                // Without a chooser for secondary spells, hit the first valid target.
+                targets = targets.slice(0, 1);
+            }
+        } else {
+            // The AI only casts a second spell where it helps, and picks the best target for it.
+            targets = computerAI.chooseSecondarySpellTargets(secondCard, player,
+                this.getBattleCardTargets.bind(this));
         }
         if (targets.length === 0) {
             this.logBattleEvent(cardInfo.name + "'s " + secondCard.name + " has no target", player);
@@ -1547,12 +1554,12 @@ var battle = defineScene("battle", {
         } else {
             var attackerFighter = {
                 attack: cardInfo.attack, armor: cardInfo.armor, hitpoints: cardInfo.defense,
-                flying: cardInfo.flying, reach: cardInfo.reach, blitz: cardInfo.blitz
+                flying: cardInfo.flying, reach: cardInfo.reach, blitz: cardInfo.blitz, deadly: cardInfo.deadly
             };
             var defenderFighter = {
                 attack: previousCreature.attack, armor: previousCreature.armor,
                 hitpoints: previousCreature.hitpoints, flying: previousCreature.flying,
-                reach: previousCreature.reach, blitz: previousCreature.blitz
+                reach: previousCreature.reach, blitz: previousCreature.blitz, deadly: previousCreature.deadly
             };
             var defenderOwner = this.findBattlePlayer(previousCreature.playerOwnedId);
             var attackerName = player.name + "'s " + cardInfo.name;
@@ -2076,25 +2083,25 @@ var battle = defineScene("battle", {
 
     // Crossing the start square lets a player pick one of three rewards.
     grantStartReward: function (player, choice) {
-        if (choice === "gold") {
-            player.gold += 100;
-            this.logBattleEvent(player.name + " takes 100 gold for crossing start", player);
+        if (choice === "mana") {
+            player.maxmana++;
+            player.mana++;
+            this.logBattleEvent(player.name + " gains 1 max mana for crossing start", player);
         } else if (choice === "cards") {
             this.drawBattleCard(player);
-            this.drawBattleCard(player);
-            this.logBattleEvent(player.name + " takes two cards for crossing start", player);
+            this.logBattleEvent(player.name + " draws a card for crossing start", player);
         } else if (choice === "health") {
-            player.hp = Math.min(player.hp + 2, player.maxhp);
-            this.logBattleEvent(player.name + " recovers 2 health for crossing start", player);
+            player.hp = Math.min(player.hp + 1, player.maxhp);
+            this.logBattleEvent(player.name + " recovers 1 health for crossing start", player);
+        } else if (choice === "gold") {
+            player.gold += 5;
+            this.logBattleEvent(player.name + " takes 5 gold for crossing start", player);
         }
         this.refreshBattlePlayerStatus();
     },
 
     chooseAIStartReward: function (player) {
-        if (player.hp <= 2) {
-            return "health";
-        }
-        return player.hand.length < 2 ? "cards" : "gold";
+        return computerAI.chooseStartReward(player);
     },
 
     showStartRewardChoice: function (player) {
@@ -2112,9 +2119,10 @@ var battle = defineScene("battle", {
         var actions = document.createElement("div");
         actions.className = "game-menu-actions";
         [
-            ["gold", "+100 gold"],
-            ["cards", "Draw 2 cards"],
-            ["health", "+2 health"]
+            ["mana", "+1 max mana"],
+            ["cards", "Draw 1 card"],
+            ["health", "Heal 1 life"],
+            ["gold", "+5 gold"]
         ].forEach(function (option) {
             var button = document.createElement("button");
             button.className = "game-menu-button battle-result-continue";
@@ -2248,6 +2256,9 @@ var battle = defineScene("battle", {
             },
             onTurnBegin: function (player) {
                 scene.logBattleEvent(player.name + "'s turn begins", player);
+            },
+            onDiscardCard: function (player, card) {
+                scene.logBattleEvent(player.name + " discards " + card.name, player);
             },
             onDrawCard: function (player) {
                 scene.logBattleEvent(player.name + " draws a card", player);

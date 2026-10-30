@@ -1,7 +1,21 @@
 var computerAI = (function () {
 
+    // Completing the capture requirement, or killing the human, ends the battle in the AI's favour.
+    var VICTORY_VALUE = 1000;
+    // Creature strength is divided by this to give a 0-1 style threat fraction.
+    var STRENGTH_SCALE = 8;
+    var HAZARD_COST_PER_DAMAGE = 6;
+    // The AI keeps picking +1 max mana as its start reward until its max mana reaches this.
+    var START_REWARD_MANA_CAP = 5;
+
     function getProfile(player) {
         return aiProfiles[player.aiProfile] || aiProfiles.opportunist;
+    }
+
+    // How much this player cares about one of the objectives in ai_profiles.js.
+    function weight(player, objective) {
+        var multipliers = getProfile(player).multipliers || {};
+        return aiObjectiveWeights[objective] * (multipliers[objective] || 1);
     }
 
     function getBoardSquare(squareId) {
@@ -10,268 +24,282 @@ var computerAI = (function () {
         });
     }
 
-    function isFriendlyCreature(creature, player) {
-        return creature.playerOwnedId === player.id;
+    function findPlayer(playerId) {
+        return gameVariables.gamePlayerArray.find(function (candidate) {
+            return candidate.id === playerId;
+        });
     }
 
-    function getVictoryPriority(player, objective) {
-        var priority = getProfile(player).victoryPriorities[objective];
-        if (objective === "captureSquares" && gameVariables.boardInfo.captureRequirement) {
-            var remaining = gameVariables.boardInfo.captureRequirement - player.capturedSquares;
-            if (remaining <= 2) {
-                priority += 5;
-            }
-        }
-        return priority;
+    function getSpecialSquare(squareId) {
+        return (gameVariables.boardInfo.specialSquares || []).find(function (item) {
+            return item.squareId === squareId;
+        });
+    }
+
+    function getCaptureRequirement() {
+        return gameVariables.boardInfo.captureRequirement || gameVariables.boardInfo.boardTotal;
+    }
+
+    function isFriendlyCreature(creature, player) {
+        return creature.playerOwnedId === player.id;
     }
 
     function isMaxManaDrain(card) {
         return card.special === SPECIAL_EFFECT.BOOST_MAX_MANA && card.damage < 0;
     }
 
-    function getActionName(card) {
-        if (card.creature) {
-            return "summonCreatures";
+    // Cards the AI never plays: movement and duplication need choices the AI does not make.
+    function isPlayableByAI(card) {
+        return card.special !== SPECIAL_EFFECT.MOVE_FORWARD &&
+            card.special !== SPECIAL_EFFECT.MOVE_BACK &&
+            card.special !== SPECIAL_EFFECT.DUPLICATE_CARD;
+    }
+
+    // Cards that can never help the AI and only take up a hand slot.
+    function isDeadCard(card) {
+        return !isPlayableByAI(card) ||
+            (card.special === SPECIAL_EFFECT.SELF_DAMAGE && !card.secondSpell);
+    }
+
+    // A single number for how strong a creature (card or board creature) is, abilities included.
+    function strength(stats) {
+        var health = stats.hitpoints !== undefined ? stats.hitpoints : stats.defense;
+        return (stats.attack || 0) + health / 2 + (stats.armor || 0) +
+            (stats.flying ? 1.5 : 0) + (stats.blitz ? 1 : 0) + (stats.reach ? 0.5 : 0) +
+            (stats.deadly ? 2 : 0) + (stats.regen ? 1 : 0);
+    }
+
+    // Objective: destroy creatures that threaten the AI.
+    function threatValue(creature, player) {
+        var value = weight(player, "destroyThreats") * strength(creature) / STRENGTH_SCALE;
+        var owner = findPlayer(creature.playerOwnedId);
+        if (owner && owner.human) {
+            value *= 1.25;
         }
-        if (isMaxManaDrain(card)) {
-            return "damageOpponents";
+        if (creature.squareId === player.sprite.gameSquareId) {
+            value *= 1.5;
         }
-        if (card.special === SPECIAL_EFFECT.HEAL) {
-            return "healSelf";
+        return value;
+    }
+
+    // Objective: capture squares (and special squares) until the capture requirement is met.
+    function squareCaptureValue(square, player) {
+        if (square.ownerPlayerId === player.id) {
+            return 0;
         }
-        if (card.special === SPECIAL_EFFECT.STEAL_GOLD || card.special === SPECIAL_EFFECT.DRAW_CARDS ||
-            card.special === SPECIAL_EFFECT.GAIN_GOLD || card.special === SPECIAL_EFFECT.BOOST_MANA ||
-            card.special === SPECIAL_EFFECT.BOOST_MAX_MANA) {
-            return "gainResources";
+        var requirement = getCaptureRequirement();
+        if (requirement && player.capturedSquares + 1 >= requirement) {
+            return VICTORY_VALUE;
         }
-        return "damageOpponents";
+        var value = weight(player, "captureVictory") * (1 + (requirement ? player.capturedSquares / requirement : 0));
+        var previousOwner = square.ownerPlayerId !== undefined ? findPlayer(square.ownerPlayerId) : null;
+        if (previousOwner && previousOwner.human) {
+            value *= 1.2;
+        }
+        var special = getSpecialSquare(square.id);
+        if (special && special.type !== "pressure" && special.type !== "magictrap") {
+            value += weight(player, "captureSpecial") * 0.5;
+        }
+        return value;
+    }
+
+    // What summoning this creature card onto this square is worth: the body itself, the square it
+    // captures, and any threatening creature it destroys. A fight it loses is worth nothing.
+    function summonValue(creatureCard, square, player) {
+        var body = strength(creatureCard) * 1.5;
+        var occupant = square.creature;
+        if (!occupant) {
+            return body + squareCaptureValue(square, player);
+        }
+        if (isFriendlyCreature(occupant, player)) {
+            return 0;
+        }
+
+        var fight = simulateCombat(creatureCard, occupant);
+        if (fight.defenderHp <= 0) {
+            var value = threatValue(occupant, player);
+            if (fight.attackerHp > 0) {
+                value += body + squareCaptureValue(square, player);
+            }
+            return value;
+        }
+        return threatValue(occupant, player) * 0.5 * (occupant.hitpoints - fight.defenderHp) / occupant.hitpoints;
+    }
+
+    function bestSummonSquareValue(creatureCard, player) {
+        return getSummonDestinations(player).reduce(function (best, square) {
+            return Math.max(best, summonValue(creatureCard, square, player));
+        }, 0);
+    }
+
+    // The creature stats after a Debuff or Set Creature Stats card hits them (mirrors processSpecialSpell).
+    function creatureAfterDebuff(card, creature) {
+        var after = {
+            attack: creature.attack, armor: creature.armor, hitpoints: creature.hitpoints,
+            maxhitpoints: creature.maxhitpoints, flying: creature.flying, blitz: creature.blitz,
+            deadly: creature.deadly, reach: creature.reach, regen: creature.regen
+        };
+        if (card.special === SPECIAL_EFFECT.SET_CREATURE_STATS) {
+            if (card.defense !== -1) {
+                after.maxhitpoints = Math.max(Math.min(creature.maxhitpoints, card.defense), 1);
+                after.hitpoints = Math.min(creature.hitpoints, after.maxhitpoints);
+            }
+            if (card.attack !== -1) {
+                after.attack = Math.max(0, Math.min(creature.attack, card.attack));
+            }
+        } else {
+            after.hitpoints -= Math.max(0, card.defense);
+            after.attack = Math.max(0, creature.attack - Math.max(0, card.attack));
+        }
+        after.armor = Math.max(0, creature.armor - Math.max(0, card.armor));
+        ["flying", "blitz", "deadly", "reach", "regen"].forEach(function (ability) {
+            if (card[ability]) {
+                after[ability] = 0;
+            }
+        });
+        return after;
+    }
+
+    function damageValueAgainstPlayer(card, target, player) {
+        var damage = Math.max(card.damage - target.armor, 0);
+        if (damage <= 0) {
+            return 0;
+        }
+        // Rivals matter less than the human, who is the one the AI must defeat.
+        var share = target.human ? 1 : 0.3;
+        if (target.human && damage >= target.hp) {
+            return VICTORY_VALUE;
+        }
+        return weight(player, "defeatHuman") * share * Math.min(damage / target.hp, 1);
     }
 
     function getTargetValue(card, target, player) {
         var targetPlayer = target.type === "player" ? target.model : null;
         var targetCreature = target.type === "creature" ? target.model : null;
         var square = getBoardSquare(target.targetSquare);
+        var isSelf = !!targetPlayer && targetPlayer.id === player.id;
+        var isFriendly = !!targetCreature && isFriendlyCreature(targetCreature, player);
+        var isAll = card.targetlocation === "all";
 
-        if (card.special === SPECIAL_EFFECT.MOVE_FORWARD) {
-            return 0;
-        }
+        switch (card.special) {
+            case SPECIAL_EFFECT.MOVE_FORWARD:
+            case SPECIAL_EFFECT.MOVE_BACK:
+            case SPECIAL_EFFECT.DUPLICATE_CARD:
+                return 0;
 
-        if (isMaxManaDrain(card)) {
-            return targetPlayer && targetPlayer.id !== player.id
-                ? Math.min(-card.damage, targetPlayer.maxmana)
-                : 0;
-        }
-
-        if (card.special === SPECIAL_EFFECT.HEAL) {
-            if (targetCreature) {
-                if (!isFriendlyCreature(targetCreature, player)) {
+            case SPECIAL_EFFECT.STEAL_GOLD:
+                if (!targetPlayer || isSelf || targetPlayer.gold <= 0) {
                     return 0;
                 }
-                return Math.max(targetCreature.maxhitpoints - targetCreature.hitpoints, 0);
-            }
-            if (targetPlayer) {
-                return targetPlayer.id === player.id
-                    ? Math.max(targetPlayer.maxhp - targetPlayer.hp, 0)
+                return weight(player, "stealGold") * (targetPlayer.human ? 1 : 0.3) *
+                    Math.min(card.damage, targetPlayer.gold) / Math.max(card.damage, 1);
+
+            case SPECIAL_EFFECT.SLOW_MOVEMENT:
+                return targetPlayer && !isSelf
+                    ? weight(player, "defeatHuman") * 0.1 * Math.max(card.damage, 0) * (targetPlayer.human ? 1 : 0.5)
                     : 0;
-            }
-        }
 
-        if (card.special === SPECIAL_EFFECT.BUFF_CREATURE) {
-            return targetCreature && isFriendlyCreature(targetCreature, player)
-                ? card.defense + card.attack + card.armor
-                : 0;
-        }
-
-        if (card.special === SPECIAL_EFFECT.DEBUFF_CREATURE || card.special === SPECIAL_EFFECT.SET_CREATURE_STATS) {
-            if (!targetCreature || isFriendlyCreature(targetCreature, player)) {
-                return 0;
-            }
-            var isSet = card.special === SPECIAL_EFFECT.SET_CREATURE_STATS;
-            var hpLoss = isSet
-                ? Math.max(targetCreature.maxhitpoints - Math.max(card.defense, 1), 0)
-                : Math.min(card.defense, targetCreature.hitpoints);
-            var attackLoss = isSet
-                ? Math.max(targetCreature.attack - card.attack, 0)
-                : Math.min(card.attack, targetCreature.attack);
-            return hpLoss + attackLoss +
-                Math.min(card.armor, targetCreature.armor) +
-                ((card.flying && targetCreature.flying) ? 1 : 0) +
-                ((card.blitz && targetCreature.blitz) ? 1 : 0) +
-                ((card.deadly && targetCreature.deadly) ? 1 : 0);
-        }
-
-        if (card.special === SPECIAL_EFFECT.TRANSFORM) {
-            var transformInto = masterCardList.find(function (item) {
-                return item.id === card.secondSpell;
-            });
-            if (!targetCreature || !transformInto || !transformInto.creature) {
-                return 0;
-            }
-            var currentStrength = targetCreature.hitpoints + targetCreature.attack + targetCreature.armor;
-            var newStrength = transformInto.defense + transformInto.attack + transformInto.armor;
-            return isFriendlyCreature(targetCreature, player)
-                ? Math.max(newStrength - currentStrength, 0)
-                : Math.max(currentStrength - newStrength, 0);
-        }
-
-        if (card.special === SPECIAL_EFFECT.UNSUMMON) {
-            if (!targetCreature || isFriendlyCreature(targetCreature, player)) {
-                return 0;
-            }
-            return targetCreature.hitpoints + targetCreature.attack + targetCreature.armor;
-        }
-
-        if (card.special === SPECIAL_EFFECT.TELEPORT) {
-            if (targetCreature && isFriendlyCreature(targetCreature, player)) {
-                return getTeleportDestinations("creature", targetCreature).length > 0
-                    ? 1 + targetCreature.attack
-                    : 0;
-            }
-            return targetPlayer && targetPlayer.id === player.id &&
-                getTeleportDestinations("player", targetPlayer).length > 0 ? 1 : 0;
-        }
-
-        if (card.special === SPECIAL_EFFECT.SLOW_MOVEMENT) {
-            return targetPlayer && targetPlayer.id !== player.id ? Math.max(0, card.damage) : 0;
-        }
-
-        if (card.special === SPECIAL_EFFECT.STEAL_GOLD) {
-            return targetPlayer && targetPlayer.id !== player.id && targetPlayer.gold > 0
-                ? Math.min(card.damage, targetPlayer.gold)
-                : 0;
-        }
-
-        if (card.creature) {
-            if (target.type === "ground" && square) {
-                if (!square.creature) {
-                    return 2 + (square.sprite.texture.key === player.color ? 0 : getVictoryPriority(player, "captureSquares"));
+            case SPECIAL_EFFECT.HEAL:
+                if (isFriendly) {
+                    return 10 * Math.max(targetCreature.maxhitpoints - targetCreature.hitpoints, 0) /
+                        Math.max(targetCreature.maxhitpoints, 1);
                 }
-                if (isFriendlyCreature(square.creature, player)) {
+                if (isSelf) {
+                    var missing = Math.min(card.damage, Math.max(player.maxhp - player.hp, 0)) / player.maxhp;
+                    return 12 * missing * (player.hp <= 3 ? 2 : 1);
+                }
+                return 0;
+
+            case SPECIAL_EFFECT.BUFF_CREATURE:
+                return isFriendly ? 4 * (card.attack + card.defense + card.armor) : 0;
+
+            case SPECIAL_EFFECT.DEBUFF_CREATURE:
+            case SPECIAL_EFFECT.SET_CREATURE_STATS:
+                if (!targetCreature || isFriendly) {
                     return 0;
                 }
+                var before = strength(targetCreature);
+                var after = creatureAfterDebuff(card, targetCreature);
+                var reduction = after.hitpoints <= 0 && card.special === SPECIAL_EFFECT.DEBUFF_CREATURE
+                    ? before
+                    : Math.max(before - strength(after), 0);
+                return threatValue(targetCreature, player) * reduction / Math.max(before, 0.5);
 
-                var defender = square.creature;
-                var damageToDefender = Math.max(card.attack - defender.armor, 0);
-                var damageToAttacker = Math.max(defender.attack - card.armor, 0);
-                var defenderHp = defender.hitpoints - damageToDefender;
-                var attackerHp = card.defense - damageToAttacker;
-                return damageToDefender + (defenderHp <= 0 && attackerHp > 0 &&
-                    square.sprite.texture.key !== player.color
-                    ? 2 + getVictoryPriority(player, "captureSquares")
-                    : 0);
-            }
-
-            if (target.type === "both" && square) {
-                var summonValue = square.creature
-                    ? isFriendlyCreature(square.creature, player)
-                        ? card.attack + card.defense / 2
-                        : Math.max(card.attack - square.creature.armor, 0)
-                    : 2 + (square.sprite.texture.key === player.color ? 0 : getVictoryPriority(player, "captureSquares"));
-                gameVariables.gamePlayerArray.forEach(function (occupant) {
-                    if (occupant.sprite.gameSquareId === square.id && occupant.id !== player.id) {
-                        summonValue += Math.max(card.damage - occupant.armor, 0);
-                    }
+            case SPECIAL_EFFECT.TRANSFORM:
+                var transformInto = masterCardList.find(function (item) {
+                    return item.id === card.secondSpell;
                 });
-                return summonValue;
-            }
-
-            if (targetCreature) {
-                if (isFriendlyCreature(targetCreature, player)) {
+                if (!targetCreature || !transformInto || !transformInto.creature) {
                     return 0;
                 }
-                return Math.max(card.attack - targetCreature.armor, 0);
-            }
+                var currentStrength = strength(targetCreature);
+                var newStrength = strength(transformInto);
+                return isFriendly
+                    ? 4 * Math.max(newStrength - currentStrength, 0)
+                    : threatValue(targetCreature, player) * Math.max(currentStrength - newStrength, 0) /
+                        Math.max(currentStrength, 0.5);
 
-            if (targetPlayer) {
-                return targetPlayer.id === player.id
-                    ? 0
-                    : Math.max(card.damage - targetPlayer.armor, 0);
-            }
+            case SPECIAL_EFFECT.UNSUMMON:
+                // The creature returns to its owner's hand, but the squares it captured stay captured.
+                return targetCreature && !isFriendly ? threatValue(targetCreature, player) * 0.6 : 0;
+
+            case SPECIAL_EFFECT.TELEPORT:
+                if (isFriendly) {
+                    return getTeleportDestinations("creature", targetCreature).length > 0 ? 2 : 0;
+                }
+                return isSelf && getTeleportDestinations("player", targetPlayer).length > 0 ? 1 : 0;
+
+            case SPECIAL_EFFECT.SUMMON:
+                var summoned = masterCardList.find(function (item) {
+                    return item.id === card.secondSpell;
+                });
+                return summoned && summoned.creature ? bestSummonSquareValue(summoned, player) : 0;
+
+            case SPECIAL_EFFECT.DRAW_CARDS:
+                return 8 * Math.min(card.damage, player.deck.length + player.discard.length);
+
+            case SPECIAL_EFFECT.GAIN_GOLD:
+                return 0.5 * card.damage;
+
+            case SPECIAL_EFFECT.BOOST_MANA:
+                return 10 * Math.min(card.damage, player.maxmana - player.mana);
+
+            case SPECIAL_EFFECT.BOOST_MAX_MANA:
+                if (isMaxManaDrain(card)) {
+                    return targetPlayer && !isSelf
+                        ? 8 * Math.min(-card.damage, targetPlayer.maxmana) * (targetPlayer.human ? 1 : 0.6)
+                        : 0;
+                }
+                return 12 * card.damage;
+
         }
 
+        // Creature cards are summoned on the caster's own square.
+        if (card.creature) {
+            return target.type === "ground" && square ? summonValue(card, square, player) : 0;
+        }
+
+        // Plain damage spells.
         if (targetPlayer) {
-            if (targetPlayer.id === player.id) {
-                return card.targetlocation === "all" ? -Math.max(card.damage - player.armor, 0) : 0;
+            if (isSelf) {
+                return isAll ? -Math.max(card.damage - player.armor, 0) * 4 : 0;
             }
-            var playerDamage = Math.max(card.damage - targetPlayer.armor, 0);
-            return playerDamage + (playerDamage >= targetPlayer.hp
-                ? getVictoryPriority(player, "eliminateOpponents") / 2
-                : 0);
+            return damageValueAgainstPlayer(card, targetPlayer, player);
         }
-
         if (targetCreature) {
-            if (card.targetlocation === "all" && isFriendlyCreature(targetCreature, player)) {
-                return -Math.max(card.damage - targetCreature.armor, 0);
-            }
             var creatureDamage = Math.max(card.damage - targetCreature.armor, 0);
-            return creatureDamage + (creatureDamage >= targetCreature.hitpoints
-                ? getVictoryPriority(player, "eliminateOpponents") / 2
-                : 0);
-        }
-
-        if (target.type === "both" && square) {
-            var squareValue = 0;
-            if (square.creature && !isFriendlyCreature(square.creature, player)) {
-                squareValue += Math.max(card.damage - square.creature.armor, 0);
+            if (isFriendly) {
+                return isAll ? -4 * creatureDamage : 0;
             }
-            gameVariables.gamePlayerArray.forEach(function (occupant) {
-                if (occupant.sprite.gameSquareId === square.id && occupant.id !== player.id) {
-                    squareValue += Math.max(card.damage - occupant.armor, 0);
-                }
-            });
-            return squareValue;
+            return threatValue(targetCreature, player) * Math.min(creatureDamage / targetCreature.hitpoints, 1);
         }
-
-        if (target.type === "ground" && square) {
-            var groundValue = 0;
-            if (square.creature) {
-                groundValue += Math.max(card.damage - square.creature.armor, 0);
-            }
-            gameVariables.gamePlayerArray.forEach(function (occupant) {
-                if (occupant.sprite.gameSquareId === square.id && occupant.id !== player.id) {
-                    groundValue += Math.max(card.damage - occupant.armor, 0);
-                }
-            });
-            return groundValue;
-        }
-
-        if (card.special === SPECIAL_EFFECT.DRAW_CARDS) {
-            return card.damage;
-        }
-        if (card.special === SPECIAL_EFFECT.GAIN_GOLD) {
-            return card.damage;
-        }
-        if (card.special === SPECIAL_EFFECT.BOOST_MANA) {
-            return Math.min(card.damage, player.maxmana - player.mana);
-        }
-        if (card.special === SPECIAL_EFFECT.BOOST_MAX_MANA) {
-            return card.damage;
-        }
-
         return 0;
     }
 
-    function scoreCard(card, player, targetProvider) {
-        if (card.cost > player.mana || card.special === SPECIAL_EFFECT.MOVE_FORWARD ||
-            card.special === SPECIAL_EFFECT.DUPLICATE_CARD) {
-            return null;
-        }
-
-        if (!masterCardList.some(function (item) {
-            return item.id === card.id;
-        })) {
-            return null;
-        }
-
-        var profile = getProfile(player);
-        var action = getActionName(card);
-        var candidates = targetProvider ? targetProvider(card, player) : [];
-        if (candidates.length === 0) {
-            return null;
-        }
-
-        var bestTargetIndex = 0;
+    // Best single target (or the total for an all-target card) among the candidates.
+    function evaluateTargets(card, candidates, player) {
         var utility = 0;
+        var bestTargetIndex = 0;
         if (card.targetlocation === "all") {
             utility = candidates.reduce(function (total, target) {
                 return total + getTargetValue(card, target, player);
@@ -285,33 +313,75 @@ var computerAI = (function () {
                 }
             });
         }
+        return { utility: utility, targetIndex: bestTargetIndex };
+    }
 
-        if (card.special === SPECIAL_EFFECT.DRAW_CARDS) {
-            utility = Math.min(card.damage, player.deck.length + player.discard.length + player.hand.length);
-        } else if (card.special === SPECIAL_EFFECT.GAIN_GOLD ||
-            (card.special === SPECIAL_EFFECT.BOOST_MAX_MANA && !isMaxManaDrain(card))) {
-            utility = card.damage;
-        } else if (card.special === SPECIAL_EFFECT.SUMMON) {
-            var summonedCard = masterCardList.find(function (item) {
-                return item.id === card.secondSpell;
-            });
-            utility = summonedCard && summonedCard.creature
-                ? 1 + summonedCard.attack + summonedCard.defense / 2
-                : 0;
+    // Many cards also cast a second spell (secondSpell). Transform and Summon use that field for a creature.
+    function getSecondSpell(card) {
+        if (!card.secondSpell || card.special === SPECIAL_EFFECT.TRANSFORM ||
+            card.special === SPECIAL_EFFECT.SUMMON) {
+            return null;
+        }
+        var secondCard = masterCardList.find(function (item) {
+            return item.id === card.secondSpell;
+        });
+        return secondCard && secondCard.spell ? secondCard : null;
+    }
+
+    function secondSpellValue(card, player, targetProvider) {
+        var secondCard = getSecondSpell(card);
+        var candidates = secondCard && targetProvider ? targetProvider(secondCard, player) : [];
+        return candidates.length > 0 ? evaluateTargets(secondCard, candidates, player).utility : 0;
+    }
+
+    // Targets for a card's second spell: nothing at all if casting it would not help the AI.
+    function chooseSecondarySpellTargets(secondCard, player, targetProvider) {
+        var candidates = targetProvider(secondCard, player);
+        if (candidates.length === 0) {
+            return [];
+        }
+        var evaluation = evaluateTargets(secondCard, candidates, player);
+        if (evaluation.utility <= 0) {
+            return [];
+        }
+        return secondCard.targetlocation === "all" ? candidates : [candidates[evaluation.targetIndex]];
+    }
+
+    function scoreCard(card, player, targetProvider) {
+        if (card.cost > player.mana || !isPlayableByAI(card)) {
+            return null;
+        }
+
+        if (!masterCardList.some(function (item) {
+            return item.id === card.id;
+        })) {
+            return null;
+        }
+
+        var candidates = targetProvider ? targetProvider(card, player) : [];
+        if (candidates.length === 0) {
+            return null;
+        }
+
+        var evaluation = evaluateTargets(card, candidates, player);
+        var utility = evaluation.utility + secondSpellValue(card, player, targetProvider);
+        if (card.special === SPECIAL_EFFECT.SELF_DAMAGE) {
+            // Hurting itself is only worth it for the second spell, and never when it could be fatal.
+            if (player.hp <= card.damage + 2) {
+                return null;
+            }
+            utility -= 4 * card.damage;
         }
         if (utility <= 0) {
             return null;
         }
 
-        if (card.creature) {
-            utility += card.attack + card.defense / 2;
-        }
-
         return {
             card: card,
-            targetIndex: bestTargetIndex,
+            targetIndex: evaluation.targetIndex,
             targets: candidates,
-            score: profile.priorities[action] * utility + card.threat - card.cost * 0.25
+            // card.threat is a designer hint; mana cost breaks ties towards cheaper plays.
+            score: utility + card.threat * 0.5 - card.cost * 0.5
         };
     }
 
@@ -323,63 +393,122 @@ var computerAI = (function () {
         }, null);
     }
 
-    function choosePath(pathIds, player) {
+    // Best square to summon a creature onto when a spell lets the AI pick any square.
+    function chooseSummonSquare(creatureCard, player, destinations) {
+        var best = null;
+        var bestValue = -Infinity;
+        destinations.forEach(function (square) {
+            var value = summonValue(creatureCard, square, player) + Math.random() * 0.5;
+            if (value > bestValue) {
+                bestValue = value;
+                best = square;
+            }
+        });
+        return best;
+    }
+
+    // Early on the AI builds its mana. Later it heals when hurt, draws when its hand is nearly empty,
+    // and otherwise takes gold.
+    function chooseStartReward(player) {
+        if (player.maxmana < START_REWARD_MANA_CAP) {
+            return "mana";
+        }
+        if (player.hp < player.maxhp && player.hp <= player.maxhp * 0.4) {
+            return "health";
+        }
+        if (player.hand.length <= 1 && player.deck.length + player.discard.length > 0) {
+            return "cards";
+        }
+        return "gold";
+    }
+
+    // Throws away cards the AI can never play so they stop blocking draws.
+    function discardDeadCards(player, onDiscard) {
+        player.hand.filter(isDeadCard).forEach(function (card) {
+            player.hand.splice(player.hand.indexOf(card), 1);
+            discardCard(player, card);
+            if (onDiscard) {
+                onDiscard(player, card);
+            }
+        });
+    }
+
+    // Value of ending a move on this square: the loot or hazard on it, a creature that would hurt the
+    // AI, and the chance to capture it with a creature already in hand.
+    function landingValue(square, player, crossings) {
+        var value = 0;
+        var special = getSpecialSquare(square.id);
+        if (special && special.looted === 0) {
+            if (special.type === "chest" && special.result !== "relic") {
+                value += weight(player, "captureSpecial");
+            } else if (special.type === "pressure") {
+                var pitDamage = Math.max(special.result - (player.armor || 0), 0);
+                value -= player.hp <= pitDamage ? VICTORY_VALUE : pitDamage * HAZARD_COST_PER_DAMAGE;
+            }
+        }
+        if (special && special.type === "magictrap") {
+            value -= player.hp <= special.result ? VICTORY_VALUE : special.result * HAZARD_COST_PER_DAMAGE;
+        }
+        if (square.creature && !isFriendlyCreature(square.creature, player)) {
+            var hit = Math.max(square.creature.attack - (player.armor || 0), 0);
+            value -= player.hp <= hit ? VICTORY_VALUE : hit * HAZARD_COST_PER_DAMAGE;
+        }
+
+        // Creatures are only summoned on the square the AI stands on, so the landing square decides
+        // what it can capture this turn. Crossing start can add a mana to spend if the AI picks that reward.
+        var mana = player.mana + (crossings > 0 && chooseStartReward(player) === "mana" ? 1 : 0);
+        var capture = player.hand.reduce(function (best, card) {
+            return card.creature && card.cost <= mana
+                ? Math.max(best, summonValue(card, square, player))
+                : best;
+        }, 0);
+        return value + capture * 0.7;
+    }
+
+    function scoreRoute(route, player) {
+        var sequence = [player.sprite.gameSquareId].concat(route);
+        var crossings = 0;
+        for (var i = 0; i < sequence.length - 1; i++) {
+            if (sequence[i] === gameVariables.boardInfo.boardEnd &&
+                sequence[i + 1] === gameVariables.boardInfo.boardStart) {
+                crossings++;
+            }
+        }
+        var landing = getBoardSquare(route[route.length - 1]);
+        return crossings * weight(player, "crossStart") + (landing ? landingValue(landing, player, crossings) : 0);
+    }
+
+    // Picks the first step of the best full route for the rolled movement.
+    function choosePath(pathIds, player, stepsRemaining) {
         player = player || gameVariables.gamePlayerArray[gameVariables.currentPlayer];
         if (!player) {
             throw new Error("Cannot choose a movement path without an active player.");
         }
+        if (pathIds.length === 1) {
+            return pathIds[0];
+        }
 
-        var profile = getProfile(player);
+        var routes = stepsRemaining > 0
+            ? getPossibleMovementRoutes(pathIds, stepsRemaining)
+            : pathIds.map(function (squareId) {
+                return [squareId];
+            });
         var bestScore = -Infinity;
-        var bestPaths = [];
-
-        pathIds.forEach(function (squareId) {
-            var square = getBoardSquare(squareId);
-            if (!square) {
-                return;
-            }
-
-            var score = 0;
-            if (square.sprite.texture.key !== player.color) {
-                score += profile.priorities.captureSquares;
-            }
-
-            var special = gameVariables.boardInfo.specialSquares.find(function (item) {
-                return item.squareId === squareId;
-            });
-            if (special && special.looted === 0) {
-                if (special.type === "chest") {
-                    score += profile.priorities.gainResources * 3;
-                } else if (special.type === "pressure" || special.type === "magictrap") {
-                    score -= profile.priorities.avoidHazards * special.result;
-                } else if (special.type === "bluefountain") {
-                    score += profile.priorities.healSelf * Math.max(player.maxhp - player.hp, 0);
-                }
-            }
-
-            gameVariables.gamePlayerArray.forEach(function (opponent) {
-                if (opponent.id !== player.id && opponent.sprite &&
-                    opponent.sprite.gameSquareId === squareId) {
-                    score += profile.priorities.damageOpponents;
-                }
-            });
-
-            if (square.creature && !isFriendlyCreature(square.creature, player)) {
-                score -= profile.priorities.avoidHazards * square.creature.attack;
-            }
-
+        var bestFirstSteps = [];
+        routes.forEach(function (route) {
+            var score = scoreRoute(route, player);
             if (score > bestScore) {
                 bestScore = score;
-                bestPaths = [squareId];
-            } else if (score === bestScore) {
-                bestPaths.push(squareId);
+                bestFirstSteps = [route[0]];
+            } else if (score === bestScore && bestFirstSteps.indexOf(route[0]) === -1) {
+                bestFirstSteps.push(route[0]);
             }
         });
 
-        if (bestPaths.length === 0) {
+        if (bestFirstSteps.length === 0) {
             return pathIds[Math.floor(Math.random() * pathIds.length)];
         }
-        return bestPaths[Math.floor(Math.random() * bestPaths.length)];
+        return bestFirstSteps[Math.floor(Math.random() * bestFirstSteps.length)];
     }
 
     function getNextPathIdsFrom(currentSquareId, forward) {
@@ -491,7 +620,6 @@ var computerAI = (function () {
                 if (player.sprite.gameSquareId === gameVariables.boardInfo.boardEnd &&
                     squareId === gameVariables.boardInfo.boardStart) {
                     crossedStart = true;
-                    grantStartMana(player);
                     if (onStartCrossed) {
                         onStartCrossed(player);
                     }
@@ -541,7 +669,7 @@ var computerAI = (function () {
                 );
                 return;
             }
-            moveTo(choosePath(pathIds, player));
+            moveTo(choosePath(pathIds, player, stepsRemaining));
         }
 
         moveStep(roll);
@@ -574,6 +702,7 @@ var computerAI = (function () {
             if (callbacks.onTurnBegin) {
                 callbacks.onTurnBegin(player);
             }
+            discardDeadCards(player, callbacks.onDiscardCard);
             while (player.hand.length < player.maxhand && player.deck.length > 0) {
                 computerDrawCard(index);
                 if (callbacks.onDrawCard) {
@@ -613,6 +742,10 @@ var computerAI = (function () {
 
     return {
         chooseBattleTestCard: getBestCard,
+        choosePath: choosePath,
+        chooseSecondarySpellTargets: chooseSecondarySpellTargets,
+        chooseSummonSquare: chooseSummonSquare,
+        chooseStartReward: chooseStartReward,
         movePlayer: movePlayer,
         runBattleTestTurns: runBattleTestTurns
     };
