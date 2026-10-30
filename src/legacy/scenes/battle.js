@@ -847,6 +847,51 @@ var battle = defineScene("battle", {
         return cardInfo.special === SPECIAL_EFFECT.MOVE_FORWARD || cardInfo.special === SPECIAL_EFFECT.MOVE_BACK;
     },
 
+    // Roll Again only works after the first roll, once the move is over and the roll button is spent.
+    canRollAgain: function () {
+        return !!this.humanRolled && !this.humanMoving && this.battleRollButton.disabled &&
+            !this.pendingStartReward;
+    },
+
+    // Roll Again: the human gets the roll button back (and must roll before passing); the AI rolls again
+    // once it has finished playing cards.
+    grantExtraRoll: function (player) {
+        if (player === this.battleTestHuman) {
+            this.battleRollButton.disabled = false;
+            this.battleRollButton.textContent = "Roll Dice";
+            this.battlePassButton.disabled = true;
+            this.logBattleEvent(player.name + " will roll and move again", player);
+        } else {
+            player.extraRolls = (player.extraRolls || 0) + 1;
+            this.logBattleEvent(player.name + " will roll and move again", player);
+        }
+    },
+
+    // Create Card: adds a temporary copy of the card named in the bonus spell column to the caster's hand.
+    // Temporary cards vanish once played or discarded. The human may go over the hand limit (they discard
+    // down when passing); the AI only adds the card if it has room.
+    createBattleCard: function (player, cardInfo) {
+        var masterCard = masterCardList.find(function (item) {
+            return item.id === cardInfo.secondSpell;
+        });
+        if (!masterCard) {
+            this.logBattleEvent(cardInfo.name + " has no card to create (bonus spell " + cardInfo.secondSpell + ")",
+                player);
+            return;
+        }
+        var created = createTemporaryCard(masterCard);
+        if (player === this.battleTestHuman) {
+            this.humanCards.push(created);
+            this.lastDrawnCard = created;
+        } else if (player.hand.length < player.maxhand) {
+            player.hand.push(created);
+        } else {
+            this.logBattleEvent(player.name + "'s hand is full, so " + masterCard.name + " is not created", player);
+            return;
+        }
+        this.logBattleEvent("A temporary " + masterCard.name + " is added to " + player.name + "'s hand", player);
+    },
+
     // Forward-movement cards (Dash). Stepping from the last square onto start pays the start reward,
     // exactly like crossing it with a dice roll.
     dashBattlePlayer: function (player, squareId) {
@@ -904,6 +949,12 @@ var battle = defineScene("battle", {
         var type = cardInfo.targettype;
         var targets = [];
 
+        if (!cardInfo.creature &&
+            (cardInfo.special === SPECIAL_EFFECT.CREATE_CARD || cardInfo.special === SPECIAL_EFFECT.ROLL_AGAIN)) {
+            // These spells affect the caster, whatever the card's target data says.
+            return [{ type: "player", targetSquare: casterSquareId, model: player }];
+        }
+
         if (this.isBattleMoveCard(cardInfo)) {
             // One step along the board path: forward for Dash, back for Move Back.
             var pathIds;
@@ -932,6 +983,11 @@ var battle = defineScene("battle", {
 
             squareIds.forEach(function (squareId) {
                 if (type === "ground") {
+                    var groundSquare = this.getBattleSquare(squareId);
+                    if (cardInfo.special === SPECIAL_EFFECT.SUMMON && groundSquare.creature &&
+                        groundSquare.creature.playerOwnedId === player.id) {
+                        return;
+                    }
                     targets.push({ type: "ground", targetSquare: squareId });
                     return;
                 }
@@ -955,6 +1011,10 @@ var battle = defineScene("battle", {
         if (targets.length === 0 && cardInfo.creature) {
             targets.push({ type: "ground", targetSquare: casterSquareId });
         }
+        if (targets.length === 0 && !location && (cardInfo.special === SPECIAL_EFFECT.BOOST_MAX_MANA ||
+            cardInfo.special === SPECIAL_EFFECT.BOOST_MANA)) {
+            targets.push({ type: "player", targetSquare: casterSquareId, model: player });
+        }
         return targets;
     },
 
@@ -964,6 +1024,12 @@ var battle = defineScene("battle", {
         }
         if (cardInfo.cost > player.mana) {
             this.battleTurnStatus.textContent = "Not enough mana to play " + cardInfo.name + ".";
+            return false;
+        }
+        if (!isAI && cardInfo.special === SPECIAL_EFFECT.ROLL_AGAIN && !this.canRollAgain()) {
+            this.battleTurnStatus.textContent = this.humanRolled
+                ? cardInfo.name + " can be played once your move is finished."
+                : cardInfo.name + " can only be played after you have rolled.";
             return false;
         }
         if (!this.isBattleCardSupported(cardInfo)) {
@@ -1001,10 +1067,11 @@ var battle = defineScene("battle", {
         return cast(targets);
     },
 
-    // The spell a card casts in addition to itself. Transform and Summon use secondSpell for a creature.
+    // The spell a card casts in addition to itself. Transform and Summon use secondSpell for a creature,
+    // and Create Card uses it for the card to add to the hand.
     getBattleSecondSpell: function (cardInfo) {
         if (!cardInfo.secondSpell || cardInfo.special === SPECIAL_EFFECT.TRANSFORM ||
-            cardInfo.special === SPECIAL_EFFECT.SUMMON) {
+            cardInfo.special === SPECIAL_EFFECT.SUMMON || cardInfo.special === SPECIAL_EFFECT.CREATE_CARD) {
             return null;
         }
         return masterCardList.find(function (item) {
@@ -1047,6 +1114,10 @@ var battle = defineScene("battle", {
             }, this);
             outcome = "cast";
         }
+        if (cardInfo.creature && !cardInfo.spell && this.isSummonEffectSpecial(cardInfo.special)) {
+            this.applyBattleSpell(cardInfo, player,
+                { type: "player", targetSquare: player.sprite.gameSquareId, model: player });
+        }
         // The second spell resolves before the summon so damage lands before combat.
         this.castBattleSecondSpell(cardInfo, player, secondTargets);
         if (cardInfo.creature) {
@@ -1074,6 +1145,9 @@ var battle = defineScene("battle", {
                 this.dashStartReward = false;
                 this.showStartRewardChoice(player, false);
             }
+            if (cardInfo.special === SPECIAL_EFFECT.ROLL_AGAIN) {
+                this.battleTurnStatus.textContent = "Roll again when ready.";
+            }
             if (this.pendingBattleDuplicate) {
                 this.battleTurnStatus.textContent = "Choose a card in your hand to duplicate.";
             }
@@ -1083,7 +1157,15 @@ var battle = defineScene("battle", {
         return true;
     },
 
-    castBattleSecondSpell: function (cardInfo, player, chosenTargets) {
+    // Effects a creature card applies to its caster when it is summoned. (Cast Spell works through
+    // the second spell, so it is not listed.)
+    isSummonEffectSpecial: function (special) {
+        return special === SPECIAL_EFFECT.SELF_DAMAGE || special === SPECIAL_EFFECT.CREATE_CARD ||
+            special === SPECIAL_EFFECT.DRAW_CARDS || special === SPECIAL_EFFECT.GAIN_GOLD ||
+            special === SPECIAL_EFFECT.BOOST_MANA || special === SPECIAL_EFFECT.BOOST_MAX_MANA;
+    },
+
+    castBattleSecondSpell: function (cardInfo, player, chosenTargets, depth) {
         if (!cardInfo.secondSpell) {
             if (cardInfo.special === SPECIAL_EFFECT.CAST_SPELL) {
                 this.logBattleEvent(cardInfo.name + " has no second spell ID", player);
@@ -1092,7 +1174,8 @@ var battle = defineScene("battle", {
         }
         var secondCard = this.getBattleSecondSpell(cardInfo);
         if (!secondCard) {
-            if (cardInfo.special !== SPECIAL_EFFECT.TRANSFORM && cardInfo.special !== SPECIAL_EFFECT.SUMMON) {
+            if (cardInfo.special !== SPECIAL_EFFECT.TRANSFORM && cardInfo.special !== SPECIAL_EFFECT.SUMMON &&
+                cardInfo.special !== SPECIAL_EFFECT.CREATE_CARD) {
                 this.logBattleEvent(cardInfo.name + " references missing second spell " +
                     cardInfo.secondSpell, player);
             }
@@ -1113,12 +1196,16 @@ var battle = defineScene("battle", {
                 this.getBattleCardTargets.bind(this));
         }
         if (targets.length === 0) {
-            this.logBattleEvent(cardInfo.name + "'s " + secondCard.name + " has no target", player);
+            // A second spell with nothing to hit fizzles, and the rest of the card still resolves.
+            this.logBattleEvent(cardInfo.name + "'s " + secondCard.name + " fizzles: no valid target", player);
             return;
         }
         targets.forEach(function (target) {
             this.applyBattleSpell(secondCard, player, target);
         }, this);
+        if (secondCard.secondSpell && (depth || 0) < 2) {
+            this.castBattleSecondSpell(secondCard, player, undefined, (depth || 0) + 1);
+        }
     },
 
     performBattleTeleport: function (subjectType, subject, squareId, caster) {
@@ -1209,6 +1296,10 @@ var battle = defineScene("battle", {
                     this.updateBattleCreatureHealth(model);
                     this.logBattleEvent(spellName + " weakens " + creatureName, player);
                 }
+            } else if (special === SPECIAL_EFFECT.ROLL_AGAIN) {
+                this.grantExtraRoll(player);
+            } else if (special === SPECIAL_EFFECT.CREATE_CARD) {
+                this.createBattleCard(player, cardInfo);
             } else if (special === SPECIAL_EFFECT.DUPLICATE_CARD) {
                 if (player === this.battleTestHuman && this.humanCards.length > 0) {
                     this.pendingBattleDuplicate = true;
@@ -1281,7 +1372,10 @@ var battle = defineScene("battle", {
             } else if (special === SPECIAL_EFFECT.SUMMON) {
                 var summonedCard = getSummonCreatureCard(cardInfo);
                 var summonOptions = getSummonDestinations(player);
-                if (!summonedCard || summonOptions.length === 0) {
+                var aimedSquare = target.type === "ground" ? this.getBattleSquare(target.targetSquare) : null;
+                if (summonedCard && aimedSquare) {
+                    this.resolveBattleTestSummon(aimedSquare, summonedCard, player);
+                } else if (!summonedCard || summonOptions.length === 0) {
                     this.logBattleEvent(spellName + " has nothing to summon", player);
                 } else if (player === this.battleTestHuman) {
                     this.pendingBattleSummon = { creatureCard: summonedCard };
@@ -1292,7 +1386,8 @@ var battle = defineScene("battle", {
                         this.resolveBattleTestSummon(summonChoice, summonedCard, player);
                     }
                 }
-            } else if (special === SPECIAL_EFFECT.NONE || cardInfo.targetlocation === "all") {
+            } else if (special === SPECIAL_EFFECT.NONE || special === SPECIAL_EFFECT.DAMAGE_THEN_CAST ||
+                (cardInfo.targetlocation === "all" && special !== SPECIAL_EFFECT.BOOST_MAX_MANA)) {
                 this.applyBattleSpellDamage(cardInfo, player, target, spellName);
             } else if (special === SPECIAL_EFFECT.HEAL) {
                 var healthBefore = target.type === "creature" ? model.hitpoints : model.hp;
@@ -1343,6 +1438,11 @@ var battle = defineScene("battle", {
                     this.forfeitBattleGoldLogged(player);
                 }
             } else if (special === SPECIAL_EFFECT.BOOST_MAX_MANA) {
+                // A negative value drains the targeted player; a positive one always goes to the caster, once
+                // even when the card is aimed at all players.
+                if (cardInfo.damage >= 0 && cardInfo.targetlocation === "all" && target.model !== player) {
+                    return;
+                }
                 var maxManaTarget = cardInfo.damage < 0 && target.type === "player" && target.model
                     ? target.model : player;
                 processSpecialSpell(cardInfo, maxManaTarget, target.targetSquare, "player", maxManaTarget.class);
@@ -1956,6 +2056,8 @@ var battle = defineScene("battle", {
             manaCount.textContent = this.battleTestHuman.mana + "/" + this.battleTestHuman.maxmana;
         }
         this.humanMovedThisTurn = false;
+        this.humanRolled = false;
+        this.humanMoving = false;
         this.battleTurnStatus.textContent = "Drawing a card…";
         this.logBattleEvent(this.battleTestHuman.name + "'s turn begins", this.battleTestHuman);
 
@@ -1996,6 +2098,8 @@ var battle = defineScene("battle", {
             return;
         }
 
+        this.humanRolled = true;
+        this.humanMoving = true;
         this.battleRollButton.disabled = true;
         this.battleRollButton.textContent = "Rolling…";
         this.battleDie.classList.add("is-rolling");
@@ -2033,6 +2137,7 @@ var battle = defineScene("battle", {
                     scene.battleTurnStatus.textContent =
                         "Movement complete. You are on square " + scene.battleTestHuman.sprite.gameSquareId + ".";
                     scene.battleRollButton.textContent = "Move complete";
+                    scene.humanMoving = false;
                     scene.humanMovedThisTurn = true;
                     scene.resolveBattleSquareLoot(scene.battleTestHuman);
                     if (scene.checkBattleEnd()) {
@@ -2327,6 +2432,9 @@ var battle = defineScene("battle", {
             },
             onTurnBegin: function (player) {
                 scene.logBattleEvent(player.name + "'s turn begins", player);
+            },
+            onExtraRoll: function (player) {
+                scene.logBattleEvent(player.name + " rolls again", player);
             },
             onDiscardCard: function (player, card) {
                 scene.logBattleEvent(player.name + " discards " + card.name, player);

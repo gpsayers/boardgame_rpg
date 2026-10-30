@@ -19,7 +19,10 @@ var SPECIAL_EFFECT = Object.freeze({
     SUMMON: 16,
     SET_CREATURE_STATS: 17,
     TRANSFORM: 18,
-    DUPLICATE_CARD: 19
+    DUPLICATE_CARD: 19,
+    CREATE_CARD: 20,
+    ROLL_AGAIN: 21,
+    DAMAGE_THEN_CAST: 22
 });
 
 var SPECIAL_EFFECT_NAMES = Object.freeze((function () {
@@ -43,6 +46,9 @@ var SPECIAL_EFFECT_NAMES = Object.freeze((function () {
     names[SPECIAL_EFFECT.SET_CREATURE_STATS] = "Set creature stat";
     names[SPECIAL_EFFECT.TRANSFORM] = "Transforms creature";
     names[SPECIAL_EFFECT.DUPLICATE_CARD] = "Duplicates a card";
+    names[SPECIAL_EFFECT.CREATE_CARD] = "Creates a temporary card";
+    names[SPECIAL_EFFECT.ROLL_AGAIN] = "Rolls and moves again";
+    names[SPECIAL_EFFECT.DAMAGE_THEN_CAST] = "Deals damage, then casts a spell";
     return names;
 })());
 

@@ -171,7 +171,69 @@ var computerAI = (function () {
         return weight(player, "defeatHuman") * share * Math.min(damage / target.hp, 1);
     }
 
+    // How many forward steps from this square to the start square, or Infinity if it is far away.
+    function stepsToStart(squareId) {
+        var board = gameVariables.boardInfo;
+        var frontier = [squareId];
+        for (var steps = 0; steps <= 14 && frontier.length > 0; steps++) {
+            if (frontier.indexOf(board.boardStart) !== -1 && steps > 0) {
+                return steps;
+            }
+            var next = [];
+            frontier.forEach(function (id) {
+                var forwardIds;
+                try {
+                    forwardIds = getNextPathIdsFrom(id, true);
+                } catch (error) {
+                    forwardIds = [];
+                }
+                forwardIds.forEach(function (nextId) {
+                    if (next.indexOf(nextId) === -1) {
+                        next.push(nextId);
+                    }
+                });
+            });
+            frontier = next;
+        }
+        return Infinity;
+    }
+
+    // Rolling again is worth a start-square crossing within reach, or a creature still to summon on a
+    // fresh square (the AI keeps enough mana for both).
+    function rollAgainValue(card, player) {
+        var manaLeft = player.mana - card.cost;
+        var value = 0;
+        if (stepsToStart(player.sprite.gameSquareId) <= 8) {
+            value += weight(player, "crossStart") * 0.5;
+        }
+        var canSummon = player.hand.some(function (other) {
+            return other !== card && other.creature && other.cost <= manaLeft;
+        });
+        if (canSummon) {
+            value += weight(player, "captureVictory") * 0.25;
+        }
+        return value;
+    }
+
+    // Create Card is worth about a drawn card, as long as the new card is one the AI can use.
+    function createCardValue(card) {
+        var createdCard = masterCardList.find(function (item) {
+            return item.id === card.secondSpell;
+        });
+        return createdCard && !isDeadCard(createdCard) ? 8 : 0;
+    }
+
     function getTargetValue(card, target, player) {
+        // Creature cards (including ones that also have a spell side) are valued as a summon, plus the
+        // worth of any effect that happens as they enter play. Second spells are added in scoreCard.
+        if (card.creature) {
+            var summonSquare = getBoardSquare(target.targetSquare);
+            var summonScore = target.type === "ground" && summonSquare ? summonValue(card, summonSquare, player) : 0;
+            return summonScore > 0 && card.special === SPECIAL_EFFECT.CREATE_CARD
+                ? summonScore + createCardValue(card)
+                : summonScore;
+        }
+
         var targetPlayer = target.type === "player" ? target.model : null;
         var targetCreature = target.type === "creature" ? target.model : null;
         var square = getBoardSquare(target.targetSquare);
@@ -259,10 +321,22 @@ var computerAI = (function () {
                 var summoned = masterCardList.find(function (item) {
                     return item.id === card.secondSpell;
                 });
-                return summoned && summoned.creature ? bestSummonSquareValue(summoned, player) : 0;
+                if (!summoned || !summoned.creature) {
+                    return 0;
+                }
+                // Aimed at a square: worth what that square gives. Otherwise the best square on the board.
+                return square && target.type === "ground"
+                    ? summonValue(summoned, square, player)
+                    : bestSummonSquareValue(summoned, player);
 
             case SPECIAL_EFFECT.DRAW_CARDS:
                 return 8 * Math.min(card.damage, player.deck.length + player.discard.length);
+
+            case SPECIAL_EFFECT.ROLL_AGAIN:
+                return isSelf ? rollAgainValue(card, player) : 0;
+
+            case SPECIAL_EFFECT.CREATE_CARD:
+                return createCardValue(card);
 
             case SPECIAL_EFFECT.GAIN_GOLD:
                 return 0.5 * card.damage;
@@ -272,17 +346,18 @@ var computerAI = (function () {
 
             case SPECIAL_EFFECT.BOOST_MAX_MANA:
                 if (isMaxManaDrain(card)) {
-                    return targetPlayer && !isSelf
-                        ? 8 * Math.min(-card.damage, targetPlayer.maxmana) * (targetPlayer.human ? 1 : 0.6)
-                        : 0;
+                    if (!targetPlayer) {
+                        return 0;
+                    }
+                    var drained = 8 * Math.min(-card.damage, targetPlayer.maxmana);
+                    if (isSelf) {
+                        // Only an all-players drain can hit the AI itself, and that costs it.
+                        return isAll ? -drained : 0;
+                    }
+                    return drained * (targetPlayer.human ? 1 : 0.6);
                 }
                 return 12 * card.damage;
 
-        }
-
-        // Creature cards are summoned on the caster's own square.
-        if (card.creature) {
-            return target.type === "ground" && square ? summonValue(card, square, player) : 0;
         }
 
         // Plain damage spells.
@@ -322,10 +397,11 @@ var computerAI = (function () {
         return { utility: utility, targetIndex: bestTargetIndex };
     }
 
-    // Many cards also cast a second spell (secondSpell). Transform and Summon use that field for a creature.
+    // Many cards also cast a second spell (secondSpell). Transform and Summon use that field for a creature,
+    // and Create Card uses it for the card to add to the hand.
     function getSecondSpell(card) {
         if (!card.secondSpell || card.special === SPECIAL_EFFECT.TRANSFORM ||
-            card.special === SPECIAL_EFFECT.SUMMON) {
+            card.special === SPECIAL_EFFECT.SUMMON || card.special === SPECIAL_EFFECT.CREATE_CARD) {
             return null;
         }
         var secondCard = masterCardList.find(function (item) {
@@ -716,31 +792,46 @@ var computerAI = (function () {
                 }
             }
             player.playerRollDice = true;
-            var diceRoll = rollMovementDice();
-            var roll = applyMovementPenalty(player, diceRoll.total);
-            if (callbacks.onTurnStart) {
-                callbacks.onTurnStart(player, roll, diceRoll.dice);
+            player.extraRolls = 0;
+
+            function rollAndMove() {
+                var diceRoll = rollMovementDice();
+                var roll = applyMovementPenalty(player, diceRoll.total);
+                if (callbacks.onTurnStart) {
+                    callbacks.onTurnStart(player, roll, diceRoll.dice);
+                }
+
+                movePlayer(
+                    player,
+                    roll,
+                    null,
+                    function () {
+                        if (callbacks.playCards) {
+                            callbacks.playCards(player);
+                        }
+                        // A Roll Again card played this turn sends the AI round for another roll and move.
+                        if (player.extraRolls > 0 && !(callbacks.isBattleOver && callbacks.isBattleOver())) {
+                            player.extraRolls--;
+                            if (callbacks.onExtraRoll) {
+                                callbacks.onExtraRoll(player);
+                            }
+                            window.setTimeout(rollAndMove, 500);
+                            return;
+                        }
+                        if (callbacks.onTurnComplete) {
+                            callbacks.onTurnComplete(player);
+                        }
+                        window.setTimeout(runNextTurn, 500);
+                    },
+                    function (player) {
+                        if (callbacks.onStartCrossed) {
+                            callbacks.onStartCrossed(player);
+                        }
+                    }
+                );
             }
 
-            movePlayer(
-                player,
-                roll,
-                null,
-                function () {
-                    if (callbacks.playCards) {
-                        callbacks.playCards(player);
-                    }
-                    if (callbacks.onTurnComplete) {
-                        callbacks.onTurnComplete(player);
-                    }
-                    window.setTimeout(runNextTurn, 500);
-                },
-                function (player) {
-                    if (callbacks.onStartCrossed) {
-                        callbacks.onStartCrossed(player);
-                    }
-                }
-            );
+            rollAndMove();
         }
 
         runNextTurn();

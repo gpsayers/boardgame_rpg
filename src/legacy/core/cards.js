@@ -3,25 +3,25 @@ masterCardList = [];
 
 cavalierCardList = [6, 6, 21, 21, 23, 23, 17, 17, 21, 36];
 
-tricksterCardList = [];
+tricksterCardList = [10, 10, 41, 41, 42, 42, 43, 66, 30, 30];
 
-wizardCardList = [];
+wizardCardList = [4, 4, 32, 32, 38, 38, 34, 37, 37, 25];
 
-sorceressCardList = [];
+sorceressCardList = [1, 1, 9, 9, 45, 45, 46, 49, 48, 48];
 
-dwarvenCardList = [];
+dwarvenCardList = [54, 54, 55, 55, 56, 56, 57, 58, 44, 44];
 
-vampireCardList = [];
+vampireCardList = [15, 15, 59, 59, 61, 62, 62, 63, 63, 65];
 
-fireCardList = [];
+fireCardList = [67, 67, 68, 68, 69, 70, 70, 81, 81, 82];
 
-deathCardList = [];
+deathCardList = [11, 50,50, 51, 51, 52, 53, 53, 22, 22];
 
 waterCardList = [2, 2, 29, 29, 27, 27, 8, 8, 25, 34];
 
-earthCardList = [];
+earthCardList = [78, 78, 79, 79, 80, 72, 71, 71, 33, 33];
 
-lifeCardList = [];
+lifeCardList = [14, 14, 24, 24, 74, 74, 75, 75, 76, 77];
 
 redWizard1List = [];
 
@@ -155,7 +155,7 @@ function processData(allText) {
             attack: numberFor("attack"),
             defense: numberFor("defense"),
             damage: numberFor("damage"),
-            image: valueFor("image"),
+            image: valueFor("image").replace(/\.png$/i, ""),
             threat: numberFor("threat"),
             targetLocation: valueFor("targetLocation"),
             targetType: valueFor("targetType"),

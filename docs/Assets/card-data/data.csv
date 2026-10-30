@@ -1,39 +1,83 @@
 ID,Name,Description,Mana,Rarity,Gold Cost,Creature,Spell,Attack,Defense,Damage,Image,Threat,Target Location,Target Type,Target Count,Special,ClassOrColor,Armor,Flying,Blitz,Reach,Deadly,Regen,SecondSpell,Additional Description
-1,Fire Bolt,Deal 2 damage to any creature or player,1,common,30,FALSE,TRUE,0,0,2,throw_flame_new,1,any,both,1,0,Fire,0,0,0,0,0,0,,
-2,Frog,Summon Frog,1,common,15,TRUE,FALSE,1,1,0,giant_frog,1,,,,0,Water,0,0,0,1,0,0,,Reach
 3,Sheep,Summon Sheep,1,common,10,TRUE,TRUE,1,2,0,sheep,1,,,,0,Any,0,0,0,0,0,0,,
-4,Butterfly,Summon Butterfly,1,common,25,TRUE,TRUE,0,1,0,butterfly_1_new,1,,,,0,Wizard,0,0,0,0,0,0,16,Draw 1 card
 5,Rat,Summon Rat,1,common,10,TRUE,FALSE,1,1,0,rat,1,,,,0,Any,0,0,0,0,0,0,,
-6,Turtle,Summon Turtle,1,common,20,TRUE,FALSE,1,1,0,turtle,1,,,,0,Cavalier,1,0,0,0,0,0,,Armor 1
 7,Bear,Summon Bear,2,common,10,TRUE,FALSE,2,2,0,bear,2,,,,0,Any,0,0,0,0,0,0,,
 8,Spider,Summon Spider,2,common,10,TRUE,FALSE,1,1,0,spider,0,,,,0,Any,0,0,0,0,1,0,,Deadly
-9,Snake,Summon Snake,1,common,10,TRUE,FALSE,1,2,0,grey_snake,0,,,,0,Sorceress,0,0,1,0,0,0,,Blitz
-10,Dash,Move forward 1,1,common,30,FALSE,TRUE,0,0,0,running,0,self,player,,4,Any,0,0,0,0,0,0,,
-11,Death Curse,Destroy target creature,3,uncommon,50,FALSE,TRUE,0,0,100,death,0,any,creature,1,0,Death,0,0,0,0,0,0,,
-12,Blizzard,Deal 1 damage to all creatures and players,3,rare,150,FALSE,TRUE,0,0,1,ice_storm_new,3,all,both,all,0,Water,0,0,0,0,0,0,,
-13,Pickpocket,Steal 15 gold from a player,1,uncommon,50,FALSE,TRUE,0,0,15,gold_pile_3,0,any,player,1,1,Trickster,0,0,0,0,0,0,,
-14,Healing Word,Heal a creature or player for 2 HP,1,rare,300,FALSE,TRUE,0,0,2,regeneration_new,0,any,both,1,3,Life,0,0,0,0,0,0,,
-15,Bat,Summon Bat,1,common,20,TRUE,FALSE,1,1,0,microbat,1,,,,0,Earth,0,1,0,0,0,0,,Flying
-16,Research,Draw 1 card,1,common,10,FALSE,TRUE,0,0,1,magic_mapping,1,self,player,1,5,Wizard,0,0,0,0,0,0,,
-17,Sword,Deal 4 to adjacent creature,2,common,40,FALSE,TRUE,0,0,4,orcish_great_sword,1,adj,creature,1,0,Cavalier,0,0,0,0,0,0,,
+16,Research,Draw 1 card,1,common,10,FALSE,TRUE,0,0,1,magic_mapping,1,self,player,1,5,Any,0,0,0,0,0,0,,
 18,Lose1,Lose 1 life,0,common,0,FALSE,TRUE,0,0,1,death,0,self,player,1,9,Any,0,0,0,0,0,0,,
 19,Lose2,Lose 2 life,0,common,0,FALSE,TRUE,0,0,2,death,0,self,player,1,9,Any,0,0,0,0,0,0,,
 20,Lose3,Lose 3 life,0,common,0,FALSE,TRUE,0,0,3,death,0,self,player,1,9,Any,0,0,0,0,0,0,,
-21,Minotaur,Summon Minotaur,3,common,30,TRUE,FALSE,3,3,0,minotaur,2,,,,0,Cavalier,1,0,0,0,0,0,,Armor 1
-22,Manipulate,Lose 1 life and Draw 1 card,1,common,10,FALSE,TRUE,0,0,1,lethal_infusion,0,self,player,1,9,Death,0,0,0,0,0,0,16,
-23,Arrow,Deal 1 to any creature,1,common,15,FALSE,TRUE,0,0,1,arrow,2,any,creature,1,0,Cavalier,0,0,0,0,0,0,,
-24,Defensive Stance,Give target creature +0/+2,2,uncommon,50,FALSE,TRUE,0,2,0,condensation_shield_new,1,any,creature,1,8,Any,0,0,0,0,0,0,,
-25,Research II,Draw 2 cards,3,uncommon,50,FALSE,TRUE,0,0,2,magic_mapping,0,self,player,1,5,Water,0,0,0,0,0,0,,
-26,Fire Bat,Summon Fire Bat,3,uncommon,50,TRUE,FALSE,1,1,0,fire_bat,2,,,,0,Fire,0,1,0,0,0,0,1,Flying
-27,Polymorph,Transform creature into 1/1 Frog,2,uncommon,50,FALSE,TRUE,0,0,0,polymorph_other,3,any,creature,1,18,Water,0,0,0,0,0,0,2,
 28,Ogre,Summon Ogre,3,common,60,TRUE,FALSE,3,4,0,ogre_new,3,,,,0,Any,0,0,0,0,0,0,,
-29,Magic Replicator,Duplicate a card in your hand,1,common,40,FALSE,TRUE,0,0,0,selective_amnesia,1,self,player,1,19,Water,0,0,0,0,0,0,,
-30,Dig,Gain 10 gold,2,common,40,FALSE,TRUE,0,0,10,dig_new,1,self,player,1,6,Trickster,0,0,0,0,0,0,,
-31,Giant Toad,Summon Giant Toad,2,common,20,TRUE,FALSE,2,3,0,giant_toad,2,,,,0,Cavalier,0,0,0,1,0,0,,Reach
-32,Giant Eye,Summon Giant Eye,2,common,30,TRUE,FALSE,1,2,0,giant_eyeball,2,,,,12,Wizard,0,0,0,0,0,0,33,
-33,Accelerate,Increase Max Mana by 1,2,common,30,FALSE,TRUE,0,0,1,dispersal_old,1,self,player,1,11,Earth,0,0,0,0,0,0,,
-34,Grand Avatar,Summon Grand Avatar,3,common,40,TRUE,FALSE,1,4,0,grand_avatar,3,,,,0,Wizard,0,0,0,1,0,0,,Reach
 35,Practice Dummy,Summon Practice Dummy,0,common,15,TRUE,FALSE,0,2,0,training_dummy_new,0,,,,0,Any,0,0,0,0,0,0,,
+47,Scorch,Deal 1 damage to creature or player,1,uncommon,30,FALSE,TRUE,0,0,1,conjure_flame_old,1,any,both,1,0,Any,0,0,0,0,0,0,,
+64,Regeneration,Heal self 2,1,common,15,FALSE,TRUE,0,0,2,regeneration_old,1,self,player,1,3,Any,0,0,0,0,0,0,,
+6,Turtle,Summon Turtle,1,common,20,TRUE,FALSE,1,1,0,turtle,1,,,,0,Cavalier,1,0,0,0,0,0,,Armor 1
+17,Sword,Deal 4 to adjacent creature,2,common,40,FALSE,TRUE,0,0,4,orcish_great_sword,1,adj,creature,1,0,Cavalier,0,0,0,0,0,0,,
+21,Minotaur,Summon Minotaur,3,common,30,TRUE,FALSE,3,3,0,minotaur,2,,,,0,Cavalier,1,0,0,0,0,0,,Armor 1
+23,Arrow,Deal 1 to any creature,1,common,15,FALSE,TRUE,0,0,1,arrow,2,any,creature,1,0,Cavalier,0,0,0,0,0,0,,
+31,Giant Toad,Summon Giant Toad,2,common,20,TRUE,FALSE,2,3,0,giant_toad,2,,,,0,Cavalier,0,0,0,1,0,0,,Reach
 36,Training Target,Summon 0/2 Dummy to adj square,3,common,50,FALSE,TRUE,0,0,0,training_dummy_new,2,adj,ground,1,16,Cavalier,0,0,0,0,0,0,35,
-37,Unsummon,Return target creature to owners hand,2,common,50,FALSE,TRUE,0,0,0,phase_shift_old,2,any,creature,1,14,Wizard,0,0,0,0,0,0,,
-38,Pacify,Set target creatures attack to 0,2,common,40,FALSE,TRUE,0,-1,0,enslavement_old,2,any,creature,1,17,Wizard,0,0,0,0,0,0,,
+11,Death Curse,Destroy target creature,3,uncommon,50,FALSE,TRUE,0,0,100,death,0,any,creature,1,0,Death,0,0,0,0,0,0,,
+22,Manipulate,Lose 1 life and Draw 1 card,1,common,10,FALSE,TRUE,0,0,1,lethal_infusion,0,self,player,1,9,Death,0,0,0,0,0,0,16,
+50,Skeleton,Summon Skeleton,1,common,20,TRUE,FALSE,2,2,1,skeleton_humanoid_small_new,1,,,,9,Death,0,0,0,0,0,0,,
+51,Specter,Summon Specter,2,common,40,TRUE,FALSE,1,2,0,spectral_warrior,1,,,,0,Death,0,1,0,0,0,0,,Flying
+52,Ghoul,Summon Ghoul,3,common,50,TRUE,FALSE,4,4,2,ghoul,3,,,,9,Death,0,0,0,0,0,0,,
+53,Agony,Give target creature -2/-2,2,common,40,FALSE,TRUE,2,2,0,agony,2,any,creature,1,13,Death,0,0,0,0,0,0,,
+60,Torment,Give target creature -1/-1,1,uncommon,40,FALSE,TRUE,1,1,0,pain_old,1,any,creature,1,13,Death,0,0,0,0,0,0,,
+44,Magic Shield,Give target creature Armor 1,1,common,10,FALSE,TRUE,0,0,1,ozocubus_armor_old,1,any,creature,1,8,Dwarf,1,0,0,0,0,0,,Armor 1
+54,Jackal,Summon Jackal,1,common,15,TRUE,FALSE,2,1,0,jackal_new,1,,,,0,Dwarf,0,0,0,0,0,0,,
+55,Orc,Summon Orc,2,common,40,TRUE,FALSE,2,2,0,orc_knight_old,2,,,,0,Dwarf,1,0,0,0,0,0,,Armor 1
+56,Harpy,Summon Harpy,3,common,50,TRUE,FALSE,3,2,0,harpy,3,,,,0,Dwarf,0,1,0,0,0,0,,Flying
+57,Dwarvish Augmentation,Give creature +2/+2,2,common,20,FALSE,TRUE,2,2,0,maxwells_silver_hammer,1,any,creature,1,8,Dwarf,0,0,0,0,0,0,,
+58,Whirling Axe,Damage 2 to all adj creatures and players,3,common,50,FALSE,TRUE,0,0,2,spectral_axe,3,adj,both,all,0,Dwarf,0,0,0,0,0,0,,
+33,Accelerate,Increase Max Mana by 1,2,common,30,FALSE,TRUE,0,0,1,dispersal_new,1,self,player,1,11,Earth,0,0,0,0,0,0,,
+71,Revitalization,Give creature regen,1,common,15,FALSE,TRUE,0,0,0,necromutation_new,1,any,creature,1,8,Earth,0,0,0,0,0,1,,Regen
+72,Spreading Spores,Summon a fungus to any square,3,common,60,FALSE,TRUE,0,0,0,giant_spore,1,any,ground,1,16,Earth,0,0,0,0,0,0,73,
+73,Fun-guy,Summon Fun-guy,1,common,10,TRUE,FALSE,1,1,0,wandering_mushroom_new,1,,,,0,Earth,0,0,0,0,0,0,,
+78,Rock Beetle,Summon Rock Beetle,1,common,15,TRUE,FALSE,1,2,0,boulder_beetle,1,,,,0,Earth,0,0,0,0,0,0,,
+79,Clay Golem,Summon Clay Golem,2,common,30,TRUE,FALSE,2,2,0,clay_golem,2,,,,0,Earth,1,0,0,0,0,0,,
+80,Earth Elemental,Summon Earth Elemental,3,common,50,TRUE,FALSE,2,4,0,earth_elemental,2,,,,0,Earth,0,0,0,1,0,1,,"Reach, Regen"
+26,Fire Bat,Summon Fire Bat,3,uncommon,50,TRUE,FALSE,1,1,0,fire_bat,2,,,,0,Fire,0,1,0,0,0,0,1,Flying
+67,Fire Crab,Summon Fire Crab,1,common,20,TRUE,FALSE,1,1,0,fire_crab,1,,,,12,Fire,0,0,0,0,0,0,47,Deal 1 damage to creature or player
+68,Red Devil,Summon Red Devil,2,common,30,TRUE,FALSE,2,1,0,red_devil_new,2,,,,0,Fire,0,0,1,0,0,0,,Blitz
+69,Hell Hound,Summon Hell Hound,3,common,60,TRUE,FALSE,3,2,0,hell_hound_old,3,,,,20,Fire,0,0,0,0,0,0,1,Create and draw Fire Bolt
+70,Quickness,Give creature blitz,1,common,15,FALSE,TRUE,0,0,0,phase_shift_old,1,any,creature,1,8,Fire,0,0,1,0,0,0,,
+81,Magma Shell,Deal 3 damage to any creature,2,common,30,FALSE,TRUE,0,0,3,bolt_of_magma_old,2,any,creature,1,0,Fire,0,0,0,0,0,0,,
+82,Fire Storm,Deal 2 damage to all creatures,3,common,50,FALSE,TRUE,0,0,2,fire_storm_new,3,all,creature,all,0,Fire,0,0,0,0,0,0,,
+14,Healing Word,Heal a creature or player for 2 HP,1,uncommon,50,FALSE,TRUE,0,0,2,regeneration_new,0,any,both,1,3,Life,0,0,0,0,0,0,,
+24,Defensive Shell,Give target creature +0/+2,2,uncommon,50,FALSE,TRUE,0,2,0,ozocubus_armor_old,1,any,creature,1,8,Life,0,0,0,0,0,0,,
+74,Holy Swine,Summon Holy Swine,1,common,20,TRUE,FALSE,1,1,0,holy_swine,1,,,,20,Life,0,0,0,0,0,0,14,Create and draw Healing Word
+75,White Imp,Summon White Imp,2,common,25,TRUE,FALSE,2,2,0,white_imp,1,,,,0,Life,0,0,0,0,0,1,,Regen
+76,Griffon,Summon Griffon,3,common,50,TRUE,FALSE,2,2,0,griffon,3,,,,12,Life,0,1,0,0,0,0,24,Flying
+77,Enforced Peace,Set all creatures attack to 0,3,common,60,FALSE,TRUE,0,-1,0,flight,3,all,creature,all,17,Life,0,0,0,0,0,0,,
+1,Fire Bolt,Deal 2 damage to any creature or player,2,common,40,FALSE,TRUE,0,0,2,throw_flame_new,1,any,both,1,0,Sorceress,0,0,0,0,0,0,,
+9,Snake,Summon Snake,1,common,15,TRUE,FALSE,1,1,0,grey_snake,1,,,,0,Sorceress,0,0,1,0,0,0,,Blitz
+45,Boggart,Summon Boggart,2,common,40,TRUE,FALSE,1,2,0,boggart_new,2,,,,12,Sorceress,0,0,0,0,0,0,22,Draw 1 card and take 1 damage
+46,Salamander,Summon Salamander,3,common,60,TRUE,FALSE,2,2,0,salamander,3,,,,12,Sorceress,0,0,0,0,0,0,47,Deal 1 to creature or player
+48,Fire Sword,Give creature +2/+0,1,common,10,FALSE,TRUE,2,0,0,fire_brand,1,any,creature,1,8,Sorceress,0,0,0,0,0,0,,
+49,Haste,Player rolls again,3,common,50,FALSE,TRUE,0,0,0,blink,2,self,player,1,21,Sorceress,0,0,0,0,0,0,,
+10,Dash,Move forward 1,1,common,30,FALSE,TRUE,0,0,0,running,0,self,player,1,4,Trickster,0,0,0,0,0,0,,
+13,Pickpocket,Steal 15 gold from a player,1,uncommon,50,FALSE,TRUE,0,0,15,gold_pile_3,0,any,player,1,1,Trickster,0,0,0,0,0,0,,
+30,Dig,Gain 10 gold,2,common,40,FALSE,TRUE,0,0,10,dig_new,1,self,player,1,6,Trickster,0,0,0,0,0,0,,
+41,Wasp,Summon Wasp,1,common,15,TRUE,FALSE,1,1,0,yellow_wasp,1,,,,0,Trickster,0,0,0,0,1,0,,Deadly
+42,Goblin,Summon Goblin,2,common,30,TRUE,FALSE,2,1,0,goblin_new,1,,,,12,Trickster,0,0,0,0,0,0,30,Gain 10 gold
+43,Giant Scorpion,Summon Scorpion,3,common,40,TRUE,FALSE,1,3,0,giant_scorpion,2,,,,0,Trickster,0,0,0,0,1,0,,Deadly
+66,Delay,Reduce player max mana 1,3,common,40,FALSE,TRUE,0,0,-1,slow_new,2,any,player,1,11,Trickster,0,0,0,0,0,0,,
+15,Bat,Summon Bat,1,common,20,TRUE,FALSE,1,1,0,microbat,1,,,,0,Vampire,0,1,0,0,0,0,,Flying
+59,Revenant,Summon Revenant,2,common,40,TRUE,FALSE,1,2,0,revenant,2,,,,12,Vampire,0,0,0,0,0,0,60,Give creature -1/-1
+61,Wraith,Summon Wraith,3,common,60,TRUE,FALSE,2,3,0,wraith,3,,,,20,Vampire,0,0,0,0,0,0,22,Create and draw Manipulate
+62,Bolt of Draining,Set target creatures health to 1,1,common,30,FALSE,TRUE,-1,1,0,bolt_of_draining_new,2,any,creature,1,17,Vampire,0,0,0,0,0,0,,
+63,Vampire's Bite,Deal 2 to a player and heal 2 life,2,common,40,FALSE,TRUE,0,0,2,vampiric_draining_new,2,any,player,1,22,Vampire,0,0,0,0,0,0,64,
+65,Call Minion,Summon a Bat to adj square,3,common,50,FALSE,TRUE,0,0,0,summon_shadow_creatures_new,3,adj,ground,1,16,Vampire,0,0,0,0,0,0,15,
+2,Frog,Summon Frog,1,common,15,TRUE,FALSE,1,1,0,giant_frog,1,,,,0,Water,0,0,0,1,0,0,,Reach
+12,Blizzard,Deal 1 damage to all creatures and players,3,uncommon,100,FALSE,TRUE,0,0,1,ice_storm_new,3,all,both,all,0,Water,0,0,0,0,0,0,,
+27,Polymorph,Transform creature into 1/1 Frog,2,uncommon,50,FALSE,TRUE,0,0,0,polymorph_other,3,any,creature,1,18,Water,0,0,0,0,0,0,2,
+29,Magic Replicator,Duplicate a card in your hand,1,common,40,FALSE,TRUE,0,0,0,selective_amnesia,1,self,player,1,19,Water,0,0,0,0,0,0,,
+39,Adder,Summon Adder,2,common,40,TRUE,FALSE,2,2,0,adder,2,,,,0,Water,0,0,0,0,1,0,,Deadly
+40,Shark,Summon Shark,3,common,60,TRUE,FALSE,3,1,0,shark_new,2,,,,0,Water,0,0,1,0,0,0,,Blitz
+4,Butterfly,Summon Butterfly,1,common,25,TRUE,TRUE,0,1,0,butterfly_1_new,1,,,,0,Wizard,0,0,0,0,0,0,16,Draw 1 card
+25,Research II,Draw 2 cards,3,uncommon,50,FALSE,TRUE,0,0,2,magic_mapping,0,self,player,1,5,Wizard,0,0,0,0,0,0,,
+32,Giant Eye,Summon Giant Eye,2,common,30,TRUE,FALSE,1,2,0,giant_eyeball,2,,,,12,Wizard,0,0,0,0,0,0,33,Increase max mana by 1
+34,Grand Avatar,Summon Grand Avatar,3,common,40,TRUE,FALSE,1,4,0,grand_avatar,3,,,,0,Wizard,0,0,0,1,0,0,,Reach
+37,Unsummon,Return creature to owners hand,2,common,50,FALSE,TRUE,0,0,0,dispersal_old,2,any,creature,1,14,Wizard,0,0,0,0,0,0,,
+38,Pacify,Set target creatures attack to 0,1,common,40,FALSE,TRUE,0,-1,0,enslavement_old,2,any,creature,1,17,Wizard,0,0,0,0,0,0,,
