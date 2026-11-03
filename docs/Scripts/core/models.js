@@ -59,6 +59,13 @@ var gameVariables = {
     playerStartingMana: 1,
     playerHealth: 0,
     playerMaxHealth: 0,
+    playerAttack: 1,
+    playerMinMovement: 2,
+    playerMaxMovement: 12,
+    playerStartingHandSize: 3,
+    playerStartingGold: 0,
+    playerAsset: "",
+    playerStartingCardList: [],
     playerArmor: 0,
     playerInitiative: 3,
     playerMaxHand: 4,
@@ -103,29 +110,24 @@ function gamePlayer(id, square, name, playerClass, playerColor, hp, mana, human,
     this.battleGold = 0;
     this.armor = armor;
     this.movementPenalty = 0;
+    this.minMovement = 2;
+    this.maxMovement = 12;
     this.playerRollDice = false;
     this.aiProfile = null;
 }
 
 //location: sprite.gameSquareId
 
-// Movement is rolled with two six-sided dice. Change MOVEMENT_DICE_COUNT to try other dice pools.
-var MOVEMENT_DICE_COUNT = 2;
-
-function rollMovementDice() {
-    var dice = [];
-    for (var i = 0; i < MOVEMENT_DICE_COUNT; i++) {
-        dice.push(1 + Math.floor(Math.random() * 6));
-    }
-    return {
-        dice: dice,
-        total: dice.reduce(function (sum, die) { return sum + die; }, 0)
-    };
+// Movement is a random whole number between the player's minMovement and maxMovement (inclusive).
+function rollMovement(player) {
+    var min = Math.max(0, Math.floor(player.minMovement));
+    var max = Math.max(min, Math.floor(player.maxMovement));
+    var total = min + Math.floor(Math.random() * (max - min + 1));
+    return { dice: [total], total: total };
 }
 
 function describeDiceRoll(dice) {
-    return dice.length > 1 ? dice.join(" + ") + " = " + dice.reduce(function (sum, die) { return sum + die; }, 0)
-        : String(dice[0]);
+    return String(dice.reduce(function (sum, die) { return sum + die; }, 0));
 }
 
 // Portrait image for a player class, in assets/players. Most classes use <class>.png.

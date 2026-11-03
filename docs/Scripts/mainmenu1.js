@@ -49,7 +49,7 @@ var mainMenu = defineScene("mainMenu", {
         });
 
         root.querySelector('[data-action="battle-test"]').addEventListener("click", function () {
-            self.scene.start("battle");
+            self.scene.start("battleload");
         });
     },
 

@@ -63,6 +63,6 @@ var maptext = defineScene("maptext", {
     startBoard: function (board) {
         gameVariables.currentBoard = board;
         gameVariables.gameContinue = false;
-        this.scene.start("battle");
+        this.scene.start("battleload", { backScene: "maptext" });
     }
 });

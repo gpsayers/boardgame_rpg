@@ -11,11 +11,11 @@ var new_character = defineScene("new", {
             { key: "vampire", label: "Vampire" }
         ];
         var schools = [
-            { key: "Fire", label: "Fire", image: "fire.png" },
-            { key: "Water", label: "Water", image: "ice.png" },
-            { key: "Life", label: "Life", image: "divination.png" },
-            { key: "Death", label: "Death", image: "necromancy.png" },
-            { key: "Earth", label: "Earth", image: "poison.png" }
+            { key: "Fire", label: "Fire", image: "board-elements/school-squares/fire.png" },
+            { key: "Water", label: "Water", image: "board-elements/school-squares/ice.png" },
+            { key: "Life", label: "Life", image: "board-elements/school-squares/life.png" },
+            { key: "Death", label: "Death", image: "board-elements/school-squares/death.png" },
+            { key: "Earth", label: "Earth", image: "board-elements/school-squares/earth.png" }
         ];
         var selectedClass = "wizard";
         var selectedSchool = "Fire";
@@ -65,7 +65,7 @@ var new_character = defineScene("new", {
             button.setAttribute("aria-pressed", choice.key === selectedKey ? "true" : "false");
             button.setAttribute("aria-label", choice.label + (isClass ? " class" : " school of magic"));
             image.src = isClass
-                ? gameAssetUrl("assets/players/" + playerPortraitFile(choice.key))
+                ? gameAssetUrl("assets/players/" + classPortraitFile(choice.key))
                 : gameAssetUrl("assets/" + choice.image);
             image.alt = "";
             image.width = 50;
@@ -117,18 +117,19 @@ var new_character = defineScene("new", {
                 return;
             }
 
+            if (!applyPlayerClassData(selectedClass)) {
+                error.textContent = "Player data is still loading. Please try again in a moment.";
+                return;
+            }
+
             gameVariables.playerName = name;
             gameVariables.playerClass = selectedClass;
             gameVariables.playerImg = selectedClass;
             gameVariables.playerColor = selectedSchool;
-            gameVariables.playerHealth = 10;
-            gameVariables.playerMaxHealth = 10;
             gameVariables.playerStartingMana = 1;
-            gameVariables.playerMaxHand = 6;
-            gameVariables.playerGold = 50;
-            gameVariables.playerArmor = 0;
             gameVariables.gameContinue = false;
-            gameVariables.playerDeck = buildStartingDeck(selectedClass, selectedSchool);
+            // The class cards come from the player data; the school cards are added on top.
+            gameVariables.playerDeck = gameVariables.playerStartingCardList.concat(buildStartingDeck("", selectedSchool));
 
             self.scene.start("maptext");
         });

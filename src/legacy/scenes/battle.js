@@ -1,18 +1,27 @@
 var BATTLE_DEPTH = { boardSquare: 0, boardSpecial: 1, creature: 2, aiPlayer: 3, humanPlayer: 4, spellEffect: 5 };
 
 var battle = defineScene("battle", {
-    init: function () {
+    init: function (data) {
         gameVariables.boardInfo = gameVariables.currentBoard === "board2" ? board2 : board1;
-        this.computerPlayers = gameVariables.boardInfo.computerPlayers.filter(function (player) {
-            return player.class !== gameVariables.playerClass && player.color !== gameVariables.playerColor;
-        });
+        if (data && Array.isArray(data.enemyKeys)) {
+            // Ids start above the human's 99 so they stay unique.
+            this.computerPlayers = data.enemyKeys.map(function (key, index) {
+                return createEnemyPlayer(key, 100 + index, gameVariables.boardInfo.boardStart);
+            }).filter(function (player) {
+                return player !== null;
+            });
+        } else {
+            this.computerPlayers = gameVariables.boardInfo.computerPlayers.filter(function (player) {
+                return player.class !== gameVariables.playerClass && player.color !== gameVariables.playerColor;
+            });
+        }
         gameVariables.gamePlayerArray.length = 0;
         gameVariables.gameBoard.length = 0;
         if (gameVariables.playerName && gameVariables.playerClass &&
             gameVariables.playerDeck && gameVariables.playerDeck.length > 0) {
             var deck = shuffle(gameVariables.playerDeck.slice());
             var maxHand = gameVariables.playerMaxHand || 4;
-            var hand = deck.splice(0, Math.max(0, maxHand - 1));
+            var hand = deck.splice(0, Math.max(0, gameVariables.playerStartingHandSize || maxHand - 1));
             var humanPlayer = new gamePlayer(
                 99,
                 gameVariables.boardInfo.boardStart,
@@ -28,6 +37,8 @@ var battle = defineScene("battle", {
                 gameVariables.playerArmor
             );
             humanPlayer.hand = hand;
+            humanPlayer.minMovement = gameVariables.playerMinMovement;
+            humanPlayer.maxMovement = gameVariables.playerMaxMovement;
             gameVariables.gamePlayerArray.push(humanPlayer);
             this.computerPlayers.forEach(function (player) {
                 gameVariables.gamePlayerArray.push(player);
@@ -54,7 +65,7 @@ var battle = defineScene("battle", {
             return player.human;
         });
         var humanClass = humanPlayer ? humanPlayer.class : (gameVariables.playerClass || "cavalier");
-        scene.load.image("battle-player-human", "players/" + playerPortraitFile(humanClass));
+        scene.load.image("battle-player-human", "players/" + (humanPlayer ? playerAssetFile(humanPlayer) : classPortraitFile(humanClass)));
         var creatureImageFiles = {
             zombie: "zombie_ogre",
             summon: "summon_ugly_thing",
@@ -82,28 +93,34 @@ var battle = defineScene("battle", {
         var boardColorFiles = {
             red: "fire",
             blue: "ice",
-            white: "divination",
-            yellow: "divination",
-            black: "necromancy",
-            purple: "necromancy",
-            green: "poison",
+            white: "life",
+            yellow: "life",
+            black: "death",
+            purple: "death",
+            green: "earth",
             fire: "fire",
             water: "ice",
-            life: "divination",
-            death: "necromancy",
-            earth: "poison"
+            life: "life",
+            death: "death",
+            earth: "earth",
+            animal: "animal",
+            soldier: "soldier",
+            magical: "magical",
+            elite: "elite",
+            boss: "boss"
         };
         this.computerPlayers.forEach(function (player) {
-            scene.load.image("battle-player-" + player.class, "players/" + playerPortraitFile(player.class));
+            scene.load.image("battle-player-" + player.class,
+                player.asset ? ENEMY_PORTRAIT_PATH + player.asset : "players/" + playerPortraitFile(player.class));
             var colorFile = boardColorFiles[String(player.color).toLowerCase()];
             if (colorFile) {
-                scene.load.image(player.color, "" + colorFile + ".png");
+                scene.load.image(player.color, "board-elements/school-squares/" + colorFile + ".png");
             }
         });
         var humanColor = humanPlayer ? humanPlayer.color : (gameVariables.playerColor || "Fire");
         var humanColorFile = boardColorFiles[String(humanColor).toLowerCase()];
         if (humanColorFile) {
-            scene.load.image(humanColor, "" + humanColorFile + ".png");
+            scene.load.image(humanColor, "board-elements/school-squares/" + humanColorFile + ".png");
         }
     },
 
@@ -244,6 +261,8 @@ var battle = defineScene("battle", {
                 maxhp: gameVariables.playerMaxHealth || gameVariables.playerHealth || 10,
                 gold: gameVariables.playerGold || 100,
                 armor: gameVariables.playerArmor || 0,
+                minMovement: gameVariables.playerMinMovement,
+                maxMovement: gameVariables.playerMaxMovement,
                 capturedSquares: 0
             };
         } else {
@@ -291,7 +310,8 @@ var battle = defineScene("battle", {
             player.deck = shuffle(player.deck);
             player.hand = [];
             player.discard = [];
-            while (player.hand.length < player.maxhand && player.deck.length > 0) {
+            var startingHandSize = Math.min(player.startingHandSize || player.maxhand, player.maxhand);
+            while (player.hand.length < startingHandSize && player.deck.length > 0) {
                 player.hand.push(player.deck.pop());
             }
         }, this);
@@ -332,13 +352,18 @@ var battle = defineScene("battle", {
             purple: "Death",
             green: "Earth"
         };
-        var validSchools = ["Fire", "Water", "Life", "Death", "Earth"];
+        var validSchools = ["Fire", "Water", "Life", "Death", "Earth", "Animal", "Soldier", "Magical", "Elite", "Boss"];
         var schoolSquareFiles = {
             Fire: "fire",
             Water: "ice",
-            Life: "divination",
-            Death: "necromancy",
-            Earth: "poison"
+            Life: "life",
+            Death: "death",
+            Earth: "earth",
+            Animal: "animal",
+            Soldier: "soldier",
+            Magical: "magical",
+            Elite: "elite",
+            Boss: "boss"
         };
 
         players.forEach(function (player, index) {
@@ -359,7 +384,9 @@ var battle = defineScene("battle", {
             identity.className = "battle-player-identity";
             var avatar = document.createElement("img");
             avatar.className = "battle-player-avatar";
-            avatar.src = gameAssetUrl("assets/players/" + playerPortraitFile(player.class));
+            avatar.src = gameAssetUrl("assets/" + (player.asset
+                ? ENEMY_PORTRAIT_PATH + player.asset
+                : "players/" + playerAssetFile(player)));
             avatar.alt = "";
             avatar.width = 48;
             avatar.height = 48;
@@ -372,7 +399,7 @@ var battle = defineScene("battle", {
             schoolLabel.className = "battle-player-school";
             var squareSwatch = document.createElement("span");
             squareSwatch.className = "battle-player-square";
-            squareSwatch.style.backgroundImage = "url(" + gameAssetUrl("assets/" + schoolSquareFiles[school] + ".png") + ")";
+            squareSwatch.style.backgroundImage = "url(" + gameAssetUrl("assets/board-elements/school-squares/" + schoolSquareFiles[school] + ".png") + ")";
             squareSwatch.title = school + " squares";
             schoolLabel.appendChild(squareSwatch);
             schoolLabel.appendChild(document.createTextNode(school + " · " +
@@ -2115,11 +2142,11 @@ var battle = defineScene("battle", {
         this.battleTurnStatus.textContent = "Rolling the dice…";
 
         var scene = this;
-        var diceRoll = rollMovementDice();
+        var diceRoll = rollMovement(scene.battleTestHuman);
         var penalty = Math.max(0, scene.battleTestHuman.movementPenalty || 0);
         var result = applyMovementPenalty(scene.battleTestHuman, diceRoll.total);
         var rollTimer = window.setInterval(function () {
-            scene.battleDie.textContent = String(rollMovementDice().total);
+            scene.battleDie.textContent = String(rollMovement(scene.battleTestHuman).total);
         }, 75);
 
         window.setTimeout(function () {

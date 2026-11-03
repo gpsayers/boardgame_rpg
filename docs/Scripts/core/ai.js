@@ -795,7 +795,7 @@ var computerAI = (function () {
             player.extraRolls = 0;
 
             function rollAndMove() {
-                var diceRoll = rollMovementDice();
+                var diceRoll = rollMovement(player);
                 var roll = applyMovementPenalty(player, diceRoll.total);
                 if (callbacks.onTurnStart) {
                     callbacks.onTurnStart(player, roll, diceRoll.dice);

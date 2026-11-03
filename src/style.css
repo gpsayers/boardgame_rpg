@@ -245,6 +245,11 @@
             --school-life: #75a85c;
             --school-death: #a565ad;
             --school-earth: #9b814b;
+            --school-animal: #b8794a;
+            --school-soldier: #8f98a8;
+            --school-magical: #6f7fd6;
+            --school-elite: #d1a93f;
+            --school-boss: #c2413f;
             position: absolute;
             z-index: 10;
             inset: 0;

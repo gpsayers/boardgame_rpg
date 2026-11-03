@@ -23,7 +23,7 @@ The build is written to `docs/` for static hosting. Do not edit `docs/` directly
 ## Project layout
 
 - `src/main.js` starts Phaser and loads the existing classic scripts in dependency order.
-- `src/legacy/` contains the existing global-script game code, grouped by core, boards, and scenes. These remain classic scripts until they are incrementally migrated to ES modules.
+- `src/legacy/` contains the existing global-script game code, grouped by core, boards, and scenes. The `battleload.js` scene lets battle tests choose opponents. These remain classic scripts until they are incrementally migrated to ES modules.
 - `src/style.css` contains the app styles.
 - `public/assets/` contains game assets served at stable URLs.
 - `public/vendor/phaser/` contains the pinned Phaser runtime and its license.

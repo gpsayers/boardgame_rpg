@@ -15,19 +15,19 @@ var bootScene = defineScene("boot", {
         this.load.setPath(gameAssetUrl("assets/"));
 
         //board squares
-        this.load.image('Fire', 'fire.png');
-        this.load.image('Water', 'ice.png');
-        this.load.image('neutral', 'summoning.png');
-        this.load.image('Life', 'divination.png');
-        this.load.image('Death', 'necromancy.png');
-        this.load.image('Earth', 'poison.png');
-        this.load.image('red', 'fire.png');
-        this.load.image('blue', 'ice.png');
-        this.load.image('white', 'divination.png');
-        this.load.image('yellow', 'divination.png');
-        this.load.image('black', 'necromancy.png');
-        this.load.image('purple', 'necromancy.png');
-        this.load.image('green', 'poison.png');
+        this.load.image('Fire', 'board-elements/school-squares/fire.png');
+        this.load.image('Water', 'board-elements/school-squares/ice.png');
+        this.load.image('neutral', 'board-elements/school-squares/summoning.png');
+        this.load.image('Life', 'board-elements/school-squares/life.png');
+        this.load.image('Death', 'board-elements/school-squares/death.png');
+        this.load.image('Earth', 'board-elements/school-squares/earth.png');
+        this.load.image('red', 'board-elements/school-squares/fire.png');
+        this.load.image('blue', 'board-elements/school-squares/ice.png');
+        this.load.image('white', 'board-elements/school-squares/life.png');
+        this.load.image('yellow', 'board-elements/school-squares/life.png');
+        this.load.image('black', 'board-elements/school-squares/death.png');
+        this.load.image('purple', 'board-elements/school-squares/death.png');
+        this.load.image('green', 'board-elements/school-squares/earth.png');
     },
     create: function () {
         this.scene.start('mainMenu');
@@ -44,5 +44,5 @@ var phaserGame = new Phaser.Game({
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH
     },
-    scene: [bootScene, mainMenu, battle, credits, new_character, maptext, cardmanager, cutscene, shop]
+    scene: [bootScene, mainMenu, battleload, battle, credits, new_character, maptext, cardmanager, cutscene, shop]
 });
