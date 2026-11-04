@@ -637,6 +637,27 @@ var battle = defineScene("battle", {
         addRow(stats, "Defense", creature.def);
         addRow(stats, "Armor", creature.armor);
         panel.appendChild(stats);
+
+        var abilityList = element("ul", "battle-square-abilities");
+        [
+            ["flying", "Flying", "Can only be hit by flying or reach creatures."],
+            ["reach", "Reach", "Can hit flying creatures."],
+            ["blitz", "Blitz", "Strikes first in the opening round of combat."],
+            ["deadly", "Deadly", "Kills any creature it damages."],
+            ["regen", "Regen", "Heals " + (creature.regen || 0) + " HP at the end of its owner's turn."]
+        ].forEach(function (ability) {
+            if (!creature[ability[0]]) {
+                return;
+            }
+            var item = element("li", "battle-square-ability is-active");
+            item.appendChild(element("strong", "", ability[1]));
+            item.appendChild(element("span", "", " " + ability[2]));
+            abilityList.appendChild(item);
+        });
+        if (abilityList.children.length > 0) {
+            panel.appendChild(element("h3", "", "Abilities"));
+            panel.appendChild(abilityList);
+        }
         panel.appendChild(element("p", "battle-square-effects",
             "Effects: " + (effects.length ? effects.join(" · ") : "None")));
     },
@@ -672,6 +693,8 @@ var battle = defineScene("battle", {
         handPanel.setAttribute("aria-label", "Your cards");
         this.humanHandPanel = handPanel;
         this.humanHandRoot = root;
+        this.createHumanPiles(root);
+        this.updateHumanPiles();
 
         var heading = document.createElement("div");
         heading.className = "battle-hand-heading";
@@ -692,6 +715,8 @@ var battle = defineScene("battle", {
             emptyMessage.textContent = "No cards available in the preview hand.";
             cardList.appendChild(emptyMessage);
         } else {
+            cardList.classList.add("has-cards");
+            cardList.style.setProperty("--card-count", String(cards.length));
             cards.forEach(function (cardInfo) {
                 var card = document.createElement("article");
                 card.className = "battle-card";
@@ -715,9 +740,24 @@ var battle = defineScene("battle", {
                     }
                 }.bind(this));
 
+                // Header: name + mana cost
+                var header = document.createElement("div");
+                header.className = "battle-card-header";
+
+                var name = document.createElement("span");
+                name.className = "battle-card-name";
+                name.textContent = cardInfo.name;
+
                 var cost = document.createElement("span");
                 cost.className = "battle-card-cost";
                 cost.textContent = String(cardInfo.cost);
+
+                header.appendChild(name);
+                header.appendChild(cost);
+
+                // Art
+                var artFrame = document.createElement("div");
+                artFrame.className = "battle-card-art-frame";
 
                 var image = document.createElement("img");
                 image.className = "battle-card-art";
@@ -725,20 +765,95 @@ var battle = defineScene("battle", {
                 image.alt = "";
                 image.loading = "lazy";
 
-                var name = document.createElement("span");
-                name.className = "battle-card-name";
-                name.textContent = cardInfo.name;
+                artFrame.appendChild(image);
 
-                var quickStats = document.createElement("span");
-                quickStats.className = "battle-card-quick-stats";
-                quickStats.textContent = cardInfo.creature
-                    ? "ATK " + cardInfo.attack + " · HP " + cardInfo.defense
-                    : "DMG " + cardInfo.damage;
+                // Type line
+                var typeLine = document.createElement("div");
+                typeLine.className = "battle-card-type-line";
 
-                preview.appendChild(cost);
-                preview.appendChild(image);
-                preview.appendChild(name);
-                preview.appendChild(quickStats);
+                var typeDot = document.createElement("span");
+                typeDot.className = "battle-card-type-dot";
+
+                var typeText = document.createElement("span");
+                typeText.textContent = (cardInfo.creature && cardInfo.spell ? "Creature · Spell"
+                    : cardInfo.creature ? "Creature" : "Spell")
+                    + " · " + (cardInfo.school || "Any");
+
+                typeLine.appendChild(typeDot);
+                typeLine.appendChild(typeText);
+
+                // Body: description + keywords
+                var body = document.createElement("div");
+                body.className = "battle-card-body";
+
+                var bodyDesc = document.createElement("p");
+                bodyDesc.className = "battle-card-description";
+                bodyDesc.textContent = cardInfo.desc || "No description available.";
+                body.appendChild(bodyDesc);
+
+                if (cardInfo.additionalDescription) {
+                    var bodyAdd = document.createElement("p");
+                    bodyAdd.className = "battle-card-additional";
+                    bodyAdd.textContent = cardInfo.additionalDescription;
+                    body.appendChild(bodyAdd);
+                }
+
+                // Footer: stats
+                var footer = document.createElement("div");
+                footer.className = "battle-card-footer";
+
+                function makeStatEl(val, lbl) {
+                    var el = document.createElement("div");
+                    el.className = "battle-card-stat";
+                    var v = document.createElement("span");
+                    v.className = "battle-card-stat-val";
+                    v.textContent = String(val);
+                    el.appendChild(v);
+                    if (lbl) {
+                        var l = document.createElement("span");
+                        l.className = "battle-card-stat-lbl";
+                        l.textContent = lbl;
+                        el.appendChild(l);
+                    }
+                    return el;
+                }
+
+                if (cardInfo.creature) {
+                    footer.appendChild(makeStatEl(cardInfo.attack, "ATK"));
+                    footer.appendChild(makeStatEl(cardInfo.defense, "HP"));
+                } else {
+                    var dmgDisplay = cardInfo.damage >= 100 ? "Destroy"
+                        : cardInfo.damage > 0 ? cardInfo.damage + " DMG" : "Effect";
+                    footer.appendChild(makeStatEl(dmgDisplay, null));
+                }
+
+                preview.appendChild(header);
+                preview.appendChild(artFrame);
+                preview.appendChild(typeLine);
+                preview.appendChild(body);
+                preview.appendChild(footer);
+
+                // Badge: a school's square swatch, or a class's player sprite. "Any" cards have none.
+                var schoolSquareBadgeFiles = {
+                    fire: "fire", water: "ice", life: "life", death: "death", earth: "earth"
+                };
+                var badgeKey = String(cardInfo.school || "").toLowerCase();
+                var badgeUrl = null;
+                if (schoolSquareBadgeFiles[badgeKey]) {
+                    badgeUrl = gameAssetUrl("assets/board-elements/school-squares/" +
+                        schoolSquareBadgeFiles[badgeKey] + ".png");
+                } else if (badgeKey && badgeKey !== "any") {
+                    badgeUrl = gameAssetUrl("assets/players/" + classPortraitFile(badgeKey));
+                }
+                if (badgeUrl) {
+                    var badge = document.createElement("img");
+                    badge.className = "battle-card-badge" +
+                        (schoolSquareBadgeFiles[badgeKey] ? " is-school" : " is-class");
+                    badge.src = badgeUrl;
+                    badge.alt = "";
+                    badge.title = cardInfo.school;
+                    preview.appendChild(badge);
+                }
 
                 var details = document.createElement("div");
                 details.className = "battle-card-details";
@@ -1547,9 +1662,58 @@ var battle = defineScene("battle", {
         return "square " + target.targetSquare;
     },
 
+    // Draws the human's next card; an empty deck is refilled by shuffling the discard pile into it.
+    // The deck array is mutated in place because the player model shares it with previewDeck.
+    drawHumanDeckCard: function () {
+        var human = this.battleTestHuman;
+        if (this.previewDeck.length < 1 && human.discard && human.discard.length > 0) {
+            Array.prototype.push.apply(this.previewDeck, shuffle(human.discard.splice(0)));
+            this.logBattleEvent(human.name + " shuffles the discard pile into the deck", human);
+        }
+        return this.previewDeck.shift();
+    },
+
+    updateHumanPiles: function () {
+        if (!this.humanPileCounts) {
+            return;
+        }
+        var human = this.battleTestHuman;
+        this.humanPileCounts.deck.textContent = this.previewDeck.length;
+        this.humanPileCounts.discard.textContent = (human.discard || []).length;
+        this.humanPileCounts.deckBox.title = "Deck: " + this.previewDeck.length + " cards";
+        this.humanPileCounts.discardBox.title = "Discard: " + (human.discard || []).length + " cards";
+    },
+
+    createHumanPiles: function (root) {
+        if (this.humanPilesEl && this.humanPilesEl.isConnected) {
+            return;
+        }
+        var wrap = document.createElement("div");
+        wrap.className = "battle-piles";
+        var counts = {};
+        ["deck", "discard"].forEach(function (kind) {
+            var box = document.createElement("div");
+            box.className = "battle-pile battle-pile--" + kind;
+            box.tabIndex = 0;
+            var label = document.createElement("span");
+            label.className = "battle-pile-label";
+            label.textContent = kind === "deck" ? "Deck" : "Discard";
+            var count = document.createElement("strong");
+            count.className = "battle-pile-count";
+            box.appendChild(label);
+            box.appendChild(count);
+            wrap.appendChild(box);
+            counts[kind] = count;
+            counts[kind + "Box"] = box;
+        });
+        root.appendChild(wrap);
+        this.humanPilesEl = wrap;
+        this.humanPileCounts = counts;
+    },
+
     drawBattleCard: function (player) {
         if (player === this.battleTestHuman) {
-            var card = this.previewDeck.shift();
+            var card = this.drawHumanDeckCard();
             if (!card) {
                 return false;
             }
@@ -1612,6 +1776,7 @@ var battle = defineScene("battle", {
         var hint = panel.querySelector(".battle-hand-heading span");
         hint.textContent = "Choose a target for " + cardInfo.name;
         this.humanCardList.style.display = "none";
+        panel.classList.add("is-targeting");
 
         var targeting = { list: null, cancel: null, markers: [] };
         this.battleTargeting = targeting;
@@ -2098,7 +2263,7 @@ var battle = defineScene("battle", {
         this.logBattleEvent(this.battleTestHuman.name + "'s turn begins", this.battleTestHuman);
 
         window.setTimeout(function () {
-            var card = scene.previewDeck.shift();
+            var card = scene.drawHumanDeckCard();
             if (!card) {
                 scene.battleTurnStatus.textContent = "No cards left to draw. Roll when ready.";
                 scene.battleRollButton.disabled = false;

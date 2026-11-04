@@ -740,6 +740,24 @@
             margin-top: 6px !important;
             font-size: 13px;
         }
+        .battle-square-abilities {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            gap: 4px;
+            font-size: 12px;
+        }
+        .battle-square-ability {
+            opacity: 0.5;
+        }
+        .battle-square-ability.is-active {
+            opacity: 1;
+            color: #f4ead2;
+        }
+        .battle-square-ability.is-active strong {
+            color: #e3be66;
+        }
         .battle-square-list {
             margin: 0;
             padding-left: 18px;
@@ -762,19 +780,85 @@
             margin: 0;
             font-weight: 600;
         }
+        .battle-piles {
+            position: absolute;
+            z-index: 12;
+            left: 12px;
+            bottom: 12px;
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+        }
+        .battle-pile {
+            width: 64px;
+            height: 88px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            border: 2px solid #e3be66;
+            border-radius: 8px;
+            background: linear-gradient(155deg, #2b3345, #151a26);
+            color: #f4ead2;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+            cursor: default;
+        }
+        .battle-pile--discard {
+            border-color: #8fa3b8;
+            filter: grayscale(0.4);
+        }
+        .battle-pile-label {
+            font-size: 0.72rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .battle-pile-count {
+            font-size: 1.3rem;
+            opacity: 0;
+            transition: opacity 150ms ease;
+        }
+        .battle-pile:hover .battle-pile-count,
+        .battle-pile:focus .battle-pile-count {
+            opacity: 1;
+        }
         .battle-hand-panel {
             position: absolute;
             z-index: 11;
+            bottom: 0;
+            right: 0;
+            left: 0;
+            display: flex;
+            justify-content: center;
+            box-sizing: border-box;
+            pointer-events: none;
+            transform: translateY(50%);
+            transition: transform 220ms ease;
+        }
+        .battle-hand-list {
+            pointer-events: auto;
+        }
+        .battle-hand-panel:has(.battle-hand-list:hover),
+        .battle-hand-panel:focus-within {
+            transform: translateY(0);
+        }
+        .battle-hand-panel.is-targeting {
+            display: block;
+            right: auto;
+            left: 50%;
+            pointer-events: auto;
             bottom: clamp(12px, 2vw, 24px);
-            left: clamp(12px, 2vw, 24px);
             width: min(680px, calc(100% - min(340px, 42vw) - 72px));
             padding: 12px 14px 14px;
-            box-sizing: border-box;
             border: 1px solid rgba(227, 190, 102, 0.45);
             border-radius: 15px;
             background: linear-gradient(155deg, rgba(37, 42, 55, 0.96), rgba(17, 21, 30, 0.96));
             box-shadow: 0 14px 40px rgba(0, 0, 0, 0.38), inset 0 1px rgba(255, 255, 255, 0.06);
-            pointer-events: auto;
+            transform: translateX(-50%);
+        }
+        .battle-hand-panel:not(.is-targeting) .battle-hand-heading {
+            display: none;
         }
         .battle-hand-heading {
             display: flex;
@@ -797,12 +881,26 @@
             margin: 8px 0 2px;
         }
         .battle-hand-list {
+            --card-width: 162px;
+            --card-gap: -10px;
             display: flex;
-            min-height: 132px;
             align-items: flex-end;
-            gap: 10px;
             overflow: visible;
-            padding: 36px 8px 6px;
+            padding: 0 8px;
+        }
+        /* An explicit width keeps the hand centered; Firefox mis-sizes flex rows with negative margins. */
+        .battle-hand-list.has-cards {
+            flex: none;
+            width: calc(var(--card-count) * var(--card-width) + (var(--card-count) - 1) * var(--card-gap));
+            transition: width 220ms ease;
+        }
+        .battle-hand-list .battle-card + .battle-card {
+            margin-left: var(--card-gap);
+            transition: margin-left 220ms ease;
+        }
+        .battle-hand-list:hover,
+        .battle-hand-panel:focus-within .battle-hand-list {
+            --card-gap: 14px;
         }
         .battle-target-list {
             display: grid;
@@ -840,10 +938,13 @@
             background: rgba(227, 190, 102, 0.24);
             outline: none;
         }
+        /* ── Card accent ─────────────────────────────────────── */
+        .battle-card                        { --card-school: #8fa3b8; }
+
         .battle-card {
             position: relative;
             z-index: 0;
-            flex: 0 0 88px;
+            flex: 0 0 var(--card-width, 162px);
         }
         .battle-card.is-drawing {
             animation: battle-card-deal 700ms cubic-bezier(0.2, 0.8, 0.25, 1) both;
@@ -855,26 +956,26 @@
         .battle-card-preview {
             position: relative;
             display: flex;
-            height: 122px;
             flex-direction: column;
-            align-items: center;
-            justify-content: flex-end;
+            height: 280px;
             overflow: hidden;
-            padding: 7px 6px;
-            box-sizing: border-box;
-            border: 1px solid #bca36a;
-            border-radius: 9px;
-            color: #f4f0e7;
-            background: linear-gradient(160deg, #42404a, #20232d 70%);
-            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.38), inset 0 0 0 2px rgba(227, 190, 102, 0.12);
+            border-radius: 10px;
+            border: 1px solid color-mix(in srgb, var(--card-school) 55%, #2a2a3a);
+            background: #18202e;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
             cursor: pointer;
             transition: transform 150ms ease, box-shadow 150ms ease;
+            outline: none;
         }
         .battle-card-preview:hover,
         .battle-card-preview:focus-visible {
+            transform: translateY(-8px) scale(1.06);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.7),
+                        0 0 16px color-mix(in srgb, var(--card-school) 32%, transparent);
+        }
+        .battle-card-preview:focus-visible {
             outline: 2px solid #fff1bd;
             outline-offset: 2px;
-            transform: translateY(-8px) scale(1.07);
         }
         @keyframes battle-card-deal {
             0% {
@@ -898,51 +999,139 @@
                 transform: rotate(9deg) translateY(2px);
             }
         }
+        /* ── Card header zone ────────────────────────────────── */
+        .battle-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 5px;
+            padding: 6px 8px 5px;
+            background: color-mix(in srgb, var(--card-school) 20%, #161c2c);
+            border-bottom: 1px solid color-mix(in srgb, var(--card-school) 35%, transparent);
+        }
+        .battle-card-name {
+            font: 700 0.7rem 'Cinzel', 'Palatino Linotype', serif;
+            color: #fff1bd;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+            min-width: 0;
+        }
         .battle-card-cost {
-            position: absolute;
-            z-index: 1;
-            top: 5px;
-            left: 5px;
-            display: grid;
-            width: 23px;
-            height: 23px;
-            place-items: center;
-            border: 1px solid rgba(255, 255, 255, 0.7);
+            flex: 0 0 20px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font: 700 0.65rem 'Cinzel', serif;
             color: #fff;
-            background: #347eaa;
-            font-size: 0.78rem;
-            font-weight: 800;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+            background: radial-gradient(circle at 35% 35%, #5b7bff, #1e3a8a);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ── Art zone ────────────────────────────────────────── */
+        .battle-card-art-frame {
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            overflow: hidden;
+            border-bottom: 1px solid color-mix(in srgb, var(--card-school) 25%, transparent);
+            background: #0d1118;
         }
         .battle-card-art {
-            position: absolute;
-            inset: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
-            opacity: 0.64;
+            display: block;
             image-rendering: pixelated;
         }
-        .battle-card-name,
-        .battle-card-quick-stats {
-            position: relative;
-            z-index: 1;
-            width: 100%;
+
+        /* ── Type line ───────────────────────────────────────── */
+        .battle-card-type-line {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px;
+            font: 600 0.6rem 'Inter', system-ui, sans-serif;
+            color: color-mix(in srgb, var(--card-school) 90%, #fff);
+            background: color-mix(in srgb, var(--card-school) 10%, #111620);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .battle-card-type-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--card-school);
+            flex-shrink: 0;
+        }
+
+        /* ── Description body ────────────────────────────────── */
+        .battle-card-body {
+            flex: 1;
             overflow: hidden;
-            text-align: center;
-            text-overflow: ellipsis;
-            text-shadow: 0 2px 4px #000, 0 0 7px #000;
-            white-space: nowrap;
+            padding: 7px 8px 5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
         }
-        .battle-card-name {
-            font-size: 0.72rem;
-            font-weight: 750;
+        .battle-card-description {
+            margin: 0;
+            font-size: 0.63rem;
+            line-height: 1.4;
+            color: #c0c8d8;
         }
-        .battle-card-quick-stats {
+        .battle-card-additional {
+            margin: 3px 0 0;
+            font: 600 0.61rem 'Inter', system-ui, sans-serif;
+            color: #f0cf83;
+        }
+
+        /* ── Stats footer ────────────────────────────────────── */
+        .battle-card-footer {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            padding: 5px 8px;
+            background: color-mix(in srgb, var(--card-school) 7%, #111620);
+        }
+        .battle-card-badge {
+            position: absolute;
+            bottom: 5px;
+            left: 6px;
+            width: 20px;
+            height: 20px;
+            box-sizing: border-box;
+            object-fit: contain;
+            image-rendering: pixelated;
+            pointer-events: none;
+        }
+        .battle-card-badge.is-school {
+            border: 1px solid #e3be66;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+        .battle-card-badge.is-class {
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.7));
+        }
+        .battle-card-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+            font-variant-numeric: tabular-nums;
+        }
+        .battle-card-stat-val {
+            font: 700 0.78rem 'Cinzel', 'Palatino Linotype', serif;
             color: #e3be66;
-            font-size: 0.62rem;
-            font-weight: 700;
+        }
+        .battle-card-stat-lbl {
+            font-size: 0.55rem;
+            color: #6a7a92;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
         }
         .battle-card-details {
             position: absolute;
@@ -1017,15 +1206,15 @@
             font-size: 0.74rem;
             text-transform: capitalize;
         }
-        .battle-card-description {
+        .battle-card-details .battle-card-description {
             margin: 0 0 11px;
             color: #e0e3e9;
             font-size: 0.82rem;
         }
-        .battle-card-description:has(+ .battle-card-additional) {
+        .battle-card-details .battle-card-description:has(+ .battle-card-additional) {
             margin-bottom: 4px;
         }
-        .battle-card-additional {
+        .battle-card-details .battle-card-additional {
             margin: 0 0 11px;
             color: #f0cf83;
             font-size: 0.78rem;
@@ -1364,10 +1553,11 @@
             .battle-player-stats {
                 margin: 7px 0;
             }
-            .battle-hand-panel {
+            .battle-hand-panel.is-targeting {
                 right: 8px;
                 bottom: 8px;
                 left: 8px;
+                transform: none;
                 width: auto;
                 padding: 8px;
             }
@@ -1375,22 +1565,27 @@
                 margin-bottom: 4px;
             }
             .battle-hand-list {
-                min-height: 100px;
-                gap: 7px;
-                padding: 26px 5px 5px;
+                --card-width: 132px;
+                padding: 0 5px;
+            }
+            .battle-hand-list.has-cards {
+                width: calc(var(--card-count) * var(--card-width) + (var(--card-count) - 1) * var(--card-gap));
+            }
+            .battle-hand-list:hover,
+            .battle-hand-panel:focus-within .battle-hand-list {
+                --card-gap: 8px;
             }
             .battle-card {
-                flex-basis: 66px;
+                flex-basis: var(--card-width, 132px);
             }
             .battle-card-preview {
-                height: 92px;
-                padding: 5px 3px;
+                height: 244px;
             }
             .battle-card-name {
-                font-size: 0.62rem;
+                font-size: 0.65rem;
             }
-            .battle-card-quick-stats {
-                font-size: 0.54rem;
+            .battle-card-stat-val {
+                font-size: 0.7rem;
             }
             .battle-card-details {
                 position: fixed;

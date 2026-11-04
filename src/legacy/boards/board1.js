@@ -12,7 +12,7 @@ var board1 = {
     boardStart: 1,
     boardEnd: 33,
     boardTotal: 28,
-    captureRequirement: 7,
+    captureRequirement: 8,
     specialSquares: [],
     choiceSquares: [],
     computerPlayers: []

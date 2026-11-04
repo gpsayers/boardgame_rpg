@@ -17,7 +17,7 @@ ID,Name,Description,Mana,Rarity,Gold Cost,Creature,Spell,Attack,Defense,Damage,I
 23,Arrow,Deal 1 to any creature,1,common,15,FALSE,TRUE,0,0,1,arrow,2,any,creature,1,0,Cavalier,0,0,0,0,0,0,,
 31,Giant Toad,Summon Giant Toad,2,common,20,TRUE,FALSE,2,3,0,giant_toad,2,,,,0,Cavalier,0,0,0,1,0,0,,Reach
 36,Training Target,Summon 0/2 Dummy to adj square,3,common,50,FALSE,TRUE,0,0,0,training_dummy_new,2,adj,ground,1,16,Cavalier,0,0,0,0,0,0,35,
-11,Death Curse,Destroy target creature,3,uncommon,50,FALSE,TRUE,0,0,100,death,0,any,creature,1,0,Death,0,0,0,0,0,0,,
+11,Death Curse,Destroy target creature,3,uncommon,50,FALSE,TRUE,0,0,100,symbol_of_torment,0,any,creature,1,0,Death,0,0,0,0,0,0,,
 22,Manipulate,Lose 1 life and Draw 1 card,1,common,10,FALSE,TRUE,0,0,1,lethal_infusion,0,self,player,1,9,Death,0,0,0,0,0,0,16,
 50,Skeleton,Summon Skeleton,1,common,20,TRUE,FALSE,2,2,1,skeleton_humanoid_small_new,1,,,,9,Death,0,0,0,0,0,0,,
 51,Specter,Summon Specter,2,common,40,TRUE,FALSE,1,2,0,spectral_warrior,1,,,,0,Death,0,1,0,0,0,0,,Flying

@@ -12,7 +12,7 @@ var board2 = {
     boardStart: 1,
     boardEnd: 50,
     boardTotal: 35,
-    captureRequirement: 7,
+    captureRequirement: 8,
     specialSquares: [],
     choiceSquares: [],
     backwardChoiceSquares: [],
