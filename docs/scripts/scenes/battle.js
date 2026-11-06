@@ -58,8 +58,26 @@ var battle = defineScene("battle", {
         scene.load.image("battle-magictrap", "board-elements/trap_magical.png");
         scene.load.image("battle-fountain", "board-elements/blue_fountain.png");
         scene.load.image("battle-start", "board-elements/stone_stairs_up.png");
-        scene.load.image("battle-target", "gui/silenced.png");
+        scene.load.image("battle-target", "gui/cursor_red.png");
+        scene.load.image("battle-target-friendly", "gui/cursor_green.png");
+        scene.load.image("battle-target-movement", "gui/cursor_yellow.png");
         scene.load.image("gpix", "gui/greenPixel.png");
+        (gameVariables.boardInfo.elements || []).forEach(function (placed) {
+            var data = getBoardElementData(placed.elementId);
+            if (!data) {
+                return;
+            }
+            [data.assetBefore, data.assetAfter].forEach(function (asset) {
+                var key = boardElementTextureKey(asset);
+                if (asset && asset !== BOARD_ELEMENT_EMPTY_ASSET && !scene.textures.exists(key)) {
+                    scene.load.image(key, "board-elements/" + asset + ".png");
+                }
+            });
+        });
+        // A missing element image only warns; the placeholder texture covers it.
+        scene.load.on("loaderror", function (file) {
+            console.warn("Board element asset not found: " + file.key);
+        });
         scene.load.image("rpix", "gui/redPixel.png");
         var humanPlayer = gameVariables.gamePlayerArray.find(function (player) {
             return player.human;
@@ -194,6 +212,8 @@ var battle = defineScene("battle", {
                 }
             }, this);
         }, this);
+
+        this.setUpBoardElements(boardInfo, squarePositions, tileSize);
 
         this.computerPlayers.forEach(function (player, index, players) {
             var position = squarePositions.get(player.square);
@@ -1857,18 +1877,24 @@ var battle = defineScene("battle", {
         });
         squareIds.forEach(function (squareId) {
             var position = scene.squarePositions.get(squareId);
-            var marker = addFittedSprite(scene, position.x, position.y, "battle-target", scene.tileSize * 0.58);
-            marker.setTint(0xff7a59);
+            var squareTargets = targets.filter(function (target) {
+                return target.targetSquare === squareId;
+            });
+            var isFriendly = squareTargets.length > 0 && squareTargets.every(function (target) {
+                return target.type === "player"
+                    ? target.model === player
+                    : target.type === "creature" && target.model.playerOwnedId === player.id;
+            });
+            var marker = addFittedSprite(scene, position.x, position.y,
+                isFriendly ? "battle-target-friendly" : "battle-target", scene.tileSize * 0.58);
             marker.alpha = 0.95;
             marker.setInteractive({ useHandCursor: true });
             marker.on("pointerover", function () {
                 setSpriteZoom(marker, 1.2);
-                marker.setTint(0xffb199);
                 scene.showSquareDetails(squareId);
             });
             marker.on("pointerout", function () {
                 setSpriteZoom(marker, 1);
-                marker.setTint(0xff7a59);
                 scene.showSquareDetails(null);
             });
             marker.on("pointerdown", function () {
@@ -2402,6 +2428,7 @@ var battle = defineScene("battle", {
 
     // Loot and hazards on the square a player has just landed on.
     resolveBattleSquareLoot: function (player) {
+        this.resolveBoardElement(player);
         var squareId = player.sprite.gameSquareId;
         var special = (gameVariables.boardInfo.specialSquares || []).find(function (item) {
             return item.squareId === squareId;
@@ -2440,6 +2467,92 @@ var battle = defineScene("battle", {
             this.logBattleEvent(player.name + " finds " + chestGold + " gold in a chest", player);
             swapMarker("battle-chest-open");
             this.refreshBattlePlayerStatus();
+        }
+    },
+
+    setUpBoardElements: function (boardInfo, squarePositions, tileSize) {
+        this.elementMarkers = new Map();
+        (boardInfo.elements || []).forEach(function (placed) {
+            // Board definitions are shared between battles, so elements start unused each time.
+            placed.triggered = 0;
+            var data = getBoardElementData(placed.elementId);
+            var position = squarePositions.get(placed.squareId);
+            if (!data || !position) {
+                console.warn("Skipping board element " + placed.elementId + " on square " + placed.squareId);
+                return;
+            }
+            var marker = addFittedSprite(this, position.x, position.y,
+                this.boardElementTexture(data.assetBefore), tileSize * 0.8);
+            marker.setDepth(BATTLE_DEPTH.boardSpecial);
+            this.boardSquares.push(marker);
+            this.elementMarkers.set(placed.squareId, marker);
+        }, this);
+    },
+
+    boardElementTexture: function (assetName) {
+        var key = boardElementTextureKey(assetName);
+        if (this.textures.exists(key)) {
+            return key;
+        }
+        if (!this.textures.exists("element-missing")) {
+            var canvas = this.textures.createCanvas("element-missing", 32, 32);
+            var context = canvas.getContext();
+            context.fillStyle = "#7a3fa0";
+            context.fillRect(4, 4, 24, 24);
+            context.fillStyle = "#ffffff";
+            context.font = "bold 20px sans-serif";
+            context.textAlign = "center";
+            context.fillText("?", 16, 24);
+            canvas.refresh();
+        }
+        return "element-missing";
+    },
+
+    // Fires the board element on the player's square when it targets them, then flips its sprite.
+    resolveBoardElement: function (player) {
+        var squareId = player.sprite.gameSquareId;
+        var placed = (gameVariables.boardInfo.elements || []).find(function (item) {
+            return item.squareId === squareId;
+        });
+        var data = placed && getBoardElementData(placed.elementId);
+        if (!data || (data.target === "human" && !player.human)) {
+            return;
+        }
+        // The start reward is granted when a player crosses the start square, not when landing on it.
+        if (data.type === BOARD_ELEMENT_TYPE.start) {
+            return;
+        }
+        if (placed.triggered > 0 && !data.repeatable) {
+            return;
+        }
+        placed.triggered++;
+        this.logBattleEvent(player.name + " triggers " + data.name, player);
+        this.applyBoardElementEffect(player, data, placed);
+
+        var marker = this.elementMarkers.get(squareId);
+        if (!marker) {
+            return;
+        }
+        if (data.assetAfter === BOARD_ELEMENT_EMPTY_ASSET) {
+            marker.setVisible(false);
+        } else {
+            fitSprite(marker.setTexture(this.boardElementTexture(data.assetAfter)), this.tileSize * 0.8);
+        }
+    },
+
+    // Per-type behavior of a triggered board element; types without a case only flip their sprite.
+    applyBoardElementEffect: function (player, data, placed) {
+        if (data.type === BOARD_ELEMENT_TYPE.manaFountain) {
+            player.maxmana++;
+            player.mana++;
+            this.logBattleEvent(player.name + " gains 1 maximum mana", player);
+            this.refreshBattlePlayerStatus();
+        } else if (data.type === BOARD_ELEMENT_TYPE.damageTrap) {
+            // Trap damage ignores armor.
+            var damage = Math.max(placed.x, 0);
+            player.hp = Math.max(player.hp - damage, 0);
+            this.logBattleEvent(player.name + " takes " + damage + " damage from " + data.name, player);
+            this.afterBattleHazard(player);
         }
     },
 
@@ -2772,17 +2885,15 @@ var battle = defineScene("battle", {
 
         routesByTargetSquare.forEach(function (route, targetSquareId) {
             var destination = scene.squarePositions.get(targetSquareId);
-            var target = addFittedSprite(scene, destination.x, destination.y, "battle-target", scene.tileSize * 0.58);
-            target.setTint(0xffd84d);
+            var target = addFittedSprite(scene, destination.x, destination.y,
+                "battle-target-movement", scene.tileSize * 0.58);
             target.alpha = 0.95;
             target.setInteractive({ useHandCursor: true });
             target.on("pointerover", function () {
                 setSpriteZoom(target, 1.2);
-                target.setTint(0xffffa8);
             });
             target.on("pointerout", function () {
                 setSpriteZoom(target, 1);
-                target.setTint(0xffd84d);
             });
             target.on("pointerdown", function () {
                 scene.clearMovementTargets();

@@ -22,10 +22,18 @@ var board1 = {
 board1.choiceSquares.push({ id: 10, left: 11, up: 20, right: 0 });
 
 
-board1.specialSquares.push({ squareId: 10, type: "pressure", looted: 0, result: 3, alt: "trap" });
-board1.specialSquares.push({ squareId: 25, type: "chest", looted: 0, result: 100, alt: "chestopen" });
-board1.specialSquares.push({ squareId: 31, type: "bluefountain", looted: 0, result: 1, alt: "dryfountain" });
-board1.specialSquares.push({ squareId: 1, type: "start", looted: 0, result: 0, alt: "start" });
+// Board elements: addBoardElement(board, squareId, elementId, effect value x, special effect y)
+board1.elements = [];
+addBoardElement(board1, 10, 4, 3, 0);
+addBoardElement(board1, 25, 2, 100, 0);
+addBoardElement(board1, 31, 1, 1, 0);
+addBoardElement(board1, 1, 16, 0, 0);
+
+//testing special squares
+addBoardElement(board1, 11, 3, 2, 0);
+addBoardElement(board1, 12, 4, 5, 0);
+addBoardElement(board1, 13, 5, 5, 0);
+addBoardElement(board1, 14, 6, 5, 0);
 
 // Computer players for board1
 board1.computerPlayers.push(new gamePlayer(1, board1.boardStart, "Fancis", "wizard", "yellow", 8, 1, false, battleTestCardList, 3,100,0));

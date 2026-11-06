@@ -1,0 +1,26 @@
+Element ID,Name,Description,Asset before,Asset after,Type,Repeatable,Target,Effect Value,Special Effect ID
+1,Mana Fountain,First player get's +x maximum mana,blue_fountain,dry_fountain,1,0,Any,x,y
+2,Chest,First player opens chest and get's x gold or special y,chest_2_closed,chest_2_open,2,0,Any,x,y
+3,Magical Trap,Every player takes x damage,trap_magical,trap_magical,3,1,Any,x,y
+4,Pressure Trap (blade),First player takes x damage,pressure_plate,trap_blade,3,0,Any,x,y
+5,Pressure Trap (arrow),First player takes x damage,pressure_plate,trap_arrow,3,0,Any,x,y
+6,Pressure Trap (axe),First player takes x damage,pressure_plate,trap_axe,3,0,Any,x,y
+7,Pressure Trap (spear),First player takes x damage,pressure_plate,trap_spear,3,0,Any,x,y
+8,Pressure Trap (bolt),First player takes x damage,pressure_plate,trap_bolt,3,0,Any,x,y
+9,Pressure Trap (net),First player get's movement penalty of -x,pressure_plate,trap_net,4,0,Any,x,y
+10,Teleport,Every player moves to teleport target y,trap_teleport,trap_teleport,5,1,Any,x,y
+11,Alarm,First human player triggers event y,alarm,empty,6,0,Human,x,y
+12,Special,Every player triggers event y,teleport_permanent,teleport_permanent,7,1,Any,x,y
+13,Health Fountain,First player who needs health can gain +x health,blood_fountain,dry_fountain,8,0,Any,x,y
+14,Card Altar,First human player get's card y added to their collection,nemelex_1,empty,9,0,Human,x,y
+15,Door,First human player unblocks movement through board square x,closed_door,open_door,10,0,Human,x,y
+16,Starting Square,Starting square for all players. Starting square effect.,stone_stairs_up,stone_stairs_up,11,1,Any,x,y
+17,Sarcophagus,First player summons creature y to the board. No owner.,sarcophagus_sealed,sarcophagus_open,12,0,Any,x,y
+18,Earth Altar,First human player get's card y added to their collection,altar_jiyva_0,empty,9,0,Human,x,y
+19,Fire Altar,First human player get's card y added to their collection,altar_makhleb_flame_1,empty,9,0,Human,x,y
+20,Death Altar,First human player get's card y added to their collection,altar_kikubaaqudgha,empty,9,0,Human,x,y
+21,Water Altar,First human player get's card y added to their collection,altar_sif_muna,empty,9,0,Human,x,y
+22,Life Altar,First human player get's card y added to their collection,gozag_0,empty,9,0,Human,x,y
+23,Relic Altar,First human player get's player item y added to their inventory,altar_elyvilon,empty,13,0,Human,x,y
+24,Weapon Altar,First human player get's player item y added to their inventory,altar_okawaru,empty,13,0,Human,x,y
+25,Creature Altar,First player summons creature y to the board. They are the owner.,altar_beogh,empty,14,0,Any,x,y
