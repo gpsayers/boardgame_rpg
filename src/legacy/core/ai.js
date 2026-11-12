@@ -593,7 +593,7 @@ var computerAI = (function () {
         return bestFirstSteps[Math.floor(Math.random() * bestFirstSteps.length)];
     }
 
-    function getNextPathIdsFrom(currentSquareId, forward) {
+    function getOpenPathIdsFrom(currentSquareId, forward) {
         var currentSquare = getBoardSquare(currentSquareId);
         if (!currentSquare || !currentSquare.sprite) {
             throw new Error("Cannot move player from missing board square " + currentSquareId);
@@ -641,7 +641,35 @@ var computerAI = (function () {
         if (nextPathIds.length === 0) {
             throw new Error("No valid movement path from board square " + currentSquareId);
         }
-        return nextPathIds;
+        return nextPathIds.filter(function (squareId) {
+            return !getBoardSquare(squareId).blocked;
+        });
+    }
+
+    function canReachStart(squareId) {
+        var startId = gameVariables.boardInfo.boardStart;
+        var visited = new Set([squareId]);
+        var queue = [squareId];
+        for (var index = 0; index < queue.length; index++) {
+            if (queue[index] === startId) {
+                return true;
+            }
+            getOpenPathIdsFrom(queue[index], true).forEach(function (nextId) {
+                if (!visited.has(nextId)) {
+                    visited.add(nextId);
+                    queue.push(nextId);
+                }
+            });
+        }
+        return false;
+    }
+
+    function getNextPathIdsFrom(currentSquareId, forward) {
+        var pathIds = getOpenPathIdsFrom(currentSquareId, forward);
+        if (forward && gameVariables.gameBoard.some(function (square) { return square.blocked; })) {
+            return pathIds.filter(canReachStart);
+        }
+        return pathIds;
     }
 
     function getNextPathIds(player, forward) {
@@ -668,7 +696,7 @@ var computerAI = (function () {
         return routes;
     }
 
-    function movePlayer(player, roll, onFork, onComplete, onStartCrossed) {
+    function movePlayer(player, roll, onFork, onComplete, onStartCrossed, onDestination) {
         if (!player || !player.sprite) {
             throw new Error("Cannot move a player without a board sprite.");
         }
@@ -688,6 +716,9 @@ var computerAI = (function () {
             }
 
             var pathIds = getNextPathIds(player, true);
+            if (pathIds.length === 0) {
+                throw new Error("No open forward path from board square " + player.sprite.gameSquareId);
+            }
             function animateTo(squareId, onStepComplete) {
                 var validPathIds = getNextPathIds(player, true);
                 if (validPathIds.indexOf(squareId) === -1) {
@@ -751,6 +782,12 @@ var computerAI = (function () {
                 );
                 return;
             }
+            if (onDestination && pathIds.length === 1) {
+                var destinations = new Set(getPossibleMovementRoutes(pathIds, stepsRemaining).map(function (route) {
+                    return route[route.length - 1];
+                }));
+                onDestination(destinations.size === 1 ? destinations.values().next().value : null);
+            }
             moveTo(choosePath(pathIds, player, stepsRemaining));
         }
 
@@ -796,9 +833,10 @@ var computerAI = (function () {
 
             function rollAndMove() {
                 var diceRoll = rollMovement(player);
+                var penalty = Math.max(0, player.movementPenalty || 0);
                 var roll = applyMovementPenalty(player, diceRoll.total);
                 if (callbacks.onTurnStart) {
-                    callbacks.onTurnStart(player, roll, diceRoll.dice);
+                    callbacks.onTurnStart(player, roll, diceRoll.dice, penalty);
                 }
 
                 movePlayer(
@@ -810,7 +848,7 @@ var computerAI = (function () {
                             callbacks.playCards(player);
                         }
                         // A Roll Again card played this turn sends the AI round for another roll and move.
-                        if (player.extraRolls > 0 && !(callbacks.isBattleOver && callbacks.isBattleOver())) {
+                        if (player.hp > 0 && player.extraRolls > 0 && !(callbacks.isBattleOver && callbacks.isBattleOver())) {
                             player.extraRolls--;
                             if (callbacks.onExtraRoll) {
                                 callbacks.onExtraRoll(player);

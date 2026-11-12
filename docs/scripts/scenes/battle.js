@@ -213,6 +213,9 @@ var battle = defineScene("battle", {
             }, this);
         }, this);
 
+        (boardInfo.blockedSquares || []).forEach(function (squareId) {
+            this.setBattleSquareBlocked(squareId, true);
+        }, this);
         this.setUpBoardElements(boardInfo, squarePositions, tileSize);
 
         this.computerPlayers.forEach(function (player, index, players) {
@@ -590,6 +593,9 @@ var battle = defineScene("battle", {
         }
         titleRow.appendChild(element("h2", "", "Square " + square.id));
         panel.appendChild(titleRow);
+        if (square.blocked) {
+            panel.appendChild(element("p", "battle-square-hint", "Path movement blocked"));
+        }
 
         var special = (gameVariables.boardInfo.specialSquares || []).find(function (item) {
             return item.squareId === square.id;
@@ -613,7 +619,7 @@ var battle = defineScene("battle", {
 
         panel.appendChild(element("h3", "", "Players"));
         var present = players.filter(function (player) {
-            return player.sprite && player.sprite.gameSquareId === square.id;
+            return player.hp > 0 && player.sprite && player.sprite.gameSquareId === square.id;
         });
         if (present.length === 0) {
             panel.appendChild(element("p", "battle-square-hint", "None"));
@@ -1079,27 +1085,41 @@ var battle = defineScene("battle", {
         }
     },
 
-    moveBattlePlayer: function (player, squareId) {
+    moveBattlePlayer: function (player, squareId, teleport) {
         var destination = this.getBattleSquare(squareId);
         if (!destination || !destination.sprite) {
             throw new Error("Cannot move player to missing board square " + squareId);
         }
         player.sprite.gameSquareId = squareId;
         player.square = squareId;
-        this.tweens.add({
-            targets: player.sprite,
-            x: destination.sprite.x,
-            y: destination.sprite.y,
-            duration: 300,
-            ease: "Linear"
-        });
-        this.logBattleEvent(player.name + " moves to square " + squareId, player);
+        if (teleport) {
+            this.tweens.killTweensOf(player.sprite);
+            player.sprite.setPosition(destination.sprite.x, destination.sprite.y);
+        } else {
+            this.tweens.add({
+                targets: player.sprite,
+                x: destination.sprite.x,
+                y: destination.sprite.y,
+                duration: 300,
+                ease: "Linear"
+            });
+        }
+        this.logBattleEvent(player.name + (teleport ? " teleports to square " : " moves to square ") + squareId, player);
     },
 
     getBattleSquare: function (squareId) {
         return gameVariables.gameBoard.find(function (square) {
             return square.id === squareId;
         });
+    },
+
+    setBattleSquareBlocked: function (squareId, blocked) {
+        var square = this.getBattleSquare(squareId);
+        if (!square || typeof blocked !== "boolean") {
+            throw new Error("Cannot set blocked state for board square " + squareId);
+        }
+        square.blocked = blocked;
+        this.renderSquareDetails();
     },
 
     getAdjacentBattleSquareIds: function (squareId) {
@@ -1605,8 +1625,7 @@ var battle = defineScene("battle", {
                 player.hp = Math.max(player.hp - cardInfo.damage, 0);
                 this.logBattleEvent(player.name + " takes " + cardInfo.damage + " damage from " + cardInfo.name, player);
                 if (player.hp <= 0) {
-                    this.logBattleEvent(player.name + " is defeated", player);
-                    this.forfeitBattleGoldLogged(player);
+                    this.defeatBattlePlayer(player);
                 }
             } else if (special === SPECIAL_EFFECT.BOOST_MAX_MANA) {
                 // A negative value drains the targeted player; a positive one always goes to the caster, once
@@ -1665,8 +1684,7 @@ var battle = defineScene("battle", {
             this.logBattleAttack(spellName, targetName, cardInfo.damage, damage, model);
             model.hp = Math.max(model.hp - damage, 0);
             if (damage > 0 && model.hp <= 0) {
-                this.logBattleEvent(model.name + " is defeated", model);
-                this.forfeitBattleGoldLogged(model);
+                this.defeatBattlePlayer(model);
             }
         }
     },
@@ -2361,8 +2379,7 @@ var battle = defineScene("battle", {
                     scene.showBattleDirectionChoices(pathIds, continueMovement, routes, continueRoute);
                 },
                 function () {
-                    scene.battleTurnStatus.textContent =
-                        "Movement complete. You are on square " + scene.battleTestHuman.sprite.gameSquareId + ".";
+                    scene.clearMovementTargets();
                     scene.battleRollButton.textContent = "Move complete";
                     scene.humanMoving = false;
                     scene.humanMovedThisTurn = true;
@@ -2370,6 +2387,8 @@ var battle = defineScene("battle", {
                     if (scene.checkBattleEnd()) {
                         return;
                     }
+                    scene.battleTurnStatus.textContent =
+                        "Movement complete. You are on square " + scene.battleTestHuman.sprite.gameSquareId + ".";
                     if (scene.pendingStartReward) {
                         scene.pendingStartReward = false;
                         scene.showStartRewardChoice(scene.battleTestHuman, true);
@@ -2383,6 +2402,9 @@ var battle = defineScene("battle", {
                     if (manaCount) {
                         manaCount.textContent = player.mana + "/" + player.maxmana;
                     }
+                },
+                function (squareId) {
+                    scene.showAutomaticMovementTarget(squareId);
                 }
             );
         }, 700);
@@ -2405,8 +2427,7 @@ var battle = defineScene("battle", {
         this.logBattleAttack(attackerName, player.name, creature.attack, damage, player);
         player.hp = Math.max(player.hp - damage, 0);
         if (damage > 0 && player.hp <= 0) {
-            this.logBattleEvent(player.name + " is defeated", player);
-            this.forfeitBattleGoldLogged(player);
+            this.defeatBattlePlayer(player);
         }
         this.refreshBattlePlayerStatus();
     },
@@ -2428,8 +2449,35 @@ var battle = defineScene("battle", {
 
     // Loot and hazards on the square a player has just landed on.
     resolveBattleSquareLoot: function (player) {
-        this.resolveBoardElement(player);
+        var visitedTeleports = new Set();
+        while (player.hp > 0) {
+            var squareId = player.sprite.gameSquareId;
+            var placed = (gameVariables.boardInfo.elements || []).find(function (item) {
+                return item.squareId === squareId;
+            });
+            var data = placed && getBoardElementData(placed.elementId);
+            if (data && data.type === BOARD_ELEMENT_TYPE.teleport &&
+                (data.target !== "human" || player.human) && (data.repeatable || !placed.triggered)) {
+                if (visitedTeleports.has(squareId)) {
+                    this.logBattleEvent("Teleport loop stopped on square " + squareId, player);
+                    break;
+                }
+                visitedTeleports.add(squareId);
+            }
+            this.resolveBattleSquareAtCurrentPosition(player);
+            if (player.sprite.gameSquareId === squareId) {
+                break;
+            }
+        }
+        this.renderSquareDetails();
+    },
+
+    resolveBattleSquareAtCurrentPosition: function (player) {
         var squareId = player.sprite.gameSquareId;
+        this.resolveBoardElement(player);
+        if (player.hp <= 0) {
+            return;
+        }
         var special = (gameVariables.boardInfo.specialSquares || []).find(function (item) {
             return item.squareId === squareId;
         });
@@ -2525,6 +2573,14 @@ var battle = defineScene("battle", {
         if (placed.triggered > 0 && !data.repeatable) {
             return;
         }
+        if (data.type === BOARD_ELEMENT_TYPE.teleport &&
+            (!Number.isInteger(placed.y) || !this.getBattleSquare(placed.y))) {
+            throw new Error("Teleport on square " + squareId + " has invalid destination " + placed.y);
+        }
+        if (data.type === BOARD_ELEMENT_TYPE.door &&
+            (!Number.isInteger(placed.x) || !this.getBattleSquare(placed.x))) {
+            throw new Error("Door on square " + squareId + " has invalid blocked square " + placed.x);
+        }
         placed.triggered++;
         this.logBattleEvent(player.name + " triggers " + data.name, player);
         this.applyBoardElementEffect(player, data, placed);
@@ -2553,6 +2609,27 @@ var battle = defineScene("battle", {
             player.hp = Math.max(player.hp - damage, 0);
             this.logBattleEvent(player.name + " takes " + damage + " damage from " + data.name, player);
             this.afterBattleHazard(player);
+        } else if (data.type === BOARD_ELEMENT_TYPE.movementTrap) {
+            var penalty = Math.max(placed.x, 0);
+            player.movementPenalty = (player.movementPenalty || 0) + penalty;
+            this.logBattleEvent(player.name + " is caught by " + data.name + " and will move " + penalty +
+                " less on their next roll", player);
+        } else if (data.type === BOARD_ELEMENT_TYPE.teleport) {
+            this.moveBattlePlayer(player, placed.y, true);
+        } else if (data.type === BOARD_ELEMENT_TYPE.door) {
+            this.setBattleSquareBlocked(placed.x, false);
+            this.logBattleEvent(player.name + " opens " + data.name + ", unblocking square " + placed.x, player);
+        } else if (data.type === BOARD_ELEMENT_TYPE.chest) {
+            // Chest gold is battle gold, so it only counts if the player wins the battle.
+            if (placed.x > 0) {
+                var chestGold = grantBattleGold(player, placed.x);
+                this.logBattleEvent(player.name + " finds " + chestGold + " gold in a chest", player);
+            }
+            var chestSpecial = BOARD_ELEMENT_CHEST_SPECIALS[placed.y];
+            if (placed.y > 0 && chestSpecial) {
+                chestSpecial.call(this, player, placed);
+            }
+            this.refreshBattlePlayerStatus();
         }
     },
 
@@ -2561,10 +2638,16 @@ var battle = defineScene("battle", {
             this.cameras.main.flash(500, 255, 0, 0);
         }
         if (player.hp <= 0) {
-            this.logBattleEvent(player.name + " is defeated", player);
-            this.forfeitBattleGoldLogged(player);
+            this.defeatBattlePlayer(player);
         }
         this.refreshBattlePlayerStatus();
+    },
+
+    defeatBattlePlayer: function (player) {
+        player.sprite.setVisible(false);
+        this.logBattleEvent(player.name + " is defeated", player);
+        this.forfeitBattleGoldLogged(player);
+        this.renderSquareDetails();
     },
 
     // Crossing the start square lets a player pick one of three rewards.
@@ -2756,9 +2839,12 @@ var battle = defineScene("battle", {
             onDrawCard: function (player) {
                 scene.logBattleEvent(player.name + " draws a card", player);
             },
-            onTurnStart: function (player, roll, dice) {
+            onTurnStart: function (player, roll, dice, penalty) {
                 var rollText = dice ? describeDiceRoll(dice) : String(roll);
                 scene.logBattleEvent(player.name + " rolled " + rollText, player);
+                if (penalty > 0) {
+                    scene.logBattleEvent(player.name + " is slowed by " + penalty + " and moves " + roll, player);
+                }
                 scene.setBattleTestActivePlayer(player);
                 var cardCount = scene.playerCardCountLabels.get(player);
                 if (cardCount) {
@@ -2774,6 +2860,11 @@ var battle = defineScene("battle", {
                 scene.battleDie.classList.add("is-rolling");
             },
             playCards: function (player) {
+                // The landing square's hazard resolves first, so a player it kills cannot play cards or capture.
+                scene.resolveBattleSquareLoot(player);
+                if (player.hp <= 0) {
+                    return;
+                }
                 scene.playBattleTestAICards(player);
             },
             onStartCrossed: function (player) {
@@ -2784,7 +2875,6 @@ var battle = defineScene("battle", {
                 }
             },
             onTurnComplete: function (player) {
-                scene.resolveBattleSquareLoot(player);
                 scene.applyEndOfTurnCreatureDamage(player);
                 scene.applyEndOfTurnRegen(player);
                 scene.battleDie.classList.remove("is-rolling");
@@ -2811,6 +2901,24 @@ var battle = defineScene("battle", {
                 scene.startBattleTurn();
             }
         });
+    },
+
+    showAutomaticMovementTarget: function (squareId) {
+        if (squareId !== null && this.movementTargetSprites &&
+            this.movementTargetSprites.has(squareId)) {
+            return;
+        }
+        this.clearMovementTargets();
+        if (squareId === null) {
+            return;
+        }
+        var destination = this.squarePositions.get(squareId);
+        var target = addFittedSprite(this, destination.x, destination.y,
+            "battle-target-movement", this.tileSize * 0.58);
+        target.alpha = 0.95;
+        target.setDepth(BATTLE_DEPTH.spellEffect);
+        this.movementTargetSprites = new Map([[squareId, target]]);
+        this.boardSquares.push(target);
     },
 
     showBattleDirectionChoices: function (pathIds, continueMovement, routes, continueRoute) {
@@ -2963,8 +3071,12 @@ var battle = defineScene("battle", {
         }
 
         this.movementTargetSprites.forEach(function (target) {
+            var index = this.boardSquares.indexOf(target);
+            if (index >= 0) {
+                this.boardSquares.splice(index, 1);
+            }
             target.destroy();
-        });
+        }, this);
         this.movementTargetSprites.clear();
     }
 });

@@ -1,5 +1,6 @@
 // Data-driven board elements: boards place them with addBoardElement(board, squareId, elementId, x, y)
 // and the per-element data (assets, type, repeatable, target) comes from boardelementdata.csv.
+// For doors, x is the ID of the blocked square to open.
 var BOARD_ELEMENT_TYPE = {
     manaFountain: 1,
     chest: 2,

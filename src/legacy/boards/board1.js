@@ -13,6 +13,8 @@ var board1 = {
     boardEnd: 33,
     boardTotal: 28,
     captureRequirement: 8,
+    // Square IDs blocked for path movement at the start of each battle.
+    blockedSquares: [],
     specialSquares: [],
     choiceSquares: [],
     computerPlayers: []
@@ -30,10 +32,11 @@ addBoardElement(board1, 31, 1, 1, 0);
 addBoardElement(board1, 1, 16, 0, 0);
 
 //testing special squares
-addBoardElement(board1, 11, 3, 2, 0);
-addBoardElement(board1, 12, 4, 5, 0);
-addBoardElement(board1, 13, 5, 5, 0);
-addBoardElement(board1, 14, 6, 5, 0);
+addBoardElement(board1, 11, 10, 1, 2);
+addBoardElement(board1, 12, 10, 1, 2);
+addBoardElement(board1, 13, 10, 1, 2);
+addBoardElement(board1, 14, 10, 1, 2);
+addBoardElement(board1, 15, 10, 0, 2);
 
 // Computer players for board1
 board1.computerPlayers.push(new gamePlayer(1, board1.boardStart, "Fancis", "wizard", "yellow", 8, 1, false, battleTestCardList, 3,100,0));

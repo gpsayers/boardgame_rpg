@@ -1,5 +1,6 @@
 // Data-driven board elements: boards place them with addBoardElement(board, squareId, elementId, x, y)
 // and the per-element data (assets, type, repeatable, target) comes from boardelementdata.csv.
+// For doors, x is the ID of the blocked square to open.
 var BOARD_ELEMENT_TYPE = {
     manaFountain: 1,
     chest: 2,
@@ -18,6 +19,10 @@ var BOARD_ELEMENT_TYPE = {
 };
 
 var BOARD_ELEMENT_EMPTY_ASSET = "empty";
+
+// Chest special effects by special effect id y. Each is called with the scene as `this`
+// and receives (player, placedElement). Ids without an entry give no special reward.
+var BOARD_ELEMENT_CHEST_SPECIALS = {};
 var masterBoardElementList = [];
 
 function addBoardElement(board, squareId, elementId, effectValue, specialEffectId) {

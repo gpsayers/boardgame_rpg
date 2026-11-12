@@ -13,6 +13,7 @@ var board2 = {
     boardEnd: 50,
     boardTotal: 35,
     captureRequirement: 8,
+    blockedSquares: [],
     specialSquares: [],
     choiceSquares: [],
     backwardChoiceSquares: [],
@@ -43,4 +44,3 @@ board2.computerPlayers.push(new gamePlayer(2, board1.boardStart, "Ginny", "sorce
 board2.computerPlayers[board2.computerPlayers.length - 1].aiProfile = "guardian";
 board2.computerPlayers.push(new gamePlayer(3, board1.boardStart, "Fred", "cavalier", "Life", 12, 1, false, redWizard1List, 3, 100, 0));
 board2.computerPlayers[board2.computerPlayers.length - 1].aiProfile = "opportunist";
-
